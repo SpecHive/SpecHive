@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { AllExceptionsFilter } from '@assertly/nestjs-common';
 import helmet from '@fastify/helmet';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -6,7 +7,6 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { type EnvConfig } from './modules/config/env.validation';
 
 async function bootstrap() {

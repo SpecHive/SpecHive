@@ -1,14 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule as NestConfigModule } from '@nestjs/config';
+import { createConfigModule } from '@assertly/nestjs-common';
 
-import { validate } from './env.validation';
+import { envSchema } from './env.validation';
 
-@Module({
-  imports: [
-    NestConfigModule.forRoot({
-      isGlobal: true,
-      validate,
-    }),
-  ],
-})
-export class ConfigModule {}
+export const ConfigModule = createConfigModule(envSchema);

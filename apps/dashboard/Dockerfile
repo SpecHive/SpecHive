@@ -44,26 +44,13 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN pnpm --filter @assertly/dashboard run build
 
 # ============================================================
-# Production: serve compiled assets with a lightweight HTTP server
+# Production: serve compiled assets with nginx
 # ============================================================
-FROM node:22-alpine AS production
+FROM nginx:1.27-alpine AS production
 
-ENV NODE_ENV=production
+COPY --from=build /app/apps/dashboard/dist /usr/share/nginx/html
+COPY apps/dashboard/nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN addgroup -S assertly && adduser -S assertly -G assertly
+EXPOSE 80
 
-# Use 'serve' to host the static dist folder
-RUN npm install -g serve@14
-
-WORKDIR /app
-
-COPY --from=build /app/apps/dashboard/dist ./dist
-
-RUN chown -R assertly:assertly /app
-
-USER assertly
-
-EXPOSE 5173
-
-# serve on the same port Vite uses so no downstream config changes are needed
-CMD ["serve", "-s", "dist", "-l", "5173"]
+CMD ["nginx", "-g", "daemon off;"]

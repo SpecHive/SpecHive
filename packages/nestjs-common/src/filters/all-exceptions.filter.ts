@@ -1,16 +1,15 @@
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 
-import type { EnvConfig } from '../modules/config/env.validation';
+import type { BaseEnvConfig } from '../config/base-env.schema';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
   private readonly isDevelopment: boolean;
 
-  constructor(configService: ConfigService<EnvConfig>) {
+  constructor(configService: ConfigService<BaseEnvConfig>) {
     this.isDevelopment = configService.get<string>('NODE_ENV') === 'development';
   }
 

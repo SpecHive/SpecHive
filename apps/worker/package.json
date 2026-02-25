@@ -11,6 +11,7 @@
     "test:e2e": "vitest run test/"
   },
   "dependencies": {
+    "@assertly/nestjs-common": "workspace:*",
     "@fastify/helmet": "^13.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",

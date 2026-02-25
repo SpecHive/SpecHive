@@ -1,8 +1,7 @@
+import { AllExceptionsFilter } from '@assertly/nestjs-common';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { describe, it, expect, vi } from 'vitest';
-
-import { AllExceptionsFilter } from '../src/filters/all-exceptions.filter';
 
 function createMockHost() {
   const mockSend = vi.fn();

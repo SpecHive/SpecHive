@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@assertly/database": "workspace:*",
+    "@assertly/nestjs-common": "workspace:*",
     "@assertly/reporter-core-protocol": "workspace:*",
     "@assertly/shared-types": "workspace:*",
     "@fastify/helmet": "^13.0.0",
