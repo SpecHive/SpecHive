@@ -1,9 +1,9 @@
+import { HealthModule } from '@assertly/nestjs-common';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ConfigModule } from './modules/config/config.module';
-import { HealthModule } from './modules/health/health.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 
 @Module({

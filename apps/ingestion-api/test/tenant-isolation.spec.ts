@@ -132,6 +132,54 @@ describe('Tenant isolation — verifyRunOwnership cross-tenant rejection', () =>
     });
   });
 
+  describe('SuiteService.handleSuiteEnd', () => {
+    it('throws NotFoundException when run belongs to a different project', async () => {
+      const module = await Test.createTestingModule({
+        providers: [SuiteService],
+      }).compile();
+
+      const service = module.get(SuiteService);
+
+      const event = {
+        version: '1' as const,
+        timestamp: TIMESTAMP,
+        runId: RUN_ID,
+        eventType: 'suite.end' as const,
+        payload: { suiteId: SUITE_ID },
+      };
+
+      await expect(
+        service.handleSuiteEnd(event, WRONG_PROJECT_ID, mockTx as unknown as Database),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('TestService.handleTestEnd', () => {
+    it('throws NotFoundException when run belongs to a different project', async () => {
+      const module = await Test.createTestingModule({
+        providers: [TestService],
+      }).compile();
+
+      const service = module.get(TestService);
+
+      const event = {
+        version: '1' as const,
+        timestamp: TIMESTAMP,
+        runId: RUN_ID,
+        eventType: 'test.end' as const,
+        payload: {
+          testId: TEST_ID,
+          status: 'passed' as const,
+          durationMs: 100,
+        },
+      };
+
+      await expect(
+        service.handleTestEnd(event, WRONG_PROJECT_ID, mockTx as unknown as Database),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('ArtifactService.handleArtifactUpload', () => {
     it('throws NotFoundException when run belongs to a different project', async () => {
       const module = await Test.createTestingModule({

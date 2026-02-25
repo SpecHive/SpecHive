@@ -10,8 +10,11 @@ export function createDbConnection(url?: string) {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
+  const poolMax = Number(process.env['DB_POOL_MAX']);
+  const maxConnections = Number.isNaN(poolMax) ? 10 : poolMax;
+
   const client = postgres(connectionString, {
-    max: parseInt(process.env['DB_POOL_MAX'] || '10', 10),
+    max: maxConnections,
     idle_timeout: 20,
     connect_timeout: 10,
   });
@@ -24,4 +27,11 @@ export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 /** Sets the RLS tenant context for the current transaction (must be called inside db.transaction). */
 export async function setTenantContext(tx: Transaction, organizationId: string) {
   await tx.execute(sql`SELECT set_config('app.current_organization_id', ${organizationId}, true)`);
+}
+
+/** Extracts the raw postgres-js client from a Drizzle instance. */
+export function getRawClient(db: Database): postgres.Sql {
+  const raw = (db as unknown as { $client: postgres.Sql }).$client;
+  if (!raw) throw new Error('Failed to extract raw client from Drizzle instance');
+  return raw;
 }

@@ -5,10 +5,15 @@ import { randomBytes, createHash } from 'node:crypto';
 import { ArtifactType, MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
 import { hash } from 'argon2';
 
-import { createDbConnection } from './connection.js';
+import { createDbConnection, getRawClient } from './connection.js';
 import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('Seed script cannot run in production. Aborting.');
+  process.exit(1);
+}
 
 async function seed() {
   // Seeding must use the superuser role to bypass RLS
@@ -211,7 +216,7 @@ async function seed() {
     console.log(`Project token (save this, it will not be shown again): ${plainToken}`);
   } finally {
     // Ensure connection is cleaned up
-    const client = (db as unknown as { $client: { end: () => Promise<void> } }).$client;
+    const client = getRawClient(db);
     await client.end();
   }
 

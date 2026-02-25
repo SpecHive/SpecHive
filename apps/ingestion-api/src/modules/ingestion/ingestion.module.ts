@@ -1,4 +1,4 @@
-import { createDbConnection, type Transaction } from '@assertly/database';
+import { createDbConnection, getRawClient, type Transaction } from '@assertly/database';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
@@ -21,11 +21,7 @@ import { TestService } from './services/test.service';
       useFactory: (config: ConfigService<EnvConfig>) => ({
         dialect: new PostgreSqlDialect(),
         adapter: (tx: Transaction) => async (sql: string, params: unknown[]) => {
-          // Drizzle doesn't expose the raw postgres-js client in its public types
-          type RawSqlClient = {
-            unsafe: (sql: string, params: unknown[]) => Promise<{ id: string }[]>;
-          };
-          const client = (tx as unknown as { session: { client: RawSqlClient } }).session.client;
+          const client = getRawClient(tx);
           return client.unsafe(sql, params);
         },
         defaultDestinationUrl:

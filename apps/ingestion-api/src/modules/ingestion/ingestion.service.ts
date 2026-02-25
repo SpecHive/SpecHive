@@ -36,7 +36,7 @@ export class IngestionService {
   ): Promise<{ runId: RunId }> {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
-      const txDb = tx as unknown as Database;
+      const txDb = tx as Database;
       const result = await this.handleEvent(event, projectId, txDb);
 
       await this.outboxy.publish(

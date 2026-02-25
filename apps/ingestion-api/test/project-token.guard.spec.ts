@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -109,5 +111,23 @@ describe('ProjectTokenGuard', () => {
     const result = await guard.canActivate(context);
 
     expect(result).toBe(true);
+  });
+
+  it('hashes the token with SHA-256 and queries the database with the hex digest', async () => {
+    const knownToken = 'tok_test_deterministic';
+    const expectedHash = createHash('sha256').update(knownToken).digest('hex');
+
+    mockExecute
+      .mockResolvedValueOnce([{ project_id: PROJECT_ID, organization_id: ORG_ID }])
+      .mockResolvedValue(undefined);
+
+    const context = makeContext({ 'x-project-token': knownToken });
+    await guard.canActivate(context);
+
+    // The first db.execute call is the token validation query
+    const firstCallArg = mockExecute.mock.calls[0]?.[0] as { queryChunks?: unknown[] };
+    // The Sql object contains the hash as one of its params; convert the query to inspect it
+    const sqlString = JSON.stringify(firstCallArg);
+    expect(sqlString).toContain(expectedHash);
   });
 });

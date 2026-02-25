@@ -27,7 +27,10 @@
     "onlyBuiltDependencies": [
       "argon2",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "@esbuild-kit/core-utils>esbuild": ">=0.25.0"
+    }
   },
   "devDependencies": {
     "@assertly/eslint-config": "workspace:*",

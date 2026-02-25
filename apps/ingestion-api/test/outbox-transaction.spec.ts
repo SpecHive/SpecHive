@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+import { SQL } from 'drizzle-orm';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { DATABASE_CONNECTION } from '../src/constants';
@@ -98,6 +99,31 @@ describe('IngestionService — outbox transaction integrity', () => {
     );
 
     expect(mockPublish).not.toHaveBeenCalled();
+  });
+
+  it('calls setTenantContext with the correct organizationId inside the transaction', async () => {
+    const txExecute = vi.fn().mockResolvedValue(undefined);
+
+    mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
+      return cb({ $client: {}, execute: txExecute });
+    });
+
+    await service.processEvent(makeRunStartEvent(), PROJECT_ID, ORG_ID);
+
+    expect(txExecute).toHaveBeenCalled();
+
+    // setTenantContext is the first tx.execute call; extract the Sql object and inspect it
+    const firstCallArg = txExecute.mock.calls[0]?.[0] as SQL;
+    expect(firstCallArg).toBeInstanceOf(SQL);
+
+    const { sql: queryText, params } = firstCallArg.toQuery({
+      escapeName: (name: string) => `"${name}"`,
+      escapeParam: (_n: number, v: unknown) => String(v),
+      escapeString: (s: string) => `'${s}'`,
+    });
+
+    expect(queryText).toContain('set_config');
+    expect(params).toContain(ORG_ID);
   });
 
   it('sends the same idempotency key for the same event processed twice', async () => {

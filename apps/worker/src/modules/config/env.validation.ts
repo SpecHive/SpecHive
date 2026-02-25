@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const envSchema = baseEnvSchema.extend({
   PORT: z.coerce.number().default(3001),
-  WEBHOOK_SECRET: z.string().min(1),
+  WEBHOOK_SECRET: z.string().min(32),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

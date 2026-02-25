@@ -6,7 +6,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 import { DATABASE_CONNECTION } from '../src/constants';
 import { ProjectTokenGuard } from '../src/guards/project-token.guard';
@@ -124,6 +124,131 @@ describe('IngestionController', () => {
         MOCK_PROJECT_CONTEXT.projectId,
         MOCK_PROJECT_CONTEXT.organizationId,
       );
+    });
+
+    describe('event type routing', () => {
+      const RUN_ID = '00000000-0000-4000-8000-000000000001';
+      const SUITE_ID = '00000000-0000-4000-a000-000000000010';
+      const TEST_ID = '00000000-0000-4000-a000-000000000020';
+      const TIMESTAMP = '2026-02-24T10:00:00.000Z';
+
+      beforeEach(() => {
+        mockProcessEvent.mockResolvedValue({ runId: RUN_ID });
+      });
+
+      it('routes run.end and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'run.end',
+          payload: { status: 'passed' },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'run.end' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
+
+      it('routes suite.start and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'suite.start',
+          payload: { suiteId: SUITE_ID, suiteName: 'Suite' },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'suite.start' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
+
+      it('routes suite.end and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'suite.end',
+          payload: { suiteId: SUITE_ID },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'suite.end' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
+
+      it('routes test.start and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'test.start',
+          payload: { testId: TEST_ID, suiteId: SUITE_ID, testName: 'test' },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'test.start' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
+
+      it('routes test.end and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'test.end',
+          payload: { testId: TEST_ID, status: 'passed', durationMs: 100 },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'test.end' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
+
+      it('routes artifact.upload and returns 202', async () => {
+        const payload = {
+          version: '1',
+          timestamp: TIMESTAMP,
+          runId: RUN_ID,
+          eventType: 'artifact.upload',
+          payload: { testId: TEST_ID, artifactType: 'screenshot', name: 'img.png', data: 'base64' },
+        };
+
+        const response = await app.inject({ method: 'POST', url: '/v1/events', payload });
+
+        expect(response.statusCode).toBe(202);
+        expect(mockProcessEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: 'artifact.upload' }),
+          MOCK_PROJECT_CONTEXT.projectId,
+          MOCK_PROJECT_CONTEXT.organizationId,
+        );
+      });
     });
 
     it('POST /v1/events with invalid schema returns 400', async () => {

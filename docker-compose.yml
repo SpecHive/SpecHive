@@ -55,7 +55,7 @@ services:
       start_period: 10s
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-01-17T02-09-56Z
     networks:
       - assertly-network
     depends_on:
@@ -74,6 +74,7 @@ services:
   # ---------------------------------------------------------------------------
   outboxy-migrate:
     image: ghcr.io/outboxy/outboxy:v0.4.0
+    restart: on-failure
     networks:
       - assertly-network
     command: migrate
@@ -99,6 +100,8 @@ services:
       retries: 5
       start_period: 15s
     depends_on:
+      outboxy-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
 
@@ -112,12 +115,6 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
-    healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:3100/health']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,6 +145,11 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
       OUTBOXY_API_URL: http://outboxy-api:3100
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
+      MINIO_USE_SSL: 'false'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
       interval: 10s
@@ -172,7 +174,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: '3001'
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-in-production}
+      DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
       interval: 10s

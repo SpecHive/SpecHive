@@ -37,6 +37,13 @@
       "when": 1772260200000,
       "tag": "0004_rls_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772346600000,
+      "tag": "0005_add_notnull_counters",
+      "breakpoints": true
     }
   ]
 }

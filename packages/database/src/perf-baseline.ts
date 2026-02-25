@@ -6,7 +6,7 @@ import { MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
-import { createDbConnection } from './connection.js';
+import { createDbConnection, getRawClient } from './connection.js';
 import { runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
@@ -215,10 +215,8 @@ async function explainAnalyze(
 ): Promise<QueryResult> {
   const explainSql = `EXPLAIN ANALYZE ${rawSql}`;
   // postgres-js exposes $client for raw SQL on the drizzle instance
-  const client = (
-    db as unknown as { $client: { unsafe: (q: string, p: unknown[]) => Promise<ExplainRow[]> } }
-  ).$client;
-  const rows = await client.unsafe(explainSql, params);
+  const client = getRawClient(db);
+  const rows = (await client.unsafe(explainSql, params as string[])) as unknown as ExplainRow[];
   const planLines = rows.map((r) => r['QUERY PLAN']);
   const usesSeqScan = planLines.some((line) => line.includes('Seq Scan'));
 
