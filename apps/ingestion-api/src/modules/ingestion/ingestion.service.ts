@@ -1,5 +1,6 @@
 import { type Database } from '@assertly/database';
 import { type V1Event } from '@assertly/reporter-core-protocol';
+import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
@@ -39,7 +40,7 @@ export class IngestionService {
     private readonly artifactService: ArtifactService,
   ) {}
 
-  async processEvent(event: V1Event, projectId: string): Promise<{ runId: string }> {
+  async processEvent(event: V1Event, projectId: ProjectId): Promise<{ runId: RunId }> {
     return this.db.transaction(async (tx) => {
       const txDb = tx as unknown as Database;
       const result = await this.handleEvent(event, projectId, txDb);
@@ -61,9 +62,9 @@ export class IngestionService {
 
   private async handleEvent(
     event: V1Event,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     switch (event.eventType) {
       case 'run.start':
         return this.runService.handleRunStart(event, projectId, tx);

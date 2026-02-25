@@ -1,6 +1,7 @@
 import { artifacts, runs } from '@assertly/database';
 import type { Database } from '@assertly/database';
 import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
+import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
@@ -10,9 +11,9 @@ export class ArtifactService {
 
   async handleArtifactUpload(
     event: ArtifactUploadEvent,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     const [run] = await tx
       .select({ projectId: runs.projectId })
       .from(runs)

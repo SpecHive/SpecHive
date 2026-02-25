@@ -2,6 +2,7 @@ import { runs } from '@assertly/database';
 import type { Database } from '@assertly/database';
 import type { RunEndEvent, RunStartEvent } from '@assertly/reporter-core-protocol';
 import { RunStatus } from '@assertly/shared-types';
+import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
@@ -11,9 +12,9 @@ export class RunService {
 
   async handleRunStart(
     event: RunStartEvent,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     await tx.insert(runs).values({
       id: event.runId,
       projectId,
@@ -28,9 +29,9 @@ export class RunService {
 
   async handleRunEnd(
     event: RunEndEvent,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     const [run] = await tx
       .select({ projectId: runs.projectId })
       .from(runs)

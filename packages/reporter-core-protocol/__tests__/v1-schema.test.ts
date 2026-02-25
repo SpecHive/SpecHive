@@ -1,5 +1,6 @@
 import { RunStatus, TestStatus, ArtifactType } from '@assertly/shared-types';
-import { describe, it, expect } from 'vitest';
+import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
   RunStartSchema,
@@ -392,5 +393,43 @@ describe('Edge cases: timestamp and runId', () => {
       payload: {},
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('Branded ID types', () => {
+  it('parsed runId is branded as RunId', () => {
+    const result = RunStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.start',
+      payload: {},
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expectTypeOf(result.data.runId).toEqualTypeOf<RunId>();
+    }
+  });
+
+  it('parsed suiteId is branded as SuiteId', () => {
+    const result = SuiteStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'suite.start',
+      payload: { suiteId: SUITE_ID, suiteName: 'Auth Tests' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expectTypeOf(result.data.payload.suiteId).toEqualTypeOf<SuiteId>();
+    }
+  });
+
+  it('parsed testId is branded as TestId', () => {
+    const result = TestStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'test.start',
+      payload: { testId: TEST_ID, suiteId: SUITE_ID, testName: 'should work' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expectTypeOf(result.data.payload.testId).toEqualTypeOf<TestId>();
+    }
   });
 });

@@ -2,6 +2,7 @@ import { runs, tests } from '@assertly/database';
 import type { Database } from '@assertly/database';
 import type { TestEndEvent, TestStartEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus } from '@assertly/shared-types';
+import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
@@ -11,9 +12,9 @@ export class TestService {
 
   async handleTestStart(
     event: TestStartEvent,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     const [run] = await tx
       .select({ projectId: runs.projectId })
       .from(runs)
@@ -39,9 +40,9 @@ export class TestService {
 
   async handleTestEnd(
     event: TestEndEvent,
-    projectId: string,
+    projectId: ProjectId,
     tx: Database,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: RunId }> {
     const [run] = await tx
       .select({ projectId: runs.projectId })
       .from(runs)

@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { projectTokens, projects } from '@assertly/database';
 import type { Database } from '@assertly/database';
+import type { OrganizationId, ProjectId } from '@assertly/shared-types';
+import { asOrganizationId, asProjectId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -9,8 +11,8 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../modules/ingestion/ingestion.service';
 
 export interface ProjectContext {
-  projectId: string;
-  organizationId: string;
+  projectId: ProjectId;
+  organizationId: OrganizationId;
 }
 
 @Injectable()
@@ -45,8 +47,8 @@ export class ProjectTokenGuard implements CanActivate {
     }
 
     const projectContext: ProjectContext = {
-      projectId: rows[0]!.projectId,
-      organizationId: rows[0]!.organizationId,
+      projectId: asProjectId(rows[0]!.projectId),
+      organizationId: asOrganizationId(rows[0]!.organizationId),
     };
 
     request.projectContext = projectContext;
