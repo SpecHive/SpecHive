@@ -1,2 +1,7 @@
 export * from './schema/index.js';
-export { createDbConnection, type Database, type Transaction } from './connection.js';
+export {
+  createDbConnection,
+  setTenantContext,
+  type Database,
+  type Transaction,
+} from './connection.js';

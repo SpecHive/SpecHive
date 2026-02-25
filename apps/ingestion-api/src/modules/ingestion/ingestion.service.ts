@@ -1,6 +1,6 @@
-import { type Database, type Transaction } from '@assertly/database';
+import { type Database, setTenantContext, type Transaction } from '@assertly/database';
 import { type V1Event } from '@assertly/reporter-core-protocol';
-import type { ProjectId, RunId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
@@ -29,8 +29,13 @@ export class IngestionService {
     private readonly artifactService: ArtifactService,
   ) {}
 
-  async processEvent(event: V1Event, projectId: ProjectId): Promise<{ runId: RunId }> {
+  async processEvent(
+    event: V1Event,
+    projectId: ProjectId,
+    organizationId: OrganizationId,
+  ): Promise<{ runId: RunId }> {
     return this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
       const txDb = tx as unknown as Database;
       const result = await this.handleEvent(event, projectId, txDb);
 

@@ -26,11 +26,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     environment:
-      POSTGRES_USER: assertly
-      POSTGRES_PASSWORD: assertly
-      POSTGRES_DB: assertly
+      POSTGRES_USER: ${POSTGRES_USER:-assertly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assertly}
+      POSTGRES_DB: ${POSTGRES_DB:-assertly}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U assertly -d assertly']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-assertly} -d ${POSTGRES_DB:-assertly}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -131,7 +131,7 @@ services:
       - '3000:3000'
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
+      DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3000'
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy

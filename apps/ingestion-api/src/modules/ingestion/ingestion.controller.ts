@@ -44,6 +44,10 @@ export class IngestionController {
       throw new BadRequestException({ message });
     }
 
-    return this.ingestionService.processEvent(result.data, project.projectId);
+    return this.ingestionService.processEvent(
+      result.data,
+      project.projectId,
+      project.organizationId,
+    );
   }
 }

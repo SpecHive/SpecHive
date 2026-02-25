@@ -9,6 +9,7 @@ import { SuiteService } from '../src/modules/ingestion/services/suite.service';
 import { TestService } from '../src/modules/ingestion/services/test.service';
 
 const PROJECT_ID = 'project-1';
+const ORG_ID = '00000000-0000-4000-a000-000000000099';
 const RUN_ID = '00000000-0000-4000-a000-000000000001';
 
 function makeRunStartEvent(overrides: Record<string, unknown> = {}) {
@@ -66,7 +67,7 @@ describe('IngestionService', () => {
     mockArtifactService.handleArtifactUpload.mockResolvedValue({ runId: RUN_ID });
 
     mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-      return cb(Object.assign({}, { $client: {} }));
+      return cb({ $client: {}, execute: vi.fn().mockResolvedValue(undefined) });
     });
 
     mockPublish.mockResolvedValue(undefined);
@@ -89,7 +90,7 @@ describe('IngestionService', () => {
   describe('run.start', () => {
     it('delegates to RunService and publishes outbox event', async () => {
       const event = makeRunStartEvent();
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
 
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockRunService.handleRunStart).toHaveBeenCalledWith(
@@ -118,7 +119,7 @@ describe('IngestionService', () => {
         payload: { status: 'passed' as const },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockRunService.handleRunEnd).toHaveBeenCalledWith(
         event,
@@ -141,7 +142,7 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockSuiteService.handleSuiteStart).toHaveBeenCalled();
     });
@@ -159,7 +160,7 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockSuiteService.handleSuiteEnd).toHaveBeenCalled();
     });
@@ -179,7 +180,7 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockTestService.handleTestStart).toHaveBeenCalled();
     });
@@ -199,7 +200,7 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockTestService.handleTestEnd).toHaveBeenCalled();
     });
@@ -220,7 +221,7 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event, PROJECT_ID);
+      const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockArtifactService.handleArtifactUpload).toHaveBeenCalled();
     });
@@ -230,7 +231,7 @@ describe('IngestionService', () => {
     it('rejects when outboxy.publish() throws', async () => {
       mockPublish.mockRejectedValue(new Error('Outbox publish failed'));
 
-      await expect(service.processEvent(makeRunStartEvent(), PROJECT_ID)).rejects.toThrow(
+      await expect(service.processEvent(makeRunStartEvent(), PROJECT_ID, ORG_ID)).rejects.toThrow(
         'Outbox publish failed',
       );
     });

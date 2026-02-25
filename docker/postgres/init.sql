@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Application role subject to Row-Level Security policies.
 -- The app connects as this role and must SET LOCAL app.current_organization_id per transaction.
+-- NOTE: Password below is a dev-only default. Override with ASSERTLY_APP_PASSWORD in production.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'assertly_app') THEN

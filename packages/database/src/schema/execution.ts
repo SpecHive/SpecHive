@@ -1,4 +1,5 @@
 import { ArtifactType, RunStatus, TestStatus } from '@assertly/shared-types';
+import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -43,7 +44,7 @@ export const runs = pgTable(
     skippedTests: integer('skipped_tests').default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
-    metadata: jsonb('metadata').default({}),
+    metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
     ...timestamps,
   },
   (table) => [

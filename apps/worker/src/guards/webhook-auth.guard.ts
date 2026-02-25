@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
@@ -17,7 +19,16 @@ export class WebhookAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const secret = request.headers['x-webhook-secret'] as string | undefined;
 
-    if (!secret || secret !== this.webhookSecret) {
+    if (!secret) {
+      throw new UnauthorizedException('Invalid webhook secret');
+    }
+
+    const secretBuf = Buffer.from(secret);
+    const expectedBuf = Buffer.from(this.webhookSecret);
+    const match =
+      secretBuf.length === expectedBuf.length && timingSafeEqual(secretBuf, expectedBuf);
+
+    if (!match) {
       throw new UnauthorizedException('Invalid webhook secret');
     }
 
