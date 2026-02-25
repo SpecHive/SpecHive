@@ -1,0 +1,24 @@
+{
+  "name": "@assertly/shared-types",
+  "version": "0.0.1",
+  "description": "Shared TypeScript types for Assertly",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@assertly/typescript-config": "workspace:*",
+    "typescript": "^5.7.3"
+  }
+}

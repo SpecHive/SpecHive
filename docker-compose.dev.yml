@@ -1,0 +1,43 @@
+name: assertly
+
+# Development overrides: source volumes for hot reload, dev commands.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  ingestion-api:
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: development
+    environment:
+      NODE_ENV: development
+    command: ['node_modules/.bin/nest', 'start', '--watch']
+    volumes:
+      # Workspace sources (read-only mount to avoid polluting host node_modules)
+      - ./apps/ingestion-api/src:/app/apps/ingestion-api/src:ro
+      - ./packages:/app/packages:ro
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      target: development
+    environment:
+      NODE_ENV: development
+    command: ['node_modules/.bin/nest', 'start', '--watch']
+    volumes:
+      - ./apps/worker/src:/app/apps/worker/src:ro
+      - ./packages:/app/packages:ro
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      target: development
+    environment:
+      NODE_ENV: development
+    command: ['node_modules/.bin/vite', '--host', '0.0.0.0', '--port', '5173']
+    volumes:
+      - ./apps/dashboard/src:/app/apps/dashboard/src:ro
+      - ./apps/dashboard/index.html:/app/apps/dashboard/index.html:ro
+      - ./packages:/app/packages:ro

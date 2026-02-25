@@ -1,0 +1,44 @@
+{
+  "name": "assertly",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "description": "Assertly monorepo",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "typecheck": "pnpm -r --filter='./packages/**' run typecheck",
+    "test": "pnpm -r run test",
+    "test:integration": "vitest run --config test/vitest.integration.config.ts",
+    "build": "pnpm -r run build",
+    "db:generate": "pnpm -r --filter='*' run db:generate",
+    "db:migrate": "pnpm -r --filter='*' run db:migrate",
+    "db:seed": "pnpm -r --filter='*' run db:seed",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "prepare": "husky"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "argon2",
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@assertly/eslint-config": "workspace:*",
+    "@assertly/typescript-config": "workspace:*",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

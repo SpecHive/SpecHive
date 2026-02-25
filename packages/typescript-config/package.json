@@ -1,0 +1,11 @@
+{
+  "name": "@assertly/typescript-config",
+  "version": "0.0.1",
+  "description": "Shared TypeScript configurations for Assertly",
+  "exports": {
+    "./base.json": "./base.json",
+    "./nestjs.json": "./nestjs.json",
+    "./react.json": "./react.json"
+  },
+  "scripts": {}
+}

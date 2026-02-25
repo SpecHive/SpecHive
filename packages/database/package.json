@@ -1,0 +1,38 @@
+{
+  "name": "@assertly/database",
+  "version": "0.0.1",
+  "description": "Database schema, connection, and migrations for Assertly",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:seed": "tsx src/seed.ts",
+    "perf:baseline": "tsx src/perf-baseline.ts"
+  },
+  "dependencies": {
+    "@assertly/shared-types": "workspace:*",
+    "argon2": "^0.44.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "postgres": "^3.4.5",
+    "uuidv7": "^1.0.2"
+  },
+  "devDependencies": {
+    "@assertly/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

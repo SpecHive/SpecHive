@@ -1,0 +1,38 @@
+{
+  "name": "@assertly/ingestion-api",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Assertly ingestion API for receiving reporter events",
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "test": "vitest run",
+    "test:e2e": "vitest run test/"
+  },
+  "dependencies": {
+    "@assertly/database": "workspace:*",
+    "@assertly/reporter-core-protocol": "workspace:*",
+    "@assertly/shared-types": "workspace:*",
+    "@fastify/helmet": "^11.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/throttler": "^6.0.0",
+    "@outboxy/dialect-postgres": "^1.1.1",
+    "@outboxy/sdk-nestjs": "^2.1.2",
+    "drizzle-orm": "^0.38.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@assertly/typescript-config": "workspace:*",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

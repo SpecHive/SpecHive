@@ -1,0 +1,90 @@
+# ============================================================
+# Base: shared node + pnpm setup
+# ============================================================
+FROM node:22-alpine AS base
+
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+WORKDIR /app
+
+# ============================================================
+# Dependencies: install all workspace dependencies
+# ============================================================
+FROM base AS deps
+
+# Copy workspace manifests so pnpm can resolve the full graph
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/ingestion-api/package.json ./apps/ingestion-api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/reporter-core-protocol/package.json ./packages/reporter-core-protocol/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+
+RUN pnpm install --frozen-lockfile
+
+# ============================================================
+# Development: full source for hot-reload (dev override target)
+# ============================================================
+FROM deps AS development
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node_modules/.bin/nest", "start", "--watch"]
+
+# ============================================================
+# Build: compile ingestion-api and its workspace dependencies
+# ============================================================
+FROM deps AS build
+
+COPY . .
+
+# Build workspace deps first (database package must be compiled before the app)
+RUN pnpm --filter @assertly/shared-types run build
+RUN pnpm --filter @assertly/reporter-core-protocol run build
+RUN pnpm --filter @assertly/database run build
+RUN pnpm --filter @assertly/ingestion-api run build
+
+# ============================================================
+# Production: minimal final image
+# ============================================================
+FROM base AS production
+
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup -S assertly && adduser -S assertly -G assertly
+
+WORKDIR /app
+
+# Copy workspace manifests for production install
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/ingestion-api/package.json ./apps/ingestion-api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/reporter-core-protocol/package.json ./packages/reporter-core-protocol/
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+
+# Install production-only dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy compiled output from build stage
+COPY --from=build /app/apps/ingestion-api/dist ./apps/ingestion-api/dist
+COPY --from=build /app/packages/database/dist ./packages/database/dist
+COPY --from=build /app/packages/shared-types/dist ./packages/shared-types/dist
+COPY --from=build /app/packages/reporter-core-protocol/dist ./packages/reporter-core-protocol/dist
+
+# Copy NestJS cli config needed by nest start
+COPY apps/ingestion-api/nest-cli.json ./apps/ingestion-api/
+
+RUN chown -R assertly:assertly /app
+
+USER assertly
+
+EXPOSE 3000
+
+WORKDIR /app/apps/ingestion-api
+
+CMD ["node", "dist/main"]
