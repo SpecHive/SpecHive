@@ -2,7 +2,7 @@ import { createDbConnection, type Transaction } from '@assertly/database';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
-import { OutboxyModule, OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+import { OutboxyModule } from '@outboxy/sdk-nestjs';
 
 import { DATABASE_CONNECTION } from '../../constants';
 import { type EnvConfig } from '../config/env.validation';
@@ -51,6 +51,6 @@ import { TestService } from './services/test.service';
     TestService,
     ArtifactService,
   ],
-  exports: [IngestionService, DATABASE_CONNECTION, OUTBOXY_CLIENT],
+  exports: [IngestionService, DATABASE_CONNECTION],
 })
 export class IngestionModule {}
