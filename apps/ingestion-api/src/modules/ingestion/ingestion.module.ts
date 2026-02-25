@@ -1,4 +1,4 @@
-import { createDbConnection } from '@assertly/database';
+import { createDbConnection, type Transaction } from '@assertly/database';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
@@ -17,20 +17,20 @@ import { TestService } from './services/test.service';
   imports: [
     OutboxyModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (...args: unknown[]) => {
-        const config = args[0] as ConfigService<EnvConfig>;
-        return {
-          dialect: new PostgreSqlDialect(),
-          adapter:
-            (tx: { unsafe: (sql: string, params?: unknown[]) => Promise<{ id: string }[]> }) =>
-            async (sql: string, params: unknown[]) => {
-              return tx.unsafe(sql, params as never[]);
-            },
-          defaultDestinationUrl:
-            config.get<string>('WORKER_WEBHOOK_URL') ?? 'http://worker:3001/webhooks/outboxy',
-          defaultDestinationType: 'http' as const,
-        };
-      },
+      useFactory: (config: ConfigService<EnvConfig>) => ({
+        dialect: new PostgreSqlDialect(),
+        adapter: (tx: Transaction) => async (sql: string, params: unknown[]) => {
+          // Drizzle doesn't expose the raw postgres-js client in its public types
+          type RawSqlClient = {
+            unsafe: (sql: string, params: unknown[]) => Promise<{ id: string }[]>;
+          };
+          const client = (tx as unknown as { session: { client: RawSqlClient } }).session.client;
+          return client.unsafe(sql, params);
+        },
+        defaultDestinationUrl:
+          config.get<string>('WORKER_WEBHOOK_URL') ?? 'http://worker:3001/webhooks/outboxy',
+        defaultDestinationType: 'http' as const,
+      }),
       isGlobal: false,
     }),
   ],

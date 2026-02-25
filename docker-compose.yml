@@ -8,6 +8,10 @@ volumes:
   postgres-data:
   minio-data:
 
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
 services:
   # ---------------------------------------------------------------------------
   # Infrastructure
@@ -68,33 +72,45 @@ services:
   # ---------------------------------------------------------------------------
   # Outboxy (transactional outbox)
   # ---------------------------------------------------------------------------
+  outboxy-migrate:
+    image: ghcr.io/outboxy/outboxy:v0.4.0
+    networks:
+      - assertly-network
+    command: migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
 
   outboxy-api:
-    image: ghcr.io/outboxy/outboxy:1.3.0
+    image: ghcr.io/outboxy/outboxy:v0.4.0
     restart: unless-stopped
     networks:
       - assertly-network
     command: api
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
+      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3100'
     depends_on:
       postgres:
         condition: service_healthy
 
   outboxy-worker:
-    image: ghcr.io/outboxy/outboxy:1.3.0
+    image: ghcr.io/outboxy/outboxy:v0.4.0
     restart: unless-stopped
     networks:
       - assertly-network
     command: worker
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
+      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
     depends_on:
-      outboxy-api:
-        condition: service_started
+      postgres:
+        condition: service_healthy
+      outboxy-migrate:
+        condition: service_completed_successfully
       worker:
         condition: service_healthy
 
@@ -106,6 +122,8 @@ services:
     build:
       context: .
       dockerfile: apps/ingestion-api/Dockerfile
+      secrets:
+        - npm_token
     restart: unless-stopped
     networks:
       - assertly-network
@@ -113,11 +131,11 @@ services:
       - '3000:3000'
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
+      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3000'
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      WORKER_WEBHOOK_URL: ${WORKER_WEBHOOK_URL:-http://worker:3001/webhooks/outboxy}
-      OUTBOXY_API_URL: ${OUTBOXY_API_URL:-http://outboxy-api:3100}
+      WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
+      OUTBOXY_API_URL: http://outboxy-api:3100
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
       interval: 10s
@@ -134,6 +152,8 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
+      secrets:
+        - npm_token
     restart: unless-stopped
     networks:
       - assertly-network
@@ -155,6 +175,8 @@ services:
     build:
       context: .
       dockerfile: apps/dashboard/Dockerfile
+      secrets:
+        - npm_token
     restart: unless-stopped
     networks:
       - assertly-network

@@ -12,11 +12,13 @@ WORKDIR /app
 # ============================================================
 FROM base AS deps
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=secret,id=npm_token \
+    NPM_TOKEN=$(cat /run/secrets/npm_token) \
+    pnpm install --frozen-lockfile
 
 # ============================================================
 # Development: Vite dev server with hot module replacement
@@ -25,6 +27,7 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS development
 
 COPY . .
+WORKDIR /app/apps/dashboard
 
 EXPOSE 5173
 

@@ -18,3 +18,4 @@ export function createDbConnection(url?: string) {
 }
 
 export type Database = ReturnType<typeof createDbConnection>;
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];

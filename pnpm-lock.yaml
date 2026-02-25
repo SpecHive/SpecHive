@@ -127,11 +127,11 @@ importers:
         specifier: ^6.0.0
         version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@outboxy/dialect-postgres':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.1.2
+        version: 1.1.2
       '@outboxy/sdk-nestjs':
-        specifier: ^2.1.2
-        version: 2.1.2(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pg@8.18.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+        specifier: ^2.1.3
+        version: 2.1.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pg@8.18.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       drizzle-orm:
         specifier: ^0.45.0
         version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
@@ -1344,14 +1344,14 @@ packages:
   '@outboxy/dialect-core@1.1.0':
     resolution: {integrity: sha512-rSYPvwH3g229aCcmYyPnqNTc9Rvye9u19c5N/dNZMxdj60kQ7ecujCOGjKMH6Zub5/yLXJZsfWE5jfQTk02TOw==}
 
-  '@outboxy/dialect-postgres@1.1.1':
-    resolution: {integrity: sha512-V/jfvh2Ug6OCg865popWU9djSz3Sn/8Jfsel+EL4HGQMSU0A32wHTw4gogcgyZOB0uTyYdTeQPglzvq47qfHjA==}
+  '@outboxy/dialect-postgres@1.1.2':
+    resolution: {integrity: sha512-iodMSwIOl+L+ZqLbGu4wEogvZ7uElf5G2+WOuWafMTLQMvm4heyu7jNWBKEtS4GxCoV3MVbmPsrbRJ9hVvupuw==}
 
   '@outboxy/schema@2.0.0':
     resolution: {integrity: sha512-iNF6L7p3bmecdGcW9LjCayJ1pu7iXlYMI2Peim+osCGTtDBRyDmH62TAsiF9To8doz0wdIPFHfjPVjU+XHQ6Dg==}
 
-  '@outboxy/sdk-nestjs@2.1.2':
-    resolution: {integrity: sha512-vI9DT6GXTpyed+OCl3dr3IS5Kc3fvFDX80FujU4P0SOGGVn0tlxp04xBUanh23KnCtXogU6ixv80s5F8EWmAMg==}
+  '@outboxy/sdk-nestjs@2.1.3':
+    resolution: {integrity: sha512-oTeoyac/SLEbZ/TuPps6+E+DML2wk4aI7z5sZP+gtYXOrIK3L47gbZwTzgzzsnLRrv5UK4DffxjDNlqd65oalQ==}
     peerDependencies:
       '@nestjs/common': ^10.0.0
       '@nestjs/core': ^10.0.0
@@ -1359,8 +1359,8 @@ packages:
       reflect-metadata: ^0.1.13 || ^0.2.0
       rxjs: ^7.8.0
 
-  '@outboxy/sdk@2.2.0':
-    resolution: {integrity: sha512-fB1Rnv/6VxyQ+QkGESP9QMImrVZ6gMUOyc21qDGOgDbx6MRpMods+BNcIwRYKOWh1JkxwflgU2eGhi9IcQFbFw==}
+  '@outboxy/sdk@2.2.1':
+    resolution: {integrity: sha512-THQE+EyUR76I+oE3fhz+4fqEBpyXeOMBLLB8ioEPZhQvca/Aybnf1ubZjpmooIPPqBT+Dkqp7/Or50160X2zlQ==}
     peerDependencies:
       mysql2: ^3.9.0
       pg: ^8.11.0
@@ -4781,7 +4781,7 @@ snapshots:
 
   '@outboxy/dialect-core@1.1.0': {}
 
-  '@outboxy/dialect-postgres@1.1.1':
+  '@outboxy/dialect-postgres@1.1.2':
     dependencies:
       '@outboxy/dialect-core': 1.1.0
       '@outboxy/schema': 2.0.0
@@ -4790,18 +4790,18 @@ snapshots:
     dependencies:
       zod: 4.3.6
 
-  '@outboxy/sdk-nestjs@2.1.2(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pg@8.18.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
+  '@outboxy/sdk-nestjs@2.1.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(pg@8.18.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@outboxy/sdk': 2.2.0(pg@8.18.0)
+      '@outboxy/sdk': 2.2.1(pg@8.18.0)
       pg: 8.18.0
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
     transitivePeerDependencies:
       - mysql2
 
-  '@outboxy/sdk@2.2.0(pg@8.18.0)':
+  '@outboxy/sdk@2.2.1(pg@8.18.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@outboxy/dialect-core': 1.1.0

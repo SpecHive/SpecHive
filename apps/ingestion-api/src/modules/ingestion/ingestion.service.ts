@@ -1,4 +1,4 @@
-import { type Database } from '@assertly/database';
+import { type Database, type Transaction } from '@assertly/database';
 import { type V1Event } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
@@ -16,24 +16,13 @@ import { TestService } from './services/test.service';
 
 export const DATABASE_CONNECTION = Symbol('DATABASE_CONNECTION');
 
-// postgres-js exposes an `unsafe` method on its transaction client for raw SQL
-type PostgresTransaction = {
-  unsafe: (sql: string, params?: unknown[]) => Promise<{ id: string }[]>;
-};
-
-// Drizzle wraps postgres-js and exposes the session's connection for raw SQL
-type DrizzleTx = {
-  [key: string]: unknown;
-  $client: PostgresTransaction;
-};
-
 @Injectable()
 export class IngestionService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: Database,
     @Inject(OUTBOXY_CLIENT)
-    private readonly outboxy: OutboxyClient<PostgresTransaction>,
+    private readonly outboxy: OutboxyClient<Transaction>,
     private readonly runService: RunService,
     private readonly suiteService: SuiteService,
     private readonly testService: TestService,
@@ -53,7 +42,7 @@ export class IngestionService {
           payload: event as unknown as Record<string, unknown>,
           idempotencyKey: `${event.runId}:${event.eventType}:${event.timestamp}`,
         },
-        (tx as unknown as DrizzleTx).$client,
+        tx,
       );
 
       return result;

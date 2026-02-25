@@ -2,7 +2,7 @@
 set -e
 
 # Wait for MinIO to be ready
-until curl -sf http://minio:9000/minio/health/live; do
+until wget -qO /dev/null http://minio:9000/minio/health/live 2>/dev/null; do
   echo "Waiting for MinIO..."
   sleep 2
 done

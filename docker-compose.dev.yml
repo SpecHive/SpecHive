@@ -3,6 +3,10 @@ name: assertly
 # Development overrides: source volumes for hot reload, dev commands.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
 services:
   postgres:
     ports:
@@ -22,6 +26,8 @@ services:
       context: .
       dockerfile: apps/ingestion-api/Dockerfile
       target: development
+      secrets:
+        - npm_token
     environment:
       NODE_ENV: development
     command: ['node_modules/.bin/nest', 'start', '--watch']
@@ -35,6 +41,8 @@ services:
       context: .
       dockerfile: apps/worker/Dockerfile
       target: development
+      secrets:
+        - npm_token
     environment:
       NODE_ENV: development
     command: ['node_modules/.bin/nest', 'start', '--watch']
@@ -47,6 +55,8 @@ services:
       context: .
       dockerfile: apps/dashboard/Dockerfile
       target: development
+      secrets:
+        - npm_token
     environment:
       NODE_ENV: development
     command: ['node_modules/.bin/vite', '--host', '0.0.0.0', '--port', '5173']
