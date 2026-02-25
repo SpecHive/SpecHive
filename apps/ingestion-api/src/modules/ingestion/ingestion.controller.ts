@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ConfigService } from '@nestjs/config';
+import { z } from 'zod';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
 import { ProjectTokenGuard } from '../../guards/project-token.guard';
@@ -39,7 +40,7 @@ export class IngestionController {
     if (!result.success) {
       const message = this.isProduction
         ? 'Invalid event payload'
-        : `Invalid event payload: ${JSON.stringify(result.error.flatten())}`;
+        : `Invalid event payload: ${JSON.stringify(z.flattenError(result.error))}`;
       throw new BadRequestException({ message });
     }
 
