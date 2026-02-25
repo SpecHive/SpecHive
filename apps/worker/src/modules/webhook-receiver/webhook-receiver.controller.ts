@@ -9,22 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
-import { z } from 'zod';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { OutboxyEnvelopeSchema } from '../../types/outboxy-envelope';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ResultProcessorService } from '../result-processor/result-processor.service';
-
-const OutboxyEnvelopeSchema = z.object({
-  id: z.string(),
-  aggregateType: z.string(),
-  aggregateId: z.string(),
-  eventType: z.string(),
-  payload: z.record(z.string(), z.unknown()),
-  createdAt: z.string().optional(),
-});
-
-export type OutboxyEnvelope = z.infer<typeof OutboxyEnvelopeSchema>;
 
 @Controller('webhooks')
 @UseGuards(WebhookAuthGuard)

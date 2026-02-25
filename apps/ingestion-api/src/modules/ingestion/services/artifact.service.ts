@@ -1,9 +1,10 @@
-import { artifacts, runs } from '@assertly/database';
+import { artifacts } from '@assertly/database';
 import type { Database } from '@assertly/database';
 import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { Injectable, Logger } from '@nestjs/common';
+
+import { verifyRunOwnership } from './verify-run-ownership';
 
 @Injectable()
 export class ArtifactService {
@@ -14,17 +15,11 @@ export class ArtifactService {
     projectId: ProjectId,
     tx: Database,
   ): Promise<{ runId: RunId }> {
-    const [run] = await tx
-      .select({ projectId: runs.projectId })
-      .from(runs)
-      .where(eq(runs.id, event.runId))
-      .limit(1);
+    await verifyRunOwnership(event.runId, projectId, tx);
 
-    if (!run || run.projectId !== projectId) {
-      throw new NotFoundException(`Run ${event.runId} not found in project`);
-    }
-
-    // Placeholder storage path — real upload logic deferred to Sprint 1
+    // Artifact binary data (event.payload.data) is accepted but not stored.
+    // Real upload to MinIO deferred to Sprint 1.
+    // The 202 response acknowledges receipt of metadata only.
     await tx.insert(artifacts).values({
       testId: event.payload.testId,
       type: event.payload.artifactType,

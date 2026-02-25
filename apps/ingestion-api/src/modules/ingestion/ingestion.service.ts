@@ -5,16 +5,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { ArtifactService } from './services/artifact.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { RunService } from './services/run.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { SuiteService } from './services/suite.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
-import { TestService } from './services/test.service';
+import { DATABASE_CONNECTION } from '../../constants';
 
-export const DATABASE_CONNECTION = Symbol('DATABASE_CONNECTION');
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { ArtifactService } from './services/artifact.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { RunService } from './services/run.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { SuiteService } from './services/suite.service';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { TestService } from './services/test.service';
 
 @Injectable()
 export class IngestionService {

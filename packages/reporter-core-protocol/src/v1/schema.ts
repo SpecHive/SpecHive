@@ -36,7 +36,7 @@ export const SuiteStartSchema = z.object({
   eventType: z.literal('suite.start'),
   payload: z.object({
     suiteId: z.string().uuid().transform(asSuiteId),
-    suiteName: z.string(),
+    suiteName: z.string().max(500),
     parentSuiteId: z.string().uuid().transform(asSuiteId).optional(),
   }),
 });
@@ -55,7 +55,7 @@ export const TestStartSchema = z.object({
   payload: z.object({
     testId: z.string().uuid().transform(asTestId),
     suiteId: z.string().uuid().transform(asSuiteId),
-    testName: z.string(),
+    testName: z.string().max(500),
   }),
 });
 
@@ -66,8 +66,8 @@ export const TestEndSchema = z.object({
     testId: z.string().uuid().transform(asTestId),
     status: z.enum(TestStatus),
     durationMs: z.number().nonnegative().optional(),
-    errorMessage: z.string().optional(),
-    stackTrace: z.string().optional(),
+    errorMessage: z.string().max(10_000).optional(),
+    stackTrace: z.string().max(50_000).optional(),
     retryCount: z.number().nonnegative().int().optional(),
   }),
 });
@@ -78,8 +78,8 @@ export const ArtifactUploadSchema = z.object({
   payload: z.object({
     testId: z.string().uuid().transform(asTestId),
     artifactType: z.enum(ArtifactType),
-    name: z.string(),
-    data: z.string(),
+    name: z.string().max(500),
+    data: z.string().max(10_000_000),
     mimeType: z.string().optional(),
   }),
 });

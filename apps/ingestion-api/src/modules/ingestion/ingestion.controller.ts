@@ -8,8 +8,9 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
@@ -17,10 +18,11 @@ import { ProjectTokenGuard } from '../../guards/project-token.guard';
 import type { ProjectContext } from '../../guards/project-token.guard';
 import type { EnvConfig } from '../config/env.validation';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { IngestionService } from './ingestion.service';
 
 @Controller('v1')
+@Throttle({ default: { ttl: 60_000, limit: 300 } })
 export class IngestionController {
   private readonly isProduction: boolean;
 

@@ -1,9 +1,10 @@
-import { runs, suites } from '@assertly/database';
+import { suites } from '@assertly/database';
 import type { Database } from '@assertly/database';
 import type { SuiteEndEvent, SuiteStartEvent } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { Injectable, Logger } from '@nestjs/common';
+
+import { verifyRunOwnership } from './verify-run-ownership';
 
 @Injectable()
 export class SuiteService {
@@ -14,15 +15,7 @@ export class SuiteService {
     projectId: ProjectId,
     tx: Database,
   ): Promise<{ runId: RunId }> {
-    const [run] = await tx
-      .select({ projectId: runs.projectId })
-      .from(runs)
-      .where(eq(runs.id, event.runId))
-      .limit(1);
-
-    if (!run || run.projectId !== projectId) {
-      throw new NotFoundException(`Run ${event.runId} not found in project`);
-    }
+    await verifyRunOwnership(event.runId, projectId, tx);
 
     await tx.insert(suites).values({
       id: event.payload.suiteId,
@@ -40,15 +33,7 @@ export class SuiteService {
     projectId: ProjectId,
     tx: Database,
   ): Promise<{ runId: RunId }> {
-    const [run] = await tx
-      .select({ projectId: runs.projectId })
-      .from(runs)
-      .where(eq(runs.id, event.runId))
-      .limit(1);
-
-    if (!run || run.projectId !== projectId) {
-      throw new NotFoundException(`Run ${event.runId} not found in project`);
-    }
+    await verifyRunOwnership(event.runId, projectId, tx);
 
     this.logger.log(`Suite ${event.payload.suiteId} ended`);
     return { runId: event.runId };

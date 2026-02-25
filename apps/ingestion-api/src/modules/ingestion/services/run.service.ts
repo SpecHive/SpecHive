@@ -3,8 +3,10 @@ import type { Database } from '@assertly/database';
 import type { RunEndEvent, RunStartEvent } from '@assertly/reporter-core-protocol';
 import { RunStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
+
+import { verifyRunOwnership } from './verify-run-ownership';
 
 @Injectable()
 export class RunService {
@@ -32,15 +34,7 @@ export class RunService {
     projectId: ProjectId,
     tx: Database,
   ): Promise<{ runId: RunId }> {
-    const [run] = await tx
-      .select({ projectId: runs.projectId })
-      .from(runs)
-      .where(eq(runs.id, event.runId))
-      .limit(1);
-
-    if (!run || run.projectId !== projectId) {
-      throw new NotFoundException(`Run ${event.runId} not found in project`);
-    }
+    await verifyRunOwnership(event.runId, projectId, tx);
 
     await tx
       .update(runs)

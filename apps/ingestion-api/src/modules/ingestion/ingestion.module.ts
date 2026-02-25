@@ -4,10 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule, OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 
+import { DATABASE_CONNECTION } from '../../constants';
 import { type EnvConfig } from '../config/env.validation';
 
 import { IngestionController } from './ingestion.controller';
-import { IngestionService, DATABASE_CONNECTION } from './ingestion.service';
+import { IngestionService } from './ingestion.service';
 import { ArtifactService } from './services/artifact.service';
 import { RunService } from './services/run.service';
 import { SuiteService } from './services/suite.service';

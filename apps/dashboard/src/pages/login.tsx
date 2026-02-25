@@ -12,7 +12,7 @@ export function LoginPage() {
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form>
+          <Form onSubmit={(e) => e.preventDefault()}>
             <FormItem>
               <FormLabel htmlFor="email">Email</FormLabel>
               <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" />
@@ -26,7 +26,8 @@ export function LoginPage() {
                 autoComplete="current-password"
               />
             </FormItem>
-            <Button type="submit" className="w-full">
+            {/* Auth integration deferred to Sprint 1 */}
+            <Button type="submit" className="w-full" disabled>
               Sign in
             </Button>
           </Form>

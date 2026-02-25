@@ -2,7 +2,8 @@ import { Test } from '@nestjs/testing';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { IngestionService, DATABASE_CONNECTION } from '../src/modules/ingestion/ingestion.service';
+import { DATABASE_CONNECTION } from '../src/constants';
+import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 import { ArtifactService } from '../src/modules/ingestion/services/artifact.service';
 import { RunService } from '../src/modules/ingestion/services/run.service';
 import { SuiteService } from '../src/modules/ingestion/services/suite.service';

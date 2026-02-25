@@ -7,7 +7,7 @@ import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 
-import { DATABASE_CONNECTION } from '../modules/ingestion/ingestion.service';
+import { DATABASE_CONNECTION } from '../constants';
 
 export interface ProjectContext {
   projectId: ProjectId;
