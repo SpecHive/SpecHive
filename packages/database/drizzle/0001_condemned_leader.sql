@@ -1,2 +1,0 @@
-CREATE INDEX "suites_run_id_idx" ON "suites" USING btree ("run_id");--> statement-breakpoint
-ALTER TABLE "suites" ADD CONSTRAINT "suites_parent_suite_id_fk" FOREIGN KEY ("parent_suite_id") REFERENCES "suites"("id") ON DELETE SET NULL;

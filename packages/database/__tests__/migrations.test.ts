@@ -8,13 +8,22 @@
  *   pnpm docker:up
  *
  * Run with:
- *   DATABASE_URL=postgres://assertly:assertly@localhost:5432/assertly pnpm --filter @assertly/database test
+ *   pnpm --filter @assertly/database test
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
+// Needs the superuser role (not assertly_app) to CREATE DATABASE for temp test DBs.
+// ADMIN_DATABASE_URL takes precedence; falls back to POSTGRES_* env vars from .env,
+// then to the local-dev default.
 const DATABASE_URL =
-  process.env['DATABASE_URL'] ?? 'postgres://assertly:assertly@localhost:5432/assertly';
+  process.env['ADMIN_DATABASE_URL'] ??
+  (() => {
+    const user = process.env['POSTGRES_USER'] ?? 'assertly';
+    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
+    const db = process.env['POSTGRES_DB'] ?? 'assertly';
+    return `postgres://${user}:${pass}@localhost:5432/${db}`;
+  })();
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
 let postgres: typeof import('postgres').default;
@@ -309,8 +318,9 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
     const functions = ['validate_project_token', 'touch_project_token_usage'];
 
     for (const funcName of functions) {
+      const funcSignature = `${funcName}(text)`;
       const rows = await testSql`
-        SELECT has_function_privilege('assertly_app', ${funcName}(text), 'EXECUTE') AS has_priv
+        SELECT has_function_privilege('assertly_app', ${funcSignature}, 'EXECUTE') AS has_priv
       `;
       expect(rows[0]!.has_priv, `assertly_app should be able to EXECUTE ${funcName}`).toBe(true);
     }

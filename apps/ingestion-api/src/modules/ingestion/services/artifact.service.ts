@@ -1,5 +1,5 @@
 import { artifacts } from '@assertly/database';
-import type { Database } from '@assertly/database';
+import type { Transaction } from '@assertly/database';
 import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
@@ -13,7 +13,7 @@ export class ArtifactService {
   async handleArtifactUpload(
     event: ArtifactUploadEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 

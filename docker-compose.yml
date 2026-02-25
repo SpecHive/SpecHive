@@ -37,7 +37,7 @@ services:
       start_period: 10s
 
   minio:
-    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
+    image: minio/minio:latest
     restart: unless-stopped
     networks:
       - assertly-network
@@ -48,14 +48,14 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
   minio-init:
-    image: minio/mc:RELEASE.2025-01-17T02-09-56Z
+    image: minio/mc:latest
     networks:
       - assertly-network
     depends_on:
@@ -95,7 +95,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3100'
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:3100/health']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3100/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -152,7 +152,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: 'false'
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -180,7 +180,7 @@ services:
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -203,7 +203,7 @@ services:
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
       interval: 10s
       timeout: 5s
       retries: 5

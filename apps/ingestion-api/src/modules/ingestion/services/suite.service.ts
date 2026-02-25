@@ -1,5 +1,5 @@
 import { suites } from '@assertly/database';
-import type { Database } from '@assertly/database';
+import type { Transaction } from '@assertly/database';
 import type { SuiteEndEvent, SuiteStartEvent } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
@@ -13,7 +13,7 @@ export class SuiteService {
   async handleSuiteStart(
     event: SuiteStartEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 
@@ -31,7 +31,7 @@ export class SuiteService {
   async handleSuiteEnd(
     event: SuiteEndEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 

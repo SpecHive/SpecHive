@@ -22,7 +22,7 @@ import { TestService } from './services/test.service';
         dialect: new PostgreSqlDialect(),
         adapter: (tx: Transaction) => async (sql: string, params: unknown[]) => {
           const client = getRawClient(tx);
-          return client.unsafe(sql, params);
+          return client.unsafe(sql, params as never[]);
         },
         defaultDestinationUrl:
           config.get<string>('WORKER_WEBHOOK_URL') ?? 'http://worker:3001/webhooks/outboxy',

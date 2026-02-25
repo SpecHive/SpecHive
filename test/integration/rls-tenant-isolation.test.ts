@@ -1,19 +1,32 @@
 /**
  * RLS tenant isolation integration tests.
  *
- * These tests require the full Docker Compose stack with a migrated database:
- *   pnpm docker:up && pnpm db:migrate
+ * These tests require the Docker Compose postgres with a migrated database:
+ *   docker compose up -d postgres && pnpm db:migrate
  *
  * Run with:
- *   pnpm test:integration
+ *   pnpm test:integration:db
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
+// Superuser URL for seeding/cleanup (bypasses RLS).
+// Built from POSTGRES_* env vars (auto-loaded from .env by Vitest) so no manual
+// DATABASE_URL override is needed.
 const DATABASE_URL =
-  process.env['DATABASE_URL'] ?? 'postgres://assertly:assertly@localhost:5432/assertly';
+  process.env['ADMIN_DATABASE_URL'] ??
+  (() => {
+    const user = process.env['POSTGRES_USER'] ?? 'assertly';
+    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
+    const db = process.env['POSTGRES_DB'] ?? 'assertly';
+    return `postgres://${user}:${pass}@localhost:5432/${db}`;
+  })();
+
+// App-role URL (subject to RLS) — the connection the application actually uses.
 const APP_DATABASE_URL =
-  process.env['APP_DATABASE_URL'] ?? 'postgres://assertly_app:assertly_app@localhost:5432/assertly';
+  process.env['APP_DATABASE_URL'] ??
+  process.env['DATABASE_URL'] ??
+  'postgres://assertly_app:assertly_app@localhost:5432/assertly';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
 let postgres: typeof import('postgres').default;
@@ -90,10 +103,10 @@ describe('RLS tenant isolation', () => {
         (${TEST_B_ID}, ${SUITE_B_ID}, ${RUN_B_ID}, 'Test B', 'passed', 0)
     `;
     await superSql`
-      INSERT INTO artifacts (id, test_id, type, name, data)
+      INSERT INTO artifacts (id, test_id, type, name, storage_path)
       VALUES
-        (${ARTIFACT_A_ID}, ${TEST_A_ID}, 'log', 'artifact-a.log', 'data-a'),
-        (${ARTIFACT_B_ID}, ${TEST_B_ID}, 'log', 'artifact-b.log', 'data-b')
+        (${ARTIFACT_A_ID}, ${TEST_A_ID}, 'log', 'artifact-a.log', '/artifacts/a.log'),
+        (${ARTIFACT_B_ID}, ${TEST_B_ID}, 'log', 'artifact-b.log', '/artifacts/b.log')
     `;
   }, 30_000);
 
@@ -130,17 +143,15 @@ describe('RLS tenant isolation', () => {
   });
 
   it('without context set → all queries return zero rows (fail-closed)', async () => {
-    const rows = await appSql.begin(async (tx) => {
-      // Reset to empty string to simulate no context
-      await tx`SELECT set_config('app.current_organization_id', '', true)`;
-      // This should fail or return zero rows since '' is not a valid UUID
-      try {
-        return await tx`SELECT id FROM projects`;
-      } catch {
-        // Expected: casting '' to uuid fails, which is fail-closed behavior
-        return [];
-      }
-    });
+    let rows: unknown[] = [];
+    try {
+      rows = await appSql.begin(async (tx) => {
+        await tx`SELECT set_config('app.current_organization_id', '', true)`;
+        return tx`SELECT id FROM projects`;
+      });
+    } catch {
+      // Expected: casting '' to uuid fails, aborting the transaction (fail-closed)
+    }
 
     expect(rows.length).toBe(0);
   });
@@ -173,14 +184,15 @@ describe('RLS tenant isolation', () => {
     });
 
     it('empty context → runs return zero rows (fail-closed)', async () => {
-      const rows = await appSql.begin(async (tx) => {
-        await tx`SELECT set_config('app.current_organization_id', '', true)`;
-        try {
-          return await tx`SELECT id FROM runs`;
-        } catch {
-          return [];
-        }
-      });
+      let rows: unknown[] = [];
+      try {
+        rows = await appSql.begin(async (tx) => {
+          await tx`SELECT set_config('app.current_organization_id', '', true)`;
+          return tx`SELECT id FROM runs`;
+        });
+      } catch {
+        // Expected: casting '' to uuid fails, aborting the transaction (fail-closed)
+      }
 
       expect(rows.length).toBe(0);
     });
@@ -207,14 +219,15 @@ describe('RLS tenant isolation', () => {
     });
 
     it('empty context → suites return zero rows (fail-closed)', async () => {
-      const rows = await appSql.begin(async (tx) => {
-        await tx`SELECT set_config('app.current_organization_id', '', true)`;
-        try {
-          return await tx`SELECT id FROM suites`;
-        } catch {
-          return [];
-        }
-      });
+      let rows: unknown[] = [];
+      try {
+        rows = await appSql.begin(async (tx) => {
+          await tx`SELECT set_config('app.current_organization_id', '', true)`;
+          return tx`SELECT id FROM suites`;
+        });
+      } catch {
+        // Expected: casting '' to uuid fails, aborting the transaction (fail-closed)
+      }
 
       expect(rows.length).toBe(0);
     });
@@ -241,14 +254,15 @@ describe('RLS tenant isolation', () => {
     });
 
     it('empty context → tests return zero rows (fail-closed)', async () => {
-      const rows = await appSql.begin(async (tx) => {
-        await tx`SELECT set_config('app.current_organization_id', '', true)`;
-        try {
-          return await tx`SELECT id FROM tests`;
-        } catch {
-          return [];
-        }
-      });
+      let rows: unknown[] = [];
+      try {
+        rows = await appSql.begin(async (tx) => {
+          await tx`SELECT set_config('app.current_organization_id', '', true)`;
+          return tx`SELECT id FROM tests`;
+        });
+      } catch {
+        // Expected: casting '' to uuid fails, aborting the transaction (fail-closed)
+      }
 
       expect(rows.length).toBe(0);
     });
@@ -275,14 +289,15 @@ describe('RLS tenant isolation', () => {
     });
 
     it('empty context → artifacts return zero rows (fail-closed)', async () => {
-      const rows = await appSql.begin(async (tx) => {
-        await tx`SELECT set_config('app.current_organization_id', '', true)`;
-        try {
-          return await tx`SELECT id FROM artifacts`;
-        } catch {
-          return [];
-        }
-      });
+      let rows: unknown[] = [];
+      try {
+        rows = await appSql.begin(async (tx) => {
+          await tx`SELECT set_config('app.current_organization_id', '', true)`;
+          return tx`SELECT id FROM artifacts`;
+        });
+      } catch {
+        // Expected: casting '' to uuid fails, aborting the transaction (fail-closed)
+      }
 
       expect(rows.length).toBe(0);
     });

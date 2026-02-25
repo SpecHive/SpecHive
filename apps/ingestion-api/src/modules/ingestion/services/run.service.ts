@@ -1,5 +1,5 @@
 import { runs } from '@assertly/database';
-import type { Database } from '@assertly/database';
+import type { Transaction } from '@assertly/database';
 import type { RunEndEvent, RunStartEvent } from '@assertly/reporter-core-protocol';
 import { RunStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
@@ -15,7 +15,7 @@ export class RunService {
   async handleRunStart(
     event: RunStartEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await tx.insert(runs).values({
       id: event.runId,
@@ -32,7 +32,7 @@ export class RunService {
   async handleRunEnd(
     event: RunEndEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 

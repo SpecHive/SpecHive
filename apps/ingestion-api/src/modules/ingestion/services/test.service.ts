@@ -1,5 +1,5 @@
 import { tests } from '@assertly/database';
-import type { Database } from '@assertly/database';
+import type { Transaction } from '@assertly/database';
 import type { TestEndEvent, TestStartEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
@@ -15,7 +15,7 @@ export class TestService {
   async handleTestStart(
     event: TestStartEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 
@@ -35,7 +35,7 @@ export class TestService {
   async handleTestEnd(
     event: TestEndEvent,
     projectId: ProjectId,
-    tx: Database,
+    tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
 

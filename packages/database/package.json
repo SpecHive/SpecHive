@@ -17,7 +17,7 @@
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "dev": "tsc --project tsconfig.json --watch",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "node --require tsx/cjs node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
     "perf:baseline": "tsx src/perf-baseline.ts"
