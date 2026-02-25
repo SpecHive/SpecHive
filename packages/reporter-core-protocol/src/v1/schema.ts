@@ -27,7 +27,7 @@ export const RunEndSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('run.end'),
   payload: z.object({
-    status: z.enum(RunStatus),
+    status: z.nativeEnum(RunStatus),
   }),
 });
 
@@ -64,7 +64,7 @@ export const TestEndSchema = z.object({
   eventType: z.literal('test.end'),
   payload: z.object({
     testId: z.string().uuid().transform(asTestId),
-    status: z.enum(TestStatus),
+    status: z.nativeEnum(TestStatus),
     durationMs: z.number().nonnegative().optional(),
     errorMessage: z.string().max(10_000).optional(),
     stackTrace: z.string().max(50_000).optional(),
@@ -77,7 +77,7 @@ export const ArtifactUploadSchema = z.object({
   eventType: z.literal('artifact.upload'),
   payload: z.object({
     testId: z.string().uuid().transform(asTestId),
-    artifactType: z.enum(ArtifactType),
+    artifactType: z.nativeEnum(ArtifactType),
     name: z.string().max(500),
     data: z.string().max(10_000_000),
     mimeType: z.string().optional(),

@@ -11,6 +11,7 @@ import { type EnvConfig } from './modules/config/env.validation';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  app.enableShutdownHooks();
 
   await app.register(helmet);
 

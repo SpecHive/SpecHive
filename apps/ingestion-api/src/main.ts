@@ -10,7 +10,11 @@ import { AppModule } from './app.module';
 import { type EnvConfig } from './modules/config/env.validation';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ bodyLimit: 15_000_000 }),
+  );
+  app.enableShutdownHooks();
 
   await app.register(helmet);
 

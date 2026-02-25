@@ -2,7 +2,7 @@
   "name": "assertly",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@9.15.9",
   "description": "Assertly monorepo",
   "engines": {
     "node": ">=22",
@@ -12,9 +12,10 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
-    "typecheck": "pnpm -r --filter='./packages/**' run typecheck",
+    "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
     "test:integration": "vitest run --config test/vitest.integration.config.ts",
+    "test:integration:db": "vitest run --config test/vitest.integration-db.config.ts",
     "build": "pnpm -r run build",
     "db:generate": "pnpm -r --filter='*' run db:generate",
     "db:migrate": "pnpm -r --filter='*' run db:migrate",
@@ -27,10 +28,7 @@
     "onlyBuiltDependencies": [
       "argon2",
       "esbuild"
-    ],
-    "overrides": {
-      "@esbuild-kit/core-utils>esbuild": ">=0.25.0"
-    }
+    ]
   },
   "devDependencies": {
     "@assertly/eslint-config": "workspace:*",

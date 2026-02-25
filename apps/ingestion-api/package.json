@@ -5,6 +5,7 @@
   "description": "Assertly ingestion API for receiving reporter events",
   "scripts": {
     "build": "nest build",
+    "typecheck": "tsc --noEmit",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "test": "vitest run",

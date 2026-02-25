@@ -60,6 +60,14 @@ services:
     environment:
       NODE_ENV: development
     command: ['node_modules/.bin/vite', '--host', '0.0.0.0', '--port', '5173']
+    ports:
+      - '5173:5173'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:5173/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     volumes:
       - ./apps/dashboard/src:/app/apps/dashboard/src:ro
       - ./apps/dashboard/index.html:/app/apps/dashboard/index.html:ro

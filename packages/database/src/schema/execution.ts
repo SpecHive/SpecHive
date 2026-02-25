@@ -1,6 +1,7 @@
 import { ArtifactType, RunStatus, TestStatus } from '@assertly/shared-types';
 import { sql } from 'drizzle-orm';
 import {
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -44,7 +45,9 @@ export const runs = pgTable(
     skippedTests: integer('skipped_tests').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
-    metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
+    metadata: jsonb('metadata')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     ...timestamps,
   },
   (table) => [
@@ -64,7 +67,13 @@ export const suites = pgTable(
     parentSuiteId: uuid('parent_suite_id'),
     ...timestamps,
   },
-  (table) => [index('suites_run_id_idx').on(table.runId)],
+  (table) => [
+    index('suites_run_id_idx').on(table.runId),
+    foreignKey({
+      columns: [table.parentSuiteId],
+      foreignColumns: [table.id],
+    }).onDelete('set null'),
+  ],
 );
 
 export const tests = pgTable(
@@ -82,7 +91,7 @@ export const tests = pgTable(
     durationMs: integer('duration_ms'),
     errorMessage: text('error_message'),
     stackTrace: text('stack_trace'),
-    retryCount: integer('retry_count').default(0),
+    retryCount: integer('retry_count').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     ...timestamps,
