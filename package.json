@@ -9,7 +9,7 @@
     "pnpm": ">=9"
   },
   "scripts": {
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0",
+    "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
     "typecheck": "pnpm -r --filter='./packages/**' run typecheck",
@@ -35,7 +35,7 @@
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
     "@swc/core": "^1.15.13",
-    "eslint": "^8.57.1",
+    "eslint": "^9.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
     "prettier": "^3.4.2",

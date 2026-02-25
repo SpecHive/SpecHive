@@ -1,20 +1,23 @@
 {
   "name": "@assertly/eslint-config",
   "version": "0.0.1",
+  "type": "module",
   "description": "Shared ESLint configuration for Assertly",
-  "main": "index.js",
+  "main": "index.mjs",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.mjs"
   },
   "scripts": {},
   "dependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-import": "^2.31.0"
+    "@eslint/js": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-import-x": "^4.0.0",
+    "typescript-eslint": "^8.0.0"
   },
   "peerDependencies": {
-    "eslint": "^8.0.0",
+    "eslint": "^9.0.0",
     "typescript": "^5.0.0"
   }
 }
