@@ -4,6 +4,19 @@ name: assertly
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 services:
+  postgres:
+    ports:
+      - '5432:5432'
+
+  minio:
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+
+  outboxy-api:
+    ports:
+      - '3100:3100'
+
   ingestion-api:
     build:
       context: .

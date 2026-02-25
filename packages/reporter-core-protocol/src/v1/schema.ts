@@ -11,7 +11,6 @@ export const RunStartSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('run.start'),
   payload: z.object({
-    projectToken: z.string(),
     runName: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   }),

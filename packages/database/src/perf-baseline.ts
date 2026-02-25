@@ -86,7 +86,7 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
     .insert(users)
     .values({
       email: `perf-${uuidv7()}@baseline.test`,
-      passwordHash: 'not-a-real-hash',
+      passwordHash: '$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$RdescudvJCsgt3ub+b+daw',
       name: 'Perf User',
     })
     .returning();

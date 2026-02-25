@@ -11,3 +11,9 @@ coverage
 .DS_Store
 .vscode
 .idea
+test/
+.husky/
+.github/
+docker/
+*.md
+*.tsbuildinfo

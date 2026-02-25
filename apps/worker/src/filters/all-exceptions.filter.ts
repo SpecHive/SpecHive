@@ -1,9 +1,17 @@
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+
+import type { EnvConfig } from '../modules/config/env.validation';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+  private readonly isDevelopment: boolean;
+
+  constructor(configService: ConfigService<EnvConfig>) {
+    this.isDevelopment = configService.get<string>('NODE_ENV') === 'development';
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -26,11 +34,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
     };
 
-    if (process.env['NODE_ENV'] === 'development' && exception instanceof Error) {
+    if (this.isDevelopment && exception instanceof Error) {
       body['stack'] = exception.stack;
     }
 
-    // Fastify reply API: .status().send()
     void response.status(statusCode).send(body);
   }
 }

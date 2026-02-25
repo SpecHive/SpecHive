@@ -35,7 +35,7 @@ export const runs = pgTable(
     id: uuidv7PK(),
     projectId: uuid('project_id')
       .notNull()
-      .references(() => projects.id),
+      .references(() => projects.id, { onDelete: 'cascade' }),
     status: runStatusEnum('status').notNull().default('pending'),
     totalTests: integer('total_tests').default(0),
     passedTests: integer('passed_tests').default(0),
@@ -43,7 +43,7 @@ export const runs = pgTable(
     skippedTests: integer('skipped_tests').default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
-    metadata: jsonb('metadata'),
+    metadata: jsonb('metadata').default({}),
     ...timestamps,
   },
   (table) => [
@@ -58,7 +58,7 @@ export const suites = pgTable(
     id: uuidv7PK(),
     runId: uuid('run_id')
       .notNull()
-      .references(() => runs.id),
+      .references(() => runs.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
     parentSuiteId: uuid('parent_suite_id'),
     ...timestamps,
@@ -72,10 +72,10 @@ export const tests = pgTable(
     id: uuidv7PK(),
     suiteId: uuid('suite_id')
       .notNull()
-      .references(() => suites.id),
+      .references(() => suites.id, { onDelete: 'cascade' }),
     runId: uuid('run_id')
       .notNull()
-      .references(() => runs.id),
+      .references(() => runs.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
     status: testStatusEnum('status').notNull().default('pending'),
     durationMs: integer('duration_ms'),
@@ -98,13 +98,13 @@ export const artifacts = pgTable(
     id: uuidv7PK(),
     testId: uuid('test_id')
       .notNull()
-      .references(() => tests.id),
+      .references(() => tests.id, { onDelete: 'cascade' }),
     type: artifactTypeEnum('type').notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     storagePath: varchar('storage_path', { length: 1000 }).notNull(),
     sizeBytes: integer('size_bytes'),
     mimeType: varchar('mime_type', { length: 100 }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    ...timestamps,
   },
   (table) => [index('artifacts_test_idx').on(table.testId)],
 );

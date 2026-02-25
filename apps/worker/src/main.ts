@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import helmet from '@fastify/helmet';
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -18,14 +17,7 @@ async function bootstrap() {
   const config = app.get(ConfigService<EnvConfig>);
   const port = config.getOrThrow<number>('PORT');
 
-  app.useGlobalFilters(new AllExceptionsFilter());
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-    }),
-  );
+  app.useGlobalFilters(new AllExceptionsFilter(config));
 
   await app.listen(port, '0.0.0.0');
 }

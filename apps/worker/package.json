@@ -7,14 +7,15 @@
     "build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:e2e": "vitest run test/"
   },
   "dependencies": {
-    "@fastify/helmet": "^11.0.0",
+    "@fastify/helmet": "^13.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/throttler": "^6.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

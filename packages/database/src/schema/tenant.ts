@@ -29,10 +29,10 @@ export const memberships = pgTable(
     id: uuidv7PK(),
     organizationId: uuid('organization_id')
       .notNull()
-      .references(() => organizations.id),
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     userId: uuid('user_id')
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     role: membershipRoleEnum('role').notNull(),
     ...timestamps,
   },

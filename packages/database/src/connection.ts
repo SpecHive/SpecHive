@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -10,7 +9,11 @@ export function createDbConnection(url?: string) {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  const client = postgres(connectionString);
+  const client = postgres(connectionString, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
   return drizzle(client, { schema });
 }
 

@@ -15,6 +15,13 @@
       "when": 1772001304605,
       "tag": "0001_condemned_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772087400000,
+      "tag": "0002_sprint0_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -1,17 +1,23 @@
-import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { IngestionService, DATABASE_CONNECTION } from '../src/modules/ingestion/ingestion.service';
+import { ArtifactService } from '../src/modules/ingestion/services/artifact.service';
+import { RunService } from '../src/modules/ingestion/services/run.service';
+import { SuiteService } from '../src/modules/ingestion/services/suite.service';
+import { TestService } from '../src/modules/ingestion/services/test.service';
+
+const PROJECT_ID = 'project-1';
+const RUN_ID = '00000000-0000-4000-a000-000000000001';
 
 function makeRunStartEvent(overrides: Record<string, unknown> = {}) {
   return {
     version: '1' as const,
     timestamp: '2026-02-24T10:00:00.000Z',
-    runId: '00000000-0000-4000-a000-000000000001',
+    runId: RUN_ID,
     eventType: 'run.start' as const,
-    payload: { projectToken: 'test-token-123' },
+    payload: {},
     ...overrides,
   };
 }
@@ -19,22 +25,7 @@ function makeRunStartEvent(overrides: Record<string, unknown> = {}) {
 describe('IngestionService', () => {
   let service: IngestionService;
 
-  const mockSelect = vi.fn();
-  const mockFrom = vi.fn();
-  const mockWhere = vi.fn();
-  const mockLimit = vi.fn();
-  const mockInsert = vi.fn();
-  const mockValues = vi.fn();
-  const mockUpdate = vi.fn();
-  const mockSet = vi.fn();
-  const mockUpdateWhere = vi.fn();
   const mockPublish = vi.fn();
-
-  const mockTx = {
-    select: mockSelect,
-    insert: mockInsert,
-    update: mockUpdate,
-  };
 
   const mockDb = {
     transaction: vi.fn(),
@@ -44,26 +35,38 @@ describe('IngestionService', () => {
     publish: mockPublish,
   };
 
+  const mockRunService = {
+    handleRunStart: vi.fn(),
+    handleRunEnd: vi.fn(),
+  };
+
+  const mockSuiteService = {
+    handleSuiteStart: vi.fn(),
+    handleSuiteEnd: vi.fn(),
+  };
+
+  const mockTestService = {
+    handleTestStart: vi.fn(),
+    handleTestEnd: vi.fn(),
+  };
+
+  const mockArtifactService = {
+    handleArtifactUpload: vi.fn(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Chain: tx.select().from().where().limit()
-    mockSelect.mockReturnValue({ from: mockFrom });
-    mockFrom.mockReturnValue({ where: mockWhere });
-    mockWhere.mockReturnValue({ limit: mockLimit });
+    mockRunService.handleRunStart.mockResolvedValue({ runId: RUN_ID });
+    mockRunService.handleRunEnd.mockResolvedValue({ runId: RUN_ID });
+    mockSuiteService.handleSuiteStart.mockResolvedValue({ runId: RUN_ID });
+    mockSuiteService.handleSuiteEnd.mockResolvedValue({ runId: RUN_ID });
+    mockTestService.handleTestStart.mockResolvedValue({ runId: RUN_ID });
+    mockTestService.handleTestEnd.mockResolvedValue({ runId: RUN_ID });
+    mockArtifactService.handleArtifactUpload.mockResolvedValue({ runId: RUN_ID });
 
-    // Chain: tx.insert().values()
-    mockInsert.mockReturnValue({ values: mockValues });
-    mockValues.mockResolvedValue(undefined);
-
-    // Chain: tx.update().set().where()
-    mockUpdate.mockReturnValue({ set: mockSet });
-    mockSet.mockReturnValue({ where: mockUpdateWhere });
-    mockUpdateWhere.mockResolvedValue(undefined);
-
-    // Default: transaction executes callback with mockTx
     mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-      return cb(Object.assign(mockTx, { $client: {} }));
+      return cb(Object.assign({}, { $client: {} }));
     });
 
     mockPublish.mockResolvedValue(undefined);
@@ -73,6 +76,10 @@ describe('IngestionService', () => {
         IngestionService,
         { provide: DATABASE_CONNECTION, useValue: mockDb },
         { provide: OUTBOXY_CLIENT, useValue: mockOutboxy },
+        { provide: RunService, useValue: mockRunService },
+        { provide: SuiteService, useValue: mockSuiteService },
+        { provide: TestService, useValue: mockTestService },
+        { provide: ArtifactService, useValue: mockArtifactService },
       ],
     }).compile();
 
@@ -80,65 +87,53 @@ describe('IngestionService', () => {
   });
 
   describe('run.start', () => {
-    it('inserts a run and publishes an outbox event for a valid token', async () => {
-      mockLimit.mockResolvedValue([{ projectId: 'project-1' }]);
-
+    it('delegates to RunService and publishes outbox event', async () => {
       const event = makeRunStartEvent();
-      const result = await service.processEvent(event);
+      const result = await service.processEvent(event, PROJECT_ID);
 
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockInsert).toHaveBeenCalled();
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockRunService.handleRunStart).toHaveBeenCalledWith(
+        event,
+        PROJECT_ID,
+        expect.anything(),
+      );
       expect(mockPublish).toHaveBeenCalledWith(
         expect.objectContaining({
           aggregateType: 'TestRun',
-          aggregateId: event.runId,
+          aggregateId: RUN_ID,
           eventType: 'run.start',
         }),
         expect.anything(),
       );
     });
-
-    it('throws UnauthorizedException for an invalid token', async () => {
-      mockLimit.mockResolvedValue([]);
-
-      await expect(service.processEvent(makeRunStartEvent())).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('throws UnauthorizedException for a revoked token (filtered by query)', async () => {
-      // Revoked tokens are filtered out at the DB level via isNull(revokedAt)
-      mockLimit.mockResolvedValue([]);
-
-      await expect(
-        service.processEvent(makeRunStartEvent({ payload: { projectToken: 'revoked-token' } })),
-      ).rejects.toThrow(UnauthorizedException);
-    });
   });
 
   describe('run.end', () => {
-    it('updates the run status', async () => {
+    it('delegates to RunService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'run.end' as const,
         payload: { status: 'passed' as const },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockUpdate).toHaveBeenCalled();
-      expect(mockSet).toHaveBeenCalled();
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockRunService.handleRunEnd).toHaveBeenCalledWith(
+        event,
+        PROJECT_ID,
+        expect.anything(),
+      );
     });
   });
 
   describe('suite.start', () => {
-    it('inserts a suite record', async () => {
+    it('delegates to SuiteService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'suite.start' as const,
         payload: {
           suiteId: '00000000-0000-4000-a000-000000000010',
@@ -146,35 +141,36 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockInsert).toHaveBeenCalled();
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockSuiteService.handleSuiteStart).toHaveBeenCalled();
     });
   });
 
   describe('suite.end', () => {
-    it('returns runId without error (no-op)', async () => {
+    it('delegates to SuiteService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'suite.end' as const,
         payload: {
           suiteId: '00000000-0000-4000-a000-000000000010',
         },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockSuiteService.handleSuiteEnd).toHaveBeenCalled();
     });
   });
 
   describe('test.start', () => {
-    it('inserts a test record', async () => {
+    it('delegates to TestService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'test.start' as const,
         payload: {
           testId: '00000000-0000-4000-a000-000000000020',
@@ -183,18 +179,18 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockInsert).toHaveBeenCalled();
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockTestService.handleTestStart).toHaveBeenCalled();
     });
   });
 
   describe('test.end', () => {
-    it('updates the test status', async () => {
+    it('delegates to TestService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'test.end' as const,
         payload: {
           testId: '00000000-0000-4000-a000-000000000020',
@@ -203,18 +199,18 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockUpdate).toHaveBeenCalled();
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockTestService.handleTestEnd).toHaveBeenCalled();
     });
   });
 
   describe('artifact.upload', () => {
-    it('inserts an artifact record', async () => {
+    it('delegates to ArtifactService', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
-        runId: '00000000-0000-4000-a000-000000000001',
+        runId: RUN_ID,
         eventType: 'artifact.upload' as const,
         payload: {
           testId: '00000000-0000-4000-a000-000000000020',
@@ -224,18 +220,17 @@ describe('IngestionService', () => {
         },
       };
 
-      const result = await service.processEvent(event);
-      expect(result).toEqual({ runId: event.runId });
-      expect(mockInsert).toHaveBeenCalled();
+      const result = await service.processEvent(event, PROJECT_ID);
+      expect(result).toEqual({ runId: RUN_ID });
+      expect(mockArtifactService.handleArtifactUpload).toHaveBeenCalled();
     });
   });
 
   describe('transaction rollback', () => {
     it('rejects when outboxy.publish() throws', async () => {
-      mockLimit.mockResolvedValue([{ projectId: 'project-1' }]);
       mockPublish.mockRejectedValue(new Error('Outbox publish failed'));
 
-      await expect(service.processEvent(makeRunStartEvent())).rejects.toThrow(
+      await expect(service.processEvent(makeRunStartEvent(), PROJECT_ID)).rejects.toThrow(
         'Outbox publish failed',
       );
     });

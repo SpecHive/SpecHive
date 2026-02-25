@@ -37,7 +37,6 @@ export function Sidebar() {
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
               )
             }
-            aria-current={undefined}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             {label}

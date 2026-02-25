@@ -10,6 +10,7 @@ interface StatCard {
   trend?: string;
 }
 
+// TODO: Replace with real data from API once dashboard endpoints are implemented
 const stats: StatCard[] = [
   {
     title: 'Total Runs',

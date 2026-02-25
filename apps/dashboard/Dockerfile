@@ -37,7 +37,7 @@ FROM deps AS build
 
 COPY . .
 
-# Pass the API URL at build time so Vite can inline it
+# VITE_API_URL is a build-time arg — Vite inlines it during compilation, not available at runtime
 ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=${VITE_API_URL}
 
@@ -53,7 +53,7 @@ ENV NODE_ENV=production
 RUN addgroup -S assertly && adduser -S assertly -G assertly
 
 # Use 'serve' to host the static dist folder
-RUN npm install -g serve
+RUN npm install -g serve@14
 
 WORKDIR /app
 

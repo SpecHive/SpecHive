@@ -18,8 +18,6 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
-    ports:
-      - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -39,9 +37,6 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
-    ports:
-      - '9000:9000'
-      - '9001:9001'
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
@@ -79,11 +74,9 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
-    ports:
-      - '3100:3100'
     command: api
     environment:
-      DATABASE_URL: postgres://assertly:assertly@postgres:5432/assertly
+      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
       PORT: '3100'
     depends_on:
       postgres:
@@ -96,12 +89,14 @@ services:
       - assertly-network
     command: worker
     environment:
-      DATABASE_URL: postgres://assertly:assertly@postgres:5432/assertly
+      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
     depends_on:
-      - outboxy-api
-      - worker
+      outboxy-api:
+        condition: service_started
+      worker:
+        condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # Application services
@@ -123,6 +118,12 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       WORKER_WEBHOOK_URL: ${WORKER_WEBHOOK_URL:-http://worker:3001/webhooks/outboxy}
       OUTBOXY_API_URL: ${OUTBOXY_API_URL:-http://outboxy-api:3100}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,8 +139,14 @@ services:
       - assertly-network
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgres://assertly:assertly@postgres:5432/assertly}
       PORT: '3001'
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-in-production}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -155,5 +162,12 @@ services:
       - '5173:5173'
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:5173/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
-      - ingestion-api
+      ingestion-api:
+        condition: service_healthy

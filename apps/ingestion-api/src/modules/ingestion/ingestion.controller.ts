@@ -1,24 +1,48 @@
 import { V1EventSchema } from '@assertly/reporter-core-protocol';
-import { Body, Controller, HttpCode, HttpStatus, Post, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { ConfigService } from '@nestjs/config';
 
-import type { IngestionService } from './ingestion.service';
+import { CurrentProject } from '../../decorators/current-project.decorator';
+import { ProjectTokenGuard } from '../../guards/project-token.guard';
+import type { ProjectContext } from '../../guards/project-token.guard';
+import type { EnvConfig } from '../config/env.validation';
+
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { IngestionService } from './ingestion.service';
 
 @Controller('v1')
 export class IngestionController {
-  constructor(private readonly ingestionService: IngestionService) {}
+  private readonly isProduction: boolean;
+
+  constructor(
+    private readonly ingestionService: IngestionService,
+    configService: ConfigService<EnvConfig>,
+  ) {
+    this.isProduction = configService.get<string>('NODE_ENV') === 'production';
+  }
 
   @Post('events')
   @HttpCode(HttpStatus.ACCEPTED)
-  async ingestEvent(@Body() body: unknown) {
+  @UseGuards(ProjectTokenGuard)
+  async ingestEvent(@Body() body: unknown, @CurrentProject() project: ProjectContext) {
     const result = V1EventSchema.safeParse(body);
 
     if (!result.success) {
-      throw new BadRequestException({
-        message: 'Invalid event payload',
-        errors: result.error.flatten(),
-      });
+      const message = this.isProduction
+        ? 'Invalid event payload'
+        : `Invalid event payload: ${JSON.stringify(result.error.flatten())}`;
+      throw new BadRequestException({ message });
     }
 
-    return this.ingestionService.processEvent(result.data);
+    return this.ingestionService.processEvent(result.data, project.projectId);
   }
 }

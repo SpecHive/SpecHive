@@ -8,6 +8,10 @@ import { type EnvConfig } from '../config/env.validation';
 
 import { IngestionController } from './ingestion.controller';
 import { IngestionService, DATABASE_CONNECTION } from './ingestion.service';
+import { ArtifactService } from './services/artifact.service';
+import { RunService } from './services/run.service';
+import { SuiteService } from './services/suite.service';
+import { TestService } from './services/test.service';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import { IngestionService, DATABASE_CONNECTION } from './ingestion.service';
       },
     },
     IngestionService,
+    RunService,
+    SuiteService,
+    TestService,
+    ArtifactService,
   ],
   exports: [IngestionService, DATABASE_CONNECTION, OUTBOXY_CLIENT],
 })

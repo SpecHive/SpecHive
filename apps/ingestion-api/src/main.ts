@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import helmet from '@fastify/helmet';
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -21,14 +20,7 @@ async function bootstrap() {
 
   app.enableCors({ origin: corsOrigin });
 
-  app.useGlobalFilters(new AllExceptionsFilter());
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-    }),
-  );
+  app.useGlobalFilters(new AllExceptionsFilter(config));
 
   await app.listen(port, '0.0.0.0');
 }

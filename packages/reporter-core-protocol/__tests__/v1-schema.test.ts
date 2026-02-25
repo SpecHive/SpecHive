@@ -27,7 +27,6 @@ describe('RunStartSchema', () => {
       ...BASE_ENVELOPE,
       eventType: 'run.start',
       payload: {
-        projectToken: 'tok_abc123',
         runName: 'CI Run #42',
         metadata: { branch: 'main', commit: 'abc123' },
       },
@@ -39,25 +38,16 @@ describe('RunStartSchema', () => {
     const result = RunStartSchema.safeParse({
       ...BASE_ENVELOPE,
       eventType: 'run.start',
-      payload: { projectToken: 'tok_abc123' },
+      payload: {},
     });
     expect(result.success).toBe(true);
-  });
-
-  it('fails when projectToken is missing', () => {
-    const result = RunStartSchema.safeParse({
-      ...BASE_ENVELOPE,
-      eventType: 'run.start',
-      payload: { runName: 'CI Run' },
-    });
-    expect(result.success).toBe(false);
   });
 
   it('fails when eventType does not match', () => {
     const result = RunStartSchema.safeParse({
       ...BASE_ENVELOPE,
       eventType: 'run.end',
-      payload: { projectToken: 'tok_abc123' },
+      payload: {},
     });
     expect(result.success).toBe(false);
   });
@@ -316,7 +306,7 @@ describe('V1EventSchema discriminated union', () => {
     const result = V1EventSchema.safeParse({
       ...BASE_ENVELOPE,
       eventType: 'run.start',
-      payload: { projectToken: 'tok_abc123' },
+      payload: {},
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -365,7 +355,41 @@ describe('V1EventSchema discriminated union', () => {
       timestamp: '2026-02-24T10:00:00.000Z',
       runId: BASE_ENVELOPE.runId,
       eventType: 'run.start',
-      payload: { projectToken: 'tok_abc123' },
+      payload: {},
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('Edge cases: timestamp and runId', () => {
+  it('rejects invalid ISO 8601 timestamp', () => {
+    const result = V1EventSchema.safeParse({
+      version: '1',
+      timestamp: 'not-a-date',
+      runId: '00000000-0000-4000-8000-000000000001',
+      eventType: 'run.start',
+      payload: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-UUID runId', () => {
+    const result = V1EventSchema.safeParse({
+      version: '1',
+      timestamp: '2026-02-24T10:00:00.000Z',
+      runId: 'not-a-uuid',
+      eventType: 'run.start',
+      payload: {},
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing runId', () => {
+    const result = V1EventSchema.safeParse({
+      version: '1',
+      timestamp: '2026-02-24T10:00:00.000Z',
+      eventType: 'run.start',
+      payload: {},
     });
     expect(result.success).toBe(false);
   });
