@@ -396,6 +396,56 @@ describe('Edge cases: timestamp and runId', () => {
   });
 });
 
+describe('V1EventSchema union completeness', () => {
+  it('correctly identifies a run.end event', () => {
+    const result = V1EventSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.end',
+      payload: { status: RunStatus.Passed },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.eventType).toBe('run.end');
+    }
+  });
+
+  it('correctly identifies a suite.start event', () => {
+    const result = V1EventSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'suite.start',
+      payload: { suiteId: SUITE_ID, suiteName: 'Auth Tests' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.eventType).toBe('suite.start');
+    }
+  });
+
+  it('correctly identifies a suite.end event', () => {
+    const result = V1EventSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'suite.end',
+      payload: { suiteId: SUITE_ID },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.eventType).toBe('suite.end');
+    }
+  });
+
+  it('correctly identifies a test.start event', () => {
+    const result = V1EventSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'test.start',
+      payload: { testId: TEST_ID, suiteId: SUITE_ID, testName: 'should login successfully' },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.eventType).toBe('test.start');
+    }
+  });
+});
+
 describe('Branded ID types', () => {
   it('parsed runId is branded as RunId', () => {
     const result = RunStartSchema.safeParse({

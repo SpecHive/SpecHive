@@ -19,7 +19,7 @@ const WORKER_URL = process.env['WORKER_URL'] ?? 'http://localhost:3001';
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
 const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
 
-const RUN_ID = '00000000-0000-4000-a000-000000000001';
+const RUN_ID = crypto.randomUUID();
 const VALID_TIMESTAMP = '2026-02-24T10:00:00.000Z';
 
 // ---------------------------------------------------------------------------

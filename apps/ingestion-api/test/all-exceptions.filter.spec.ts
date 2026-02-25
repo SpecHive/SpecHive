@@ -74,4 +74,53 @@ describe('AllExceptionsFilter', () => {
     const body = mockSend.mock.calls[0]![0] as Record<string, unknown>;
     expect(body['stack']).toBeUndefined();
   });
+
+  it('returns custom message from HttpException object payload', () => {
+    const filter = createFilter('production');
+    const { host, mockStatus, mockSend } = createMockHost();
+
+    filter.catch(
+      new HttpException({ message: 'Custom validation error' }, HttpStatus.BAD_REQUEST),
+      host,
+    );
+
+    expect(mockStatus).toHaveBeenCalledWith(400);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ statusCode: 400, message: 'Custom validation error' }),
+    );
+  });
+
+  it('returns "Internal server error" for non-HttpException non-Error exceptions', () => {
+    const filter = createFilter('production');
+    const { host, mockStatus, mockSend } = createMockHost();
+
+    filter.catch('oops', host);
+
+    expect(mockStatus).toHaveBeenCalledWith(500);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({ statusCode: 500, message: 'Internal server error' }),
+    );
+  });
+
+  it('always includes timestamp as an ISO string in the response body', () => {
+    const filter = createFilter('production');
+    const { host, mockSend } = createMockHost();
+
+    filter.catch(new Error('any error'), host);
+
+    const body = mockSend.mock.calls[0]![0] as Record<string, unknown>;
+    expect(typeof body['timestamp']).toBe('string');
+    expect(() => new Date(body['timestamp'] as string).toISOString()).not.toThrow();
+    expect(new Date(body['timestamp'] as string).toISOString()).toBe(body['timestamp']);
+  });
+
+  it('does not include stack for non-Error exceptions even in development mode', () => {
+    const filter = createFilter('development');
+    const { host, mockSend } = createMockHost();
+
+    filter.catch('oops', host);
+
+    const body = mockSend.mock.calls[0]![0] as Record<string, unknown>;
+    expect(body['stack']).toBeUndefined();
+  });
 });
