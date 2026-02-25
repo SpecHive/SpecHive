@@ -92,6 +92,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3100'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3100/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,6 +112,12 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3100/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -146,7 +158,7 @@ services:
       postgres:
         condition: service_healthy
       outboxy-api:
-        condition: service_started
+        condition: service_healthy
 
   worker:
     build:
@@ -181,11 +193,11 @@ services:
     networks:
       - assertly-network
     ports:
-      - '5173:80'
+      - '5173:8080'
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:80/']
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/']
       interval: 10s
       timeout: 5s
       retries: 5

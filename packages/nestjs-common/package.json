@@ -26,6 +26,6 @@
   "devDependencies": {
     "@assertly/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.9.3"
   }
 }

@@ -6,6 +6,12 @@ export default defineConfig({
     include: ['test/**/*.spec.ts', 'test/**/*.e2e-spec.ts'],
     globals: false,
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
+    },
   },
   plugins: [
     swc.vite({
