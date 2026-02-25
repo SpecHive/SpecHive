@@ -190,4 +190,129 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
     expect(enums['artifact_type']).toBeDefined();
     expect(enums['membership_role']).toBeDefined();
   });
+
+  it('FORCE ROW LEVEL SECURITY is enabled on all tenant-scoped tables', async () => {
+    const rows = await testSql`
+      SELECT relname, relforcerowsecurity
+      FROM pg_class
+      WHERE relname = ANY(${expectedTables})
+      ORDER BY relname
+    `;
+
+    for (const tableName of expectedTables) {
+      const row = rows.find((r) => r.relname === tableName);
+      expect(row, `${tableName} should exist`).toBeDefined();
+      expect(row!.relforcerowsecurity, `${tableName} should have FORCE RLS enabled`).toBe(true);
+    }
+  });
+
+  it('expected foreign key constraints exist', async () => {
+    const rows = await testSql`
+      SELECT
+        tc.constraint_name,
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name,
+        tc.table_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_schema = 'public'
+    `;
+
+    const fks = rows.map((r) => ({
+      table: r.table_name as string,
+      column: r.column_name as string,
+      foreignTable: r.foreign_table_name as string,
+      foreignColumn: r.foreign_column_name as string,
+    }));
+
+    const expectedFks = [
+      {
+        table: 'memberships',
+        column: 'organization_id',
+        foreignTable: 'organizations',
+        foreignColumn: 'id',
+      },
+      { table: 'memberships', column: 'user_id', foreignTable: 'users', foreignColumn: 'id' },
+      {
+        table: 'projects',
+        column: 'organization_id',
+        foreignTable: 'organizations',
+        foreignColumn: 'id',
+      },
+      {
+        table: 'project_tokens',
+        column: 'project_id',
+        foreignTable: 'projects',
+        foreignColumn: 'id',
+      },
+      { table: 'runs', column: 'project_id', foreignTable: 'projects', foreignColumn: 'id' },
+      { table: 'suites', column: 'run_id', foreignTable: 'runs', foreignColumn: 'id' },
+      { table: 'suites', column: 'parent_suite_id', foreignTable: 'suites', foreignColumn: 'id' },
+      { table: 'tests', column: 'suite_id', foreignTable: 'suites', foreignColumn: 'id' },
+      { table: 'tests', column: 'run_id', foreignTable: 'runs', foreignColumn: 'id' },
+      { table: 'artifacts', column: 'test_id', foreignTable: 'tests', foreignColumn: 'id' },
+    ];
+
+    for (const expected of expectedFks) {
+      const found = fks.some(
+        (fk) =>
+          fk.table === expected.table &&
+          fk.column === expected.column &&
+          fk.foreignTable === expected.foreignTable &&
+          fk.foreignColumn === expected.foreignColumn,
+      );
+      expect(
+        found,
+        `FK ${expected.table}.${expected.column} → ${expected.foreignTable}.${expected.foreignColumn}`,
+      ).toBe(true);
+    }
+  });
+
+  it('critical columns have NOT NULL constraints', async () => {
+    const rows = await testSql`
+      SELECT table_name, column_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name IN ('runs', 'tests')
+        AND column_name IN ('metadata', 'total_tests', 'passed_tests', 'failed_tests', 'skipped_tests', 'retry_count')
+      ORDER BY table_name, column_name
+    `;
+
+    const expectedNotNull = [
+      { table: 'runs', column: 'metadata' },
+      { table: 'runs', column: 'total_tests' },
+      { table: 'runs', column: 'passed_tests' },
+      { table: 'runs', column: 'failed_tests' },
+      { table: 'runs', column: 'skipped_tests' },
+      { table: 'tests', column: 'retry_count' },
+    ];
+
+    for (const expected of expectedNotNull) {
+      const row = rows.find(
+        (r) => r.table_name === expected.table && r.column_name === expected.column,
+      );
+      expect(row, `${expected.table}.${expected.column} should exist`).toBeDefined();
+      expect(row!.is_nullable, `${expected.table}.${expected.column} should be NOT NULL`).toBe(
+        'NO',
+      );
+    }
+  });
+
+  it('SECURITY DEFINER functions are accessible to assertly_app', async () => {
+    const functions = ['validate_project_token', 'touch_project_token_usage'];
+
+    for (const funcName of functions) {
+      const rows = await testSql`
+        SELECT has_function_privilege('assertly_app', ${funcName}(text), 'EXECUTE') AS has_priv
+      `;
+      expect(rows[0]!.has_priv, `assertly_app should be able to EXECUTE ${funcName}`).toBe(true);
+    }
+  });
 });
