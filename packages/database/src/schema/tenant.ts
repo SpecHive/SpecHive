@@ -1,4 +1,9 @@
-import { type OrganizationId, type UserId, MembershipRole } from '@assertly/shared-types';
+import {
+  type MembershipId,
+  type OrganizationId,
+  type UserId,
+  MembershipRole,
+} from '@assertly/shared-types';
 import { pgEnum, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
@@ -26,7 +31,7 @@ export const users = pgTable('users', {
 export const memberships = pgTable(
   'memberships',
   {
-    id: uuidv7PK<string>(),
+    id: uuidv7PK<MembershipId>(),
     organizationId: uuid('organization_id')
       .$type<OrganizationId>()
       .notNull()

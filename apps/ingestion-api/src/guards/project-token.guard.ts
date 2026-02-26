@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 
 import type { Database } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
@@ -6,6 +6,8 @@ import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { asOrganizationId, asProjectId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI needs the class at runtime
+import { ConfigService } from '@nestjs/config';
 import { sql } from 'drizzle-orm';
 
 export interface ProjectContext {
@@ -17,10 +19,15 @@ export interface ProjectContext {
 export class ProjectTokenGuard implements CanActivate {
   private readonly logger = new Logger(ProjectTokenGuard.name);
 
+  private readonly tokenHashKey: string;
+
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: Database,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.tokenHashKey = configService.getOrThrow<string>('TOKEN_HASH_KEY');
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -30,7 +37,7 @@ export class ProjectTokenGuard implements CanActivate {
       throw new UnauthorizedException('Missing x-project-token header');
     }
 
-    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const tokenHash = createHmac('sha256', this.tokenHashKey).update(token).digest('hex');
 
     // Uses SECURITY DEFINER function to bypass RLS (org context is unknown at this point)
     const rows = await this.db.execute<{ project_id: string; organization_id: string }>(

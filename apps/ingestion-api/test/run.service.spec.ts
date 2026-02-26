@@ -141,7 +141,6 @@ describe('RunService', () => {
       const setArg = mockTx.update().set.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(setArg).toMatchObject({ status: 'passed' });
       expect(setArg['finishedAt']).toBeInstanceOf(Date);
-      expect(setArg['updatedAt']).toBeInstanceOf(Date);
     });
 
     it('updates the run to failed status', async () => {

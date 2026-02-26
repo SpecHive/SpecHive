@@ -125,28 +125,51 @@ jobs:
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
 
+      - name: Install psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Create assertly_app role
+        run: |
+          psql "$DATABASE_URL" -c "
+            DO \$\$
+            BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'assertly_app') THEN
+                CREATE ROLE assertly_app LOGIN PASSWORD 'assertly_app';
+              END IF;
+            END
+            \$\$;
+            GRANT CONNECT ON DATABASE assertly TO assertly_app;
+            GRANT USAGE ON SCHEMA public TO assertly_app;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO assertly_app;
+            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO assertly_app;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO assertly_app;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO assertly_app;
+          "
+        env:
+          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+
       - name: Run tests
         run: pnpm test
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
+          TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
       - name: Run integration tests
         run: pnpm test:integration:db
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
+          TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
-      # TODO: Move this step to a dedicated CI job with Docker Compose services
-      # (minio, outboxy-api, outboxy-worker) once infra support is available.
-      # The crash simulation tests require the full stack and will fail here
-      # because Docker Compose services are not running in this job.
+      # TODO: Enable when a dedicated CI job with Docker Compose services is available
       - name: Run full integration tests
+        if: false
         run: pnpm test:integration
-        continue-on-error: true
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
+          TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
   docker-build:
     name: Docker Build

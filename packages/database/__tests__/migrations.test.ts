@@ -11,6 +11,9 @@
  *   pnpm --filter @assertly/database test
  */
 
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 // Needs the superuser role (not assertly_app) to CREATE DATABASE for temp test DBs.
@@ -69,7 +72,8 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
     testSql = postgres(testDbUrl, { max: 1 });
 
     const db = drizzle(testSql);
-    await migrate(db, { migrationsFolder: './drizzle' });
+    const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), '../drizzle');
+    await migrate(db, { migrationsFolder });
   }, 60_000);
 
   afterAll(async () => {
@@ -124,9 +128,12 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
       'runs_project_created_idx',
       'runs_project_status_idx',
       'suites_run_id_idx',
+      'suites_organization_id_idx',
       'tests_suite_idx',
       'tests_run_status_idx',
+      'tests_organization_id_idx',
       'artifacts_test_idx',
+      'artifacts_organization_id_idx',
       'projects_org_slug_idx',
       'project_tokens_hash_idx',
       'memberships_org_user_idx',
@@ -263,10 +270,28 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
       },
       { table: 'runs', column: 'project_id', foreignTable: 'projects', foreignColumn: 'id' },
       { table: 'suites', column: 'run_id', foreignTable: 'runs', foreignColumn: 'id' },
+      {
+        table: 'suites',
+        column: 'organization_id',
+        foreignTable: 'organizations',
+        foreignColumn: 'id',
+      },
       { table: 'suites', column: 'parent_suite_id', foreignTable: 'suites', foreignColumn: 'id' },
       { table: 'tests', column: 'suite_id', foreignTable: 'suites', foreignColumn: 'id' },
       { table: 'tests', column: 'run_id', foreignTable: 'runs', foreignColumn: 'id' },
+      {
+        table: 'tests',
+        column: 'organization_id',
+        foreignTable: 'organizations',
+        foreignColumn: 'id',
+      },
       { table: 'artifacts', column: 'test_id', foreignTable: 'tests', foreignColumn: 'id' },
+      {
+        table: 'artifacts',
+        column: 'organization_id',
+        foreignTable: 'organizations',
+        foreignColumn: 'id',
+      },
     ];
 
     for (const expected of expectedFks) {

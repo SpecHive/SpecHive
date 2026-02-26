@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
 import { sql } from 'drizzle-orm';
@@ -108,8 +110,10 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
 
   const projectId = project!.id;
 
+  const tokenHashKey = process.env['TOKEN_HASH_KEY'];
+  if (!tokenHashKey) throw new Error('TOKEN_HASH_KEY environment variable is required');
   const rawToken = randomBytes(32).toString('hex');
-  const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+  const tokenHash = createHmac('sha256', tokenHashKey).update(rawToken).digest('hex');
   await db.insert(projectTokens).values({
     projectId,
     name: 'Perf Token',
@@ -137,7 +141,14 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   const sampleFailedRunId = runRows.find((r) => r.status === RunStatus.Failed)!.id;
 
   console.log(`  Inserting ${RUN_COUNT * SUITES_PER_RUN} suites...`);
-  const suiteRows: { id: string; runId: string; name: string; parentSuiteId: null }[] = [];
+  const orgId = org!.id;
+  const suiteRows: {
+    id: string;
+    runId: string;
+    organizationId: string;
+    name: string;
+    parentSuiteId: null;
+  }[] = [];
   const firstRunSuiteIds: string[] = [];
 
   for (const run of runRows) {
@@ -146,7 +157,13 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
       if (run.id === sampleRunId && s === 0) {
         firstRunSuiteIds.push(suiteId);
       }
-      suiteRows.push({ id: suiteId, runId: run.id, name: `Suite ${s}`, parentSuiteId: null });
+      suiteRows.push({
+        id: suiteId,
+        runId: run.id,
+        organizationId: orgId,
+        name: `Suite ${s}`,
+        parentSuiteId: null,
+      });
     }
   }
 
@@ -159,6 +176,7 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
     id: string;
     suiteId: string;
     runId: string;
+    organizationId: string;
     name: string;
     status: TestStatus;
     durationMs: number;
@@ -175,6 +193,7 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
         id: uuidv7(),
         suiteId: suite.id,
         runId: suite.runId,
+        organizationId: orgId,
         name: `Test ${t}`,
         status,
         durationMs: 10 + t * 5,
@@ -374,10 +393,10 @@ function printReport(results: QueryResult[]): boolean {
 // Entry point
 // ---------------------------------------------------------------------------
 
-async function main(): Promise<void> {
-  const dbUrl = process.env['DATABASE_URL'];
-  if (!dbUrl) throw new Error('DATABASE_URL environment variable is required');
-  const db = createDbConnection(dbUrl);
+export async function main(dbUrl?: string): Promise<void> {
+  const url = dbUrl ?? process.env['DATABASE_URL'];
+  if (!url) throw new Error('DATABASE_URL environment variable is required');
+  const db = createDbConnection(url);
 
   let projectId: string | undefined;
 
@@ -410,4 +429,7 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+// CLI entry point
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  main();
+}

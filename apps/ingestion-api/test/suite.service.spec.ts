@@ -1,5 +1,5 @@
 import type { Database } from '@assertly/database';
-import type { ProjectId, RunId, SuiteId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId, SuiteId } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SuiteService } from '../src/modules/ingestion/services/suite.service';
 
 const PROJECT_ID = 'project-1' as ProjectId;
+const ORG_ID = '00000000-0000-4000-a000-000000000099' as OrganizationId;
 const RUN_ID = '00000000-0000-4000-a000-000000000001' as RunId;
 const SUITE_ID = '00000000-0000-4000-a000-000000000010' as SuiteId;
 const PARENT_SUITE_ID = '00000000-0000-4000-a000-000000000009' as SuiteId;
@@ -61,6 +62,7 @@ describe('SuiteService', () => {
       const result = await service.handleSuiteStart(
         event,
         PROJECT_ID,
+        ORG_ID,
         mockTx as unknown as Database,
       );
 
@@ -89,7 +91,7 @@ describe('SuiteService', () => {
         },
       };
 
-      await service.handleSuiteStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleSuiteStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(valuesArg['parentSuiteId']).toBeNull();
@@ -110,7 +112,7 @@ describe('SuiteService', () => {
         },
       };
 
-      await service.handleSuiteStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleSuiteStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(valuesArg['parentSuiteId']).toBe(PARENT_SUITE_ID);
@@ -131,7 +133,7 @@ describe('SuiteService', () => {
       };
 
       await expect(
-        service.handleSuiteStart(event, PROJECT_ID, mockTx as unknown as Database),
+        service.handleSuiteStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -150,7 +152,7 @@ describe('SuiteService', () => {
       };
 
       await expect(
-        service.handleSuiteStart(event, PROJECT_ID, mockTx as unknown as Database),
+        service.handleSuiteStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database),
       ).rejects.toThrow(NotFoundException);
 
       expect(mockTx.insert).not.toHaveBeenCalled();

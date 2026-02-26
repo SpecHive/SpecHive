@@ -30,6 +30,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-assertly}
       ASSERTLY_APP_PASSWORD: ${ASSERTLY_APP_PASSWORD:-assertly_app}
+      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:-outboxy}
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-assertly} -d ${POSTGRES_DB:-assertly}']
       interval: 10s
@@ -93,7 +94,7 @@ services:
       - assertly-network
     command: api
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
+      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3100'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3100/health']
@@ -114,7 +115,7 @@ services:
       - assertly-network
     command: worker
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
+      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-assertly}
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
     depends_on:
@@ -124,6 +125,27 @@ services:
         condition: service_completed_successfully
       worker:
         condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Database migration (runs once before application services start)
+  # ---------------------------------------------------------------------------
+
+  assertly-migrate:
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: build
+      secrets:
+        - npm_token
+    networks:
+      - assertly-network
+    command: ['node', 'packages/database/dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
 
   # ---------------------------------------------------------------------------
   # Application services
@@ -150,6 +172,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: 'false'
+      TOKEN_HASH_KEY: ${TOKEN_HASH_KEY:?TOKEN_HASH_KEY is required}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health']
       interval: 10s
@@ -157,6 +180,8 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
+      assertly-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       outboxy-api:
@@ -178,6 +203,7 @@ services:
       PORT: '3001'
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      TOKEN_HASH_KEY: ${TOKEN_HASH_KEY:?TOKEN_HASH_KEY is required}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health']
       interval: 10s
@@ -185,6 +211,8 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
+      assertly-migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
 

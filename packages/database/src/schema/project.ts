@@ -1,4 +1,4 @@
-import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
+import { type OrganizationId, type ProjectId, type ProjectTokenId } from '@assertly/shared-types';
 import { pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
@@ -22,7 +22,7 @@ export const projects = pgTable(
 export const projectTokens = pgTable(
   'project_tokens',
   {
-    id: uuidv7PK<string>(),
+    id: uuidv7PK<ProjectTokenId>(),
     projectId: uuid('project_id')
       .$type<ProjectId>()
       .notNull()

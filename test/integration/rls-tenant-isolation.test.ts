@@ -91,22 +91,22 @@ describe('RLS tenant isolation', () => {
         (${RUN_B_ID}, ${PROJECT_B_ID}, 'running', '{}', 0, 0, 0, 0)
     `;
     await superSql`
-      INSERT INTO suites (id, run_id, name)
+      INSERT INTO suites (id, run_id, organization_id, name)
       VALUES
-        (${SUITE_A_ID}, ${RUN_A_ID}, 'Suite A'),
-        (${SUITE_B_ID}, ${RUN_B_ID}, 'Suite B')
+        (${SUITE_A_ID}, ${RUN_A_ID}, ${ORG_A_ID}, 'Suite A'),
+        (${SUITE_B_ID}, ${RUN_B_ID}, ${ORG_B_ID}, 'Suite B')
     `;
     await superSql`
-      INSERT INTO tests (id, suite_id, run_id, name, status, retry_count)
+      INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, retry_count)
       VALUES
-        (${TEST_A_ID}, ${SUITE_A_ID}, ${RUN_A_ID}, 'Test A', 'passed', 0),
-        (${TEST_B_ID}, ${SUITE_B_ID}, ${RUN_B_ID}, 'Test B', 'passed', 0)
+        (${TEST_A_ID}, ${SUITE_A_ID}, ${RUN_A_ID}, ${ORG_A_ID}, 'Test A', 'passed', 0),
+        (${TEST_B_ID}, ${SUITE_B_ID}, ${RUN_B_ID}, ${ORG_B_ID}, 'Test B', 'passed', 0)
     `;
     await superSql`
-      INSERT INTO artifacts (id, test_id, type, name, storage_path)
+      INSERT INTO artifacts (id, test_id, organization_id, type, name, storage_path)
       VALUES
-        (${ARTIFACT_A_ID}, ${TEST_A_ID}, 'log', 'artifact-a.log', '/artifacts/a.log'),
-        (${ARTIFACT_B_ID}, ${TEST_B_ID}, 'log', 'artifact-b.log', '/artifacts/b.log')
+        (${ARTIFACT_A_ID}, ${TEST_A_ID}, ${ORG_A_ID}, 'log', 'artifact-a.log', '/artifacts/a.log'),
+        (${ARTIFACT_B_ID}, ${TEST_B_ID}, ${ORG_B_ID}, 'log', 'artifact-b.log', '/artifacts/b.log')
     `;
   }, 30_000);
 

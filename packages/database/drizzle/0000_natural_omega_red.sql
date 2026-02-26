@@ -69,6 +69,7 @@ CREATE TABLE "projects" (
 CREATE TABLE "artifacts" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"test_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"type" "artifact_type" NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"storage_path" varchar(1000) NOT NULL,
@@ -96,6 +97,7 @@ CREATE TABLE "runs" (
 CREATE TABLE "suites" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"run_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"name" varchar(500) NOT NULL,
 	"parent_suite_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -106,6 +108,7 @@ CREATE TABLE "tests" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"suite_id" uuid NOT NULL,
 	"run_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"name" varchar(500) NOT NULL,
 	"status" "test_status" DEFAULT 'pending' NOT NULL,
 	"duration_ms" integer,
@@ -123,20 +126,26 @@ ALTER TABLE "memberships" ADD CONSTRAINT "memberships_user_id_users_id_fk" FOREI
 ALTER TABLE "project_tokens" ADD CONSTRAINT "project_tokens_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_test_id_tests_id_fk" FOREIGN KEY ("test_id") REFERENCES "public"."tests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "runs" ADD CONSTRAINT "runs_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "suites" ADD CONSTRAINT "suites_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "suites" ADD CONSTRAINT "suites_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "suites" ADD CONSTRAINT "suites_parent_suite_id_suites_id_fk" FOREIGN KEY ("parent_suite_id") REFERENCES "public"."suites"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tests" ADD CONSTRAINT "tests_suite_id_suites_id_fk" FOREIGN KEY ("suite_id") REFERENCES "public"."suites"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tests" ADD CONSTRAINT "tests_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tests" ADD CONSTRAINT "tests_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "memberships_org_user_idx" ON "memberships" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "project_tokens_hash_idx" ON "project_tokens" USING btree ("token_hash");--> statement-breakpoint
 CREATE UNIQUE INDEX "projects_org_slug_idx" ON "projects" USING btree ("organization_id","slug");--> statement-breakpoint
 CREATE INDEX "artifacts_test_idx" ON "artifacts" USING btree ("test_id");--> statement-breakpoint
+CREATE INDEX "artifacts_organization_id_idx" ON "artifacts" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "runs_project_created_idx" ON "runs" USING btree ("project_id","created_at");--> statement-breakpoint
 CREATE INDEX "runs_project_status_idx" ON "runs" USING btree ("project_id","status");--> statement-breakpoint
 CREATE INDEX "suites_run_id_idx" ON "suites" USING btree ("run_id");--> statement-breakpoint
+CREATE INDEX "suites_organization_id_idx" ON "suites" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "tests_suite_idx" ON "tests" USING btree ("suite_id");--> statement-breakpoint
 CREATE INDEX "tests_run_status_idx" ON "tests" USING btree ("run_id","status");--> statement-breakpoint
+CREATE INDEX "tests_organization_id_idx" ON "tests" USING btree ("organization_id");--> statement-breakpoint
 
 -- ============================================================================
 -- Custom SQL: triggers, RLS, and SECURITY DEFINER functions
@@ -234,51 +243,24 @@ CREATE POLICY tenant_isolation_policy ON "runs"
     WHERE organization_id = current_setting('app.current_organization_id')::uuid
   ));--> statement-breakpoint
 
--- 7. RLS policies: via run_id -> runs -> projects -----------------------
+-- 7. RLS policies: direct organization_id on denormalized tables --------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "suites";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "suites"
   FOR ALL
-  USING (run_id IN (
-    SELECT r.id FROM runs r
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ))
-  WITH CHECK (run_id IN (
-    SELECT r.id FROM runs r
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ));--> statement-breakpoint
+  USING (organization_id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "tests";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "tests"
   FOR ALL
-  USING (run_id IN (
-    SELECT r.id FROM runs r
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ))
-  WITH CHECK (run_id IN (
-    SELECT r.id FROM runs r
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ));--> statement-breakpoint
+  USING (organization_id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
--- 8. RLS policies: via test_id -> tests -> runs -> projects -------------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "artifacts";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "artifacts"
   FOR ALL
-  USING (test_id IN (
-    SELECT t.id FROM tests t
-    JOIN runs r ON t.run_id = r.id
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ))
-  WITH CHECK (test_id IN (
-    SELECT t.id FROM tests t
-    JOIN runs r ON t.run_id = r.id
-    JOIN projects p ON r.project_id = p.id
-    WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
-  ));--> statement-breakpoint
+  USING (organization_id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
 -- 9. SECURITY DEFINER functions for token auth -------------------------
 CREATE OR REPLACE FUNCTION validate_project_token(p_token_hash text)

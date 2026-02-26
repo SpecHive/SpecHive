@@ -1,3 +1,4 @@
+import { isProductionEnv } from '@assertly/nestjs-common';
 import { V1EventSchema } from '@assertly/reporter-core-protocol';
 import {
   BadRequestException,
@@ -30,7 +31,7 @@ export class IngestionController {
     private readonly ingestionService: IngestionService,
     configService: ConfigService<EnvConfig>,
   ) {
-    this.isProduction = configService.get<string>('NODE_ENV') === 'production';
+    this.isProduction = isProductionEnv(configService);
   }
 
   @Post('events')

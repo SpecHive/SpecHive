@@ -1,5 +1,6 @@
 import {
   type ArtifactId,
+  type OrganizationId,
   type ProjectId,
   type RunId,
   type SuiteId,
@@ -24,6 +25,7 @@ import {
 
 import { timestamps, uuidv7PK } from './_common.js';
 import { projects } from './project.js';
+import { organizations } from './tenant.js';
 
 export const runStatusEnum = pgEnum(
   'run_status',
@@ -74,12 +76,17 @@ export const suites = pgTable(
       .$type<RunId>()
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
     parentSuiteId: uuid('parent_suite_id').$type<SuiteId>(),
     ...timestamps,
   },
   (table) => [
     index('suites_run_id_idx').on(table.runId),
+    index('suites_organization_id_idx').on(table.organizationId),
     foreignKey({
       columns: [table.parentSuiteId],
       foreignColumns: [table.id],
@@ -99,6 +106,10 @@ export const tests = pgTable(
       .$type<RunId>()
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
     status: testStatusEnum('status').notNull().default('pending'),
     durationMs: integer('duration_ms'),
@@ -112,6 +123,7 @@ export const tests = pgTable(
   (table) => [
     index('tests_suite_idx').on(table.suiteId),
     index('tests_run_status_idx').on(table.runId, table.status),
+    index('tests_organization_id_idx').on(table.organizationId),
   ],
 );
 
@@ -123,6 +135,10 @@ export const artifacts = pgTable(
       .$type<TestId>()
       .notNull()
       .references(() => tests.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     type: artifactTypeEnum('type').notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     storagePath: varchar('storage_path', { length: 1000 }).notNull(),
@@ -130,5 +146,8 @@ export const artifacts = pgTable(
     mimeType: varchar('mime_type', { length: 100 }),
     ...timestamps,
   },
-  (table) => [index('artifacts_test_idx').on(table.testId)],
+  (table) => [
+    index('artifacts_test_idx').on(table.testId),
+    index('artifacts_organization_id_idx').on(table.organizationId),
+  ],
 );

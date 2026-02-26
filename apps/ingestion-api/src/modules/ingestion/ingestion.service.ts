@@ -35,7 +35,7 @@ export class IngestionService {
   ): Promise<{ runId: RunId }> {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
-      const result = await this.handleEvent(event, projectId, tx);
+      const result = await this.handleEvent(event, projectId, organizationId, tx);
 
       await this.outboxy.publish(
         {
@@ -56,6 +56,7 @@ export class IngestionService {
   private async handleEvent(
     event: V1Event,
     projectId: ProjectId,
+    organizationId: OrganizationId,
     tx: Transaction,
   ): Promise<{ runId: RunId }> {
     switch (event.eventType) {
@@ -64,15 +65,15 @@ export class IngestionService {
       case 'run.end':
         return this.runService.handleRunEnd(event, projectId, tx);
       case 'suite.start':
-        return this.suiteService.handleSuiteStart(event, projectId, tx);
+        return this.suiteService.handleSuiteStart(event, projectId, organizationId, tx);
       case 'suite.end':
         return this.suiteService.handleSuiteEnd(event, projectId, tx);
       case 'test.start':
-        return this.testService.handleTestStart(event, projectId, tx);
+        return this.testService.handleTestStart(event, projectId, organizationId, tx);
       case 'test.end':
         return this.testService.handleTestEnd(event, projectId, tx);
       case 'artifact.upload':
-        return this.artifactService.handleArtifactUpload(event, projectId, tx);
+        return this.artifactService.handleArtifactUpload(event, projectId, organizationId, tx);
       default: {
         const _exhaustive: never = event;
         throw _exhaustive;

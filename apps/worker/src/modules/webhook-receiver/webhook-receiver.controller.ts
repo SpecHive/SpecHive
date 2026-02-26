@@ -1,3 +1,4 @@
+import { isProductionEnv } from '@assertly/nestjs-common';
 import {
   BadRequestException,
   Body,
@@ -29,7 +30,7 @@ export class WebhookReceiverController {
     private readonly resultProcessor: ResultProcessorService,
     configService: ConfigService<EnvConfig>,
   ) {
-    this.isProduction = configService.get<string>('NODE_ENV') === 'production';
+    this.isProduction = isProductionEnv(configService);
   }
 
   @Post('outboxy')
@@ -39,7 +40,12 @@ export class WebhookReceiverController {
     const result = OutboxyEnvelopeSchema.safeParse(body);
 
     if (!result.success) {
-      this.logger.warn(`Invalid webhook payload: ${JSON.stringify(result.error.flatten())}`);
+      if (this.isProduction) {
+        this.logger.warn('Invalid webhook payload received');
+        this.logger.debug(`Validation details: ${JSON.stringify(result.error.flatten())}`);
+      } else {
+        this.logger.warn(`Invalid webhook payload: ${JSON.stringify(result.error.flatten())}`);
+      }
       const message = this.isProduction
         ? 'Invalid webhook payload'
         : `Invalid webhook payload: ${JSON.stringify(z.flattenError(result.error))}`;

@@ -41,7 +41,6 @@ export class RunService {
       .set({
         status: event.payload.status,
         finishedAt: new Date(event.timestamp),
-        updatedAt: new Date(),
       })
       .where(eq(runs.id, event.runId));
 

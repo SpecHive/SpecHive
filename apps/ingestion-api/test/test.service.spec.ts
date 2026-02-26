@@ -1,5 +1,5 @@
 import type { Database } from '@assertly/database';
-import type { ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { TestStatus } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestService } from '../src/modules/ingestion/services/test.service';
 
 const PROJECT_ID = 'project-1' as ProjectId;
+const ORG_ID = '00000000-0000-4000-a000-000000000099' as OrganizationId;
 const RUN_ID = '00000000-0000-4000-a000-000000000001' as RunId;
 const SUITE_ID = '00000000-0000-4000-a000-000000000010' as SuiteId;
 const TEST_ID = '00000000-0000-4000-a000-000000000020' as TestId;
@@ -66,6 +67,7 @@ describe('TestService', () => {
       const result = await service.handleTestStart(
         event,
         PROJECT_ID,
+        ORG_ID,
         mockTx as unknown as Database,
       );
 
@@ -98,7 +100,7 @@ describe('TestService', () => {
         },
       };
 
-      await service.handleTestStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleTestStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect((valuesArg['startedAt'] as Date).toISOString()).toBe(TIMESTAMP);
@@ -120,7 +122,7 @@ describe('TestService', () => {
       };
 
       await expect(
-        service.handleTestStart(event, PROJECT_ID, mockTx as unknown as Database),
+        service.handleTestStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database),
       ).rejects.toThrow(NotFoundException);
 
       expect(mockTx.insert).not.toHaveBeenCalled();
@@ -154,7 +156,6 @@ describe('TestService', () => {
         durationMs: 250,
       });
       expect(setArg['finishedAt']).toBeInstanceOf(Date);
-      expect(setArg['updatedAt']).toBeInstanceOf(Date);
     });
 
     it('sets optional fields to null when missing from payload', async () => {

@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
-import { randomBytes, createHash } from 'node:crypto';
+import { randomBytes, createHmac } from 'node:crypto';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { ArtifactType, MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
 import { hash } from 'argon2';
@@ -10,16 +12,10 @@ import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
-if (process.env['NODE_ENV'] === 'production') {
-  console.error('Seed script cannot run in production. Aborting.');
-  process.exit(1);
-}
-
-async function seed() {
-  // Seeding must use the superuser role to bypass RLS
-  const dbUrl = process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL'];
-  if (!dbUrl) throw new Error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
-  const db = createDbConnection(dbUrl);
+export async function seed(dbUrl?: string) {
+  const url = dbUrl ?? process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL'];
+  if (!url) throw new Error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
+  const db = createDbConnection(url);
 
   try {
     console.log('Seeding database...');
@@ -80,13 +76,16 @@ async function seed() {
     const seedProject =
       project ??
       (await db.query.projects.findFirst({
-        where: (p, { eq }) => eq(p.slug, 'default-project'),
+        where: (p, { eq, and }) =>
+          and(eq(p.slug, 'default-project'), eq(p.organizationId, seedOrg.id)),
       }));
 
     if (!seedProject) throw new Error('Failed to seed project');
 
+    const tokenHashKey = process.env['TOKEN_HASH_KEY'];
+    if (!tokenHashKey) throw new Error('TOKEN_HASH_KEY environment variable is required');
     const plainToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(plainToken).digest('hex');
+    const tokenHash = createHmac('sha256', tokenHashKey).update(plainToken).digest('hex');
 
     await db
       .insert(projectTokens)
@@ -131,13 +130,13 @@ async function seed() {
     if (passedRun && failedRun) {
       const [passedSuite] = await db
         .insert(suites)
-        .values({ runId: passedRun.id, name: 'Auth Suite' })
+        .values({ runId: passedRun.id, organizationId: seedOrg.id, name: 'Auth Suite' })
         .onConflictDoNothing()
         .returning();
 
       const [failedSuite] = await db
         .insert(suites)
-        .values({ runId: failedRun.id, name: 'Auth Suite' })
+        .values({ runId: failedRun.id, organizationId: seedOrg.id, name: 'Auth Suite' })
         .onConflictDoNothing()
         .returning();
 
@@ -148,6 +147,7 @@ async function seed() {
             {
               suiteId: passedSuite.id,
               runId: passedRun.id,
+              organizationId: seedOrg.id,
               name: 'should login successfully',
               status: TestStatus.Passed,
               durationMs: 120,
@@ -157,6 +157,7 @@ async function seed() {
             {
               suiteId: passedSuite.id,
               runId: passedRun.id,
+              organizationId: seedOrg.id,
               name: 'should register new user',
               status: TestStatus.Passed,
               durationMs: 250,
@@ -172,6 +173,7 @@ async function seed() {
             .insert(artifacts)
             .values({
               testId: t.id,
+              organizationId: seedOrg.id,
               type: ArtifactType.Screenshot,
               name: `${t.name}.png`,
               storagePath: `assertly-artifacts/${seedProject.id}/${passedRun.id}/${t.id}/screenshot.png`,
@@ -189,6 +191,7 @@ async function seed() {
             {
               suiteId: failedSuite.id,
               runId: failedRun.id,
+              organizationId: seedOrg.id,
               name: 'should login successfully',
               status: TestStatus.Passed,
               durationMs: 115,
@@ -198,6 +201,7 @@ async function seed() {
             {
               suiteId: failedSuite.id,
               runId: failedRun.id,
+              organizationId: seedOrg.id,
               name: 'should handle invalid credentials',
               status: TestStatus.Failed,
               durationMs: 340,
@@ -215,6 +219,7 @@ async function seed() {
             .insert(artifacts)
             .values({
               testId: t.id,
+              organizationId: seedOrg.id,
               type: t.status === TestStatus.Failed ? ArtifactType.Trace : ArtifactType.Screenshot,
               name: t.status === TestStatus.Failed ? `${t.name}.trace` : `${t.name}.png`,
               storagePath: `assertly-artifacts/${seedProject.id}/${failedRun.id}/${t.id}/${t.status === TestStatus.Failed ? 'trace.json' : 'screenshot.png'}`,
@@ -229,7 +234,6 @@ async function seed() {
     console.log('Seed completed successfully.');
     console.log(`Project token (save this, it will not be shown again): ${plainToken}`);
   } finally {
-    // Ensure connection is cleaned up
     const client = getRawClient(db);
     await client.end();
   }
@@ -237,7 +241,14 @@ async function seed() {
   process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+// CLI entry point
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  if (process.env['NODE_ENV'] === 'production') {
+    console.error('Seed script cannot run in production. Aborting.');
+    process.exit(1);
+  }
+  seed().catch((err) => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
+}

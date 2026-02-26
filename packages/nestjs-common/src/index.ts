@@ -3,6 +3,9 @@ export { baseEnvSchema } from './config/base-env.schema';
 export type { BaseEnvConfig } from './config/base-env.schema';
 export { createConfigModule } from './config/config.module';
 export { HealthModule } from './health/health.module';
+export { bootstrapNestApp } from './bootstrap/bootstrap-app';
+export type { BootstrapOptions } from './bootstrap/bootstrap-app';
+export { isProductionEnv } from './utils/env-helpers';
 
 // Centralised injection token — import this symbol in both ingestion-api and worker
 // instead of defining local Symbols, so the same reference is always used.

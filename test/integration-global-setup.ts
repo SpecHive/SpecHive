@@ -6,6 +6,7 @@
  * All inserts use ON CONFLICT DO NOTHING for idempotency.
  */
 
+import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -33,8 +34,12 @@ const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
 const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
 const INTEGRATION_TOKEN_ID = '01970000-0000-7000-8000-000000000003';
 
-// SHA-256 of "test-token"
-const TEST_TOKEN_HASH = '4c5dc9b7708905f77f5e5d16316b5dfb425e68cb326dcd55a860e90a7707031e';
+const DEFAULT_TEST_TOKEN_HASH_KEY = 'test-token-hash-key-minimum-32-characters';
+
+function computeTestTokenHash(): string {
+  const key = process.env['TOKEN_HASH_KEY'] ?? DEFAULT_TEST_TOKEN_HASH_KEY;
+  return createHmac('sha256', key).update('test-token').digest('hex');
+}
 
 export async function setup(): Promise<void> {
   loadDotEnv();
@@ -79,7 +84,7 @@ export async function setup(): Promise<void> {
         ${INTEGRATION_TOKEN_ID},
         ${INTEGRATION_PROJECT_ID},
         'integration-test-token',
-        ${TEST_TOKEN_HASH},
+        ${computeTestTokenHash()},
         NOW(),
         NOW()
       )

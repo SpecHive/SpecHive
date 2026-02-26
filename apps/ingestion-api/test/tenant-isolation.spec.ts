@@ -1,5 +1,5 @@
 import type { Database } from '@assertly/database';
-import type { ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -12,6 +12,7 @@ import { TestService } from '../src/modules/ingestion/services/test.service';
 
 const CORRECT_PROJECT_ID = 'project-correct' as ProjectId;
 const WRONG_PROJECT_ID = 'project-wrong' as ProjectId;
+const ORG_ID = '00000000-0000-4000-a000-000000000099' as OrganizationId;
 const RUN_ID = '00000000-0000-4000-a000-000000000001' as RunId;
 const SUITE_ID = '00000000-0000-4000-a000-000000000010' as SuiteId;
 const TEST_ID = '00000000-0000-4000-a000-000000000020' as TestId;
@@ -102,7 +103,7 @@ describe('Tenant isolation — verifyRunOwnership cross-tenant rejection', () =>
       };
 
       await expect(
-        service.handleSuiteStart(event, WRONG_PROJECT_ID, mockTx as unknown as Database),
+        service.handleSuiteStart(event, WRONG_PROJECT_ID, ORG_ID, mockTx as unknown as Database),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -128,7 +129,7 @@ describe('Tenant isolation — verifyRunOwnership cross-tenant rejection', () =>
       };
 
       await expect(
-        service.handleTestStart(event, WRONG_PROJECT_ID, mockTx as unknown as Database),
+        service.handleTestStart(event, WRONG_PROJECT_ID, ORG_ID, mockTx as unknown as Database),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -203,7 +204,12 @@ describe('Tenant isolation — verifyRunOwnership cross-tenant rejection', () =>
       };
 
       await expect(
-        service.handleArtifactUpload(event, WRONG_PROJECT_ID, mockTx as unknown as Database),
+        service.handleArtifactUpload(
+          event,
+          WRONG_PROJECT_ID,
+          ORG_ID,
+          mockTx as unknown as Database,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
   });

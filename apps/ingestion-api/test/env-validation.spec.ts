@@ -4,6 +4,7 @@ import { envSchema } from '../src/modules/config/env.validation';
 
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+  TOKEN_HASH_KEY: 'test-token-hash-key-minimum-32-characters',
 };
 
 describe('ingestion-api envSchema', () => {

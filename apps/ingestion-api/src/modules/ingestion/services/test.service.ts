@@ -2,7 +2,7 @@ import { tests } from '@assertly/database';
 import type { Transaction } from '@assertly/database';
 import type { TestEndEvent, TestStartEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus } from '@assertly/shared-types';
-import type { ProjectId, RunId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
@@ -15,6 +15,7 @@ export class TestService {
   async handleTestStart(
     event: TestStartEvent,
     projectId: ProjectId,
+    organizationId: OrganizationId,
     tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
@@ -23,6 +24,7 @@ export class TestService {
       id: event.payload.testId,
       suiteId: event.payload.suiteId,
       runId: event.runId,
+      organizationId,
       name: event.payload.testName,
       status: TestStatus.Pending,
       startedAt: new Date(event.timestamp),
@@ -48,7 +50,6 @@ export class TestService {
         stackTrace: event.payload.stackTrace ?? null,
         retryCount: event.payload.retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
-        updatedAt: new Date(),
       })
       .where(and(eq(tests.id, event.payload.testId), eq(tests.runId, event.runId)));
 

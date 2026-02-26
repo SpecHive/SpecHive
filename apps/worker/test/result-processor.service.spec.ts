@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
-import type { OutboxyEnvelope } from '../src/modules/webhook-receiver/webhook-receiver.controller';
+import type { OutboxyEnvelope } from '../src/types/outboxy-envelope';
 
 describe('ResultProcessorService', () => {
   let service: ResultProcessorService;
