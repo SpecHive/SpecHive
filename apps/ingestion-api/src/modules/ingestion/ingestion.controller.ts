@@ -22,8 +22,11 @@ import type { EnvConfig } from '../config/env.validation';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { IngestionService } from './ingestion.service';
 
+const INGESTION_RATE_LIMIT_TTL_MS = 60_000;
+const INGESTION_RATE_LIMIT_MAX = 300;
+
 @Controller('v1')
-@Throttle({ default: { ttl: 60_000, limit: 300 } })
+@Throttle({ default: { ttl: INGESTION_RATE_LIMIT_TTL_MS, limit: INGESTION_RATE_LIMIT_MAX } })
 export class IngestionController {
   private readonly isProduction: boolean;
 

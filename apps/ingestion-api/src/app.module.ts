@@ -6,13 +6,16 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './modules/config/config.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 
+const GLOBAL_RATE_LIMIT_TTL_MS = 60_000;
+const GLOBAL_RATE_LIMIT_MAX = 60;
+
 @Module({
   imports: [
     ConfigModule,
     ThrottlerModule.forRoot([
       {
-        ttl: 60_000,
-        limit: 60,
+        ttl: GLOBAL_RATE_LIMIT_TTL_MS,
+        limit: GLOBAL_RATE_LIMIT_MAX,
       },
     ]),
     HealthModule,

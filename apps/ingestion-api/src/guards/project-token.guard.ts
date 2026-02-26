@@ -31,7 +31,8 @@ export class ProjectTokenGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['x-project-token'] as string | undefined;
+    const rawToken = request.headers['x-project-token'];
+    const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
 
     if (!token) {
       throw new UnauthorizedException('Missing x-project-token header');

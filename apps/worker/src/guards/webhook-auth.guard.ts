@@ -17,7 +17,8 @@ export class WebhookAuthGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const secret = request.headers['x-webhook-secret'] as string | undefined;
+    const rawSecret = request.headers['x-webhook-secret'];
+    const secret = Array.isArray(rawSecret) ? rawSecret[0] : rawSecret;
 
     if (!secret) {
       throw new UnauthorizedException('Invalid webhook secret');

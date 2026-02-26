@@ -20,6 +20,9 @@ import type { EnvConfig } from '../config/env.validation';
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ResultProcessorService } from '../result-processor/result-processor.service';
 
+const WEBHOOK_RATE_LIMIT_TTL_MS = 60_000;
+const WEBHOOK_RATE_LIMIT_MAX = 1_000;
+
 @Controller('webhooks')
 @UseGuards(WebhookAuthGuard)
 export class WebhookReceiverController {
@@ -35,7 +38,7 @@ export class WebhookReceiverController {
 
   @Post('outboxy')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { ttl: 60_000, limit: 1_000 } })
+  @Throttle({ default: { ttl: WEBHOOK_RATE_LIMIT_TTL_MS, limit: WEBHOOK_RATE_LIMIT_MAX } })
   async receiveOutboxyEvent(@Body() body: unknown) {
     const result = OutboxyEnvelopeSchema.safeParse(body);
 

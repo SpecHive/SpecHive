@@ -14,8 +14,6 @@ import { RunService } from './services/run.service';
 import { SuiteService } from './services/suite.service';
 import { TestService } from './services/test.service';
 
-const DEFAULT_WORKER_WEBHOOK_URL = 'http://worker:3001/webhooks/outboxy';
-
 @Module({
   imports: [
     OutboxyModule.forRootAsync({
@@ -26,8 +24,7 @@ const DEFAULT_WORKER_WEBHOOK_URL = 'http://worker:3001/webhooks/outboxy';
           const client = getRawClient(tx);
           return client.unsafe(sql, params as never[]);
         },
-        defaultDestinationUrl:
-          config.get<string>('WORKER_WEBHOOK_URL') ?? DEFAULT_WORKER_WEBHOOK_URL,
+        defaultDestinationUrl: config.getOrThrow<string>('WORKER_WEBHOOK_URL'),
         defaultDestinationType: 'http' as const,
       }),
       isGlobal: false,

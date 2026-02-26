@@ -237,8 +237,6 @@ export async function seed(dbUrl?: string) {
     const client = getRawClient(db);
     await client.end();
   }
-
-  process.exit(0);
 }
 
 // CLI entry point
