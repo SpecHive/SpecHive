@@ -1,13 +1,12 @@
 import { createHash } from 'node:crypto';
 
 import type { Database } from '@assertly/database';
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { asOrganizationId, asProjectId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-
-import { DATABASE_CONNECTION } from '../constants';
 
 export interface ProjectContext {
   projectId: ProjectId;

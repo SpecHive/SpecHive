@@ -29,6 +29,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-assertly}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-assertly}
+      ASSERTLY_APP_PASSWORD: ${ASSERTLY_APP_PASSWORD:-assertly_app}
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-assertly} -d ${POSTGRES_DB:-assertly}']
       interval: 10s
@@ -37,7 +38,7 @@ services:
       start_period: 10s
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
     restart: unless-stopped
     networks:
       - assertly-network
@@ -55,7 +56,7 @@ services:
       start_period: 10s
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     networks:
       - assertly-network
     depends_on:
@@ -137,13 +138,11 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
-    ports:
-      - '3000:3000'
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3000'
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
       WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
       OUTBOXY_API_URL: http://outboxy-api:3100
       MINIO_ENDPOINT: minio:9000
@@ -198,8 +197,6 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
-    ports:
-      - '5173:8080'
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     healthcheck:

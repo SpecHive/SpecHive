@@ -1,11 +1,10 @@
 import { type Database, setTenantContext, type Transaction } from '@assertly/database';
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { type V1Event } from '@assertly/reporter-core-protocol';
 import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
-
-import { DATABASE_CONNECTION } from '../../constants';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ArtifactService } from './services/artifact.service';
@@ -40,6 +39,7 @@ export class IngestionService {
 
       await this.outboxy.publish(
         {
+          // Sprint 1: derive aggregateType from event type when multiple aggregates exist
           aggregateType: 'TestRun',
           aggregateId: event.runId,
           eventType: event.eventType,

@@ -1,1 +1,1 @@
-export const DATABASE_CONNECTION = Symbol('DATABASE_CONNECTION');
+// Local app constants. DATABASE_CONNECTION is exported from @assertly/nestjs-common.

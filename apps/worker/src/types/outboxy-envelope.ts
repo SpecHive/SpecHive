@@ -6,7 +6,7 @@ export const OutboxyEnvelopeSchema = z.object({
   aggregateId: z.string(),
   eventType: z.string(),
   payload: z.record(z.string(), z.unknown()),
-  createdAt: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
 });
 
 export type OutboxyEnvelope = z.infer<typeof OutboxyEnvelopeSchema>;

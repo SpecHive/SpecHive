@@ -52,7 +52,11 @@ RUN pnpm --filter @assertly/dashboard run build
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
 
 COPY --from=build /app/apps/dashboard/dist /usr/share/nginx/html
-COPY apps/dashboard/nginx.conf /etc/nginx/conf.d/default.conf
+# Place config as a template — nginx-unprivileged auto-runs envsubst on /etc/nginx/templates/*.template at startup
+COPY apps/dashboard/nginx.conf /etc/nginx/templates/default.conf.template
+
+# Default value; override at runtime with -e VITE_API_URL=https://api.example.com
+ENV VITE_API_URL=http://localhost:3000
 
 EXPOSE 8080
 

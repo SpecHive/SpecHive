@@ -1,3 +1,4 @@
+import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
 import { pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
@@ -6,8 +7,9 @@ import { organizations } from './tenant.js';
 export const projects = pgTable(
   'projects',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<ProjectId>(),
     organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
@@ -20,8 +22,9 @@ export const projects = pgTable(
 export const projectTokens = pgTable(
   'project_tokens',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<string>(),
     projectId: uuid('project_id')
+      .$type<ProjectId>()
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),

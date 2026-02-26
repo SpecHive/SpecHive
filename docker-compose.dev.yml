@@ -22,6 +22,8 @@ services:
       - '3100:3100'
 
   ingestion-api:
+    ports:
+      - '3000:3000'
     build:
       context: .
       dockerfile: apps/ingestion-api/Dockerfile
@@ -30,13 +32,15 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
-    command: ['node_modules/.bin/nest', 'start', '--watch']
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       # Workspace sources (read-only mount to avoid polluting host node_modules)
       - ./apps/ingestion-api/src:/app/apps/ingestion-api/src:ro
       - ./packages:/app/packages:ro
 
   worker:
+    ports:
+      - '3001:3001'
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
@@ -45,12 +49,14 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
-    command: ['node_modules/.bin/nest', 'start', '--watch']
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/worker/src:/app/apps/worker/src:ro
       - ./packages:/app/packages:ro
 
   dashboard:
+    ports:
+      - '5173:8080'
     build:
       context: .
       dockerfile: apps/dashboard/Dockerfile

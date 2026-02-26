@@ -375,7 +375,9 @@ function printReport(results: QueryResult[]): boolean {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const db = createDbConnection();
+  const dbUrl = process.env['DATABASE_URL'];
+  if (!dbUrl) throw new Error('DATABASE_URL environment variable is required');
+  const db = createDbConnection(dbUrl);
 
   let projectId: string | undefined;
 

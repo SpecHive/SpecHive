@@ -35,7 +35,7 @@ WORKDIR /app/apps/worker
 
 EXPOSE 3001
 
-CMD ["node_modules/.bin/nest", "start", "--watch"]
+CMD ["sh", "-c", "node_modules/.bin/nest start --watch"]
 
 # ============================================================
 # Build: compile worker and its workspace dependencies
@@ -69,9 +69,11 @@ COPY packages/reporter-core-protocol/package.json ./packages/reporter-core-proto
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/nestjs-common/package.json ./packages/nestjs-common/
 
+# --ignore-scripts avoids the root prepare hook calling husky
 RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) \
-    pnpm install --frozen-lockfile --prod
+    pnpm install --frozen-lockfile --prod --ignore-scripts && \
+    pnpm rebuild argon2
 
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
 COPY --from=build /app/packages/database/dist ./packages/database/dist

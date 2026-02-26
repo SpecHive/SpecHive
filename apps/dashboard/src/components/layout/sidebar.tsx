@@ -45,7 +45,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t p-4">
-        <p className="text-xs text-muted-foreground">v0.0.1</p>
+        <p className="text-xs text-muted-foreground">v{__APP_VERSION__}</p>
       </div>
     </aside>
   );

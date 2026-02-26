@@ -1,6 +1,7 @@
 import type { Database } from '@assertly/database';
 import type { ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -183,7 +184,7 @@ describe('Tenant isolation — verifyRunOwnership cross-tenant rejection', () =>
   describe('ArtifactService.handleArtifactUpload', () => {
     it('throws NotFoundException when run belongs to a different project', async () => {
       const module = await Test.createTestingModule({
-        providers: [ArtifactService],
+        providers: [ArtifactService, { provide: ConfigService, useValue: { get: () => 'test' } }],
       }).compile();
 
       const service = module.get(ArtifactService);

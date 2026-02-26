@@ -4,7 +4,7 @@ import type { TestEndEvent, TestStartEvent } from '@assertly/reporter-core-proto
 import { TestStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { verifyRunOwnership } from './verify-run-ownership';
 
@@ -50,7 +50,7 @@ export class TestService {
         finishedAt: new Date(event.timestamp),
         updatedAt: new Date(),
       })
-      .where(eq(tests.id, event.payload.testId));
+      .where(and(eq(tests.id, event.payload.testId), eq(tests.runId, event.runId)));
 
     this.logger.log(`Updated test ${event.payload.testId} status to ${event.payload.status}`);
     return { runId: event.runId };

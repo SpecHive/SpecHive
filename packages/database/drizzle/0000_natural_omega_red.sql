@@ -1,7 +1,23 @@
-CREATE TYPE "public"."membership_role" AS ENUM('owner', 'admin', 'member', 'viewer');--> statement-breakpoint
-CREATE TYPE "public"."artifact_type" AS ENUM('screenshot', 'video', 'trace', 'log', 'other');--> statement-breakpoint
-CREATE TYPE "public"."run_status" AS ENUM('pending', 'running', 'passed', 'failed', 'cancelled');--> statement-breakpoint
-CREATE TYPE "public"."test_status" AS ENUM('pending', 'running', 'passed', 'failed', 'skipped', 'flaky');--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_role') THEN
+    CREATE TYPE "public"."membership_role" AS ENUM('owner', 'admin', 'member', 'viewer');
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'artifact_type') THEN
+    CREATE TYPE "public"."artifact_type" AS ENUM('screenshot', 'video', 'trace', 'log', 'other');
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'run_status') THEN
+    CREATE TYPE "public"."run_status" AS ENUM('pending', 'running', 'passed', 'failed', 'cancelled');
+  END IF;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'test_status') THEN
+    CREATE TYPE "public"."test_status" AS ENUM('pending', 'running', 'passed', 'failed', 'skipped', 'flaky');
+  END IF;
+END $$;--> statement-breakpoint
 CREATE TABLE "memberships" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -137,15 +153,15 @@ END;
 $$ LANGUAGE plpgsql;--> statement-breakpoint
 
 -- 2. Apply trigger to all tables ----------------------------------------
-CREATE TRIGGER set_updated_at_organizations BEFORE UPDATE ON "organizations" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_users BEFORE UPDATE ON "users" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_memberships BEFORE UPDATE ON "memberships" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_projects BEFORE UPDATE ON "projects" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_project_tokens BEFORE UPDATE ON "project_tokens" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_runs BEFORE UPDATE ON "runs" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_suites BEFORE UPDATE ON "suites" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_tests BEFORE UPDATE ON "tests" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
-CREATE TRIGGER set_updated_at_artifacts BEFORE UPDATE ON "artifacts" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_organizations BEFORE UPDATE ON "organizations" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_users BEFORE UPDATE ON "users" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_memberships BEFORE UPDATE ON "memberships" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_projects BEFORE UPDATE ON "projects" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_project_tokens BEFORE UPDATE ON "project_tokens" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_runs BEFORE UPDATE ON "runs" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_suites BEFORE UPDATE ON "suites" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_tests BEFORE UPDATE ON "tests" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
+CREATE OR REPLACE TRIGGER set_updated_at_artifacts BEFORE UPDATE ON "artifacts" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();--> statement-breakpoint
 
 -- 3. Enable RLS on all tables -------------------------------------------
 ALTER TABLE "organizations" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -170,19 +186,23 @@ ALTER TABLE "tests" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "artifacts" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 
 -- 5. RLS policies: direct organization_id tables -----------------------
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "projects";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "projects"
   FOR ALL
   USING (organization_id = current_setting('app.current_organization_id')::uuid)
   WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "memberships";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "memberships"
   FOR ALL
   USING (organization_id = current_setting('app.current_organization_id')::uuid)
   WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
+DROP POLICY IF EXISTS "org_tenant_isolation" ON "organizations";--> statement-breakpoint
 CREATE POLICY org_tenant_isolation ON "organizations"
   USING (id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
+DROP POLICY IF EXISTS "users_tenant_isolation" ON "users";--> statement-breakpoint
 CREATE POLICY users_tenant_isolation ON "users"
   USING (id IN (
     SELECT user_id FROM memberships
@@ -190,6 +210,7 @@ CREATE POLICY users_tenant_isolation ON "users"
   ));--> statement-breakpoint
 
 -- 6. RLS policies: via project_id -> projects ---------------------------
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "project_tokens";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "project_tokens"
   FOR ALL
   USING (project_id IN (
@@ -201,6 +222,7 @@ CREATE POLICY tenant_isolation_policy ON "project_tokens"
     WHERE organization_id = current_setting('app.current_organization_id')::uuid
   ));--> statement-breakpoint
 
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "runs";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "runs"
   FOR ALL
   USING (project_id IN (
@@ -213,6 +235,7 @@ CREATE POLICY tenant_isolation_policy ON "runs"
   ));--> statement-breakpoint
 
 -- 7. RLS policies: via run_id -> runs -> projects -----------------------
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "suites";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "suites"
   FOR ALL
   USING (run_id IN (
@@ -226,6 +249,7 @@ CREATE POLICY tenant_isolation_policy ON "suites"
     WHERE p.organization_id = current_setting('app.current_organization_id')::uuid
   ));--> statement-breakpoint
 
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "tests";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "tests"
   FOR ALL
   USING (run_id IN (
@@ -240,6 +264,7 @@ CREATE POLICY tenant_isolation_policy ON "tests"
   ));--> statement-breakpoint
 
 -- 8. RLS policies: via test_id -> tests -> runs -> projects -------------
+DROP POLICY IF EXISTS "tenant_isolation_policy" ON "artifacts";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "artifacts"
   FOR ALL
   USING (test_id IN (
@@ -274,5 +299,7 @@ AS $$
   UPDATE project_tokens SET last_used_at = now() WHERE token_hash = p_token_hash;
 $$;--> statement-breakpoint
 
+-- Requires assertly_app role from init.sh to be created before running this migration
 GRANT EXECUTE ON FUNCTION validate_project_token(text) TO assertly_app;--> statement-breakpoint
+-- Requires assertly_app role from init.sh to be created before running this migration
 GRANT EXECUTE ON FUNCTION touch_project_token_usage(text) TO assertly_app;

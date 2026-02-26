@@ -34,7 +34,7 @@ export class WebhookReceiverController {
 
   @Post('outboxy')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { ttl: 60000, limit: 1000 } })
+  @Throttle({ default: { ttl: 60_000, limit: 1_000 } })
   async receiveOutboxyEvent(@Body() body: unknown) {
     const result = OutboxyEnvelopeSchema.safeParse(body);
 

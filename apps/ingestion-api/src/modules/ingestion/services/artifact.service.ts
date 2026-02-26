@@ -2,7 +2,9 @@ import { artifacts } from '@assertly/database';
 import type { Transaction } from '@assertly/database';
 import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { ConfigService } from '@nestjs/config';
 
 import { verifyRunOwnership } from './verify-run-ownership';
 
@@ -10,12 +12,18 @@ import { verifyRunOwnership } from './verify-run-ownership';
 export class ArtifactService {
   private readonly logger = new Logger(ArtifactService.name);
 
+  constructor(private readonly config: ConfigService) {}
+
   async handleArtifactUpload(
     event: ArtifactUploadEvent,
     projectId: ProjectId,
     tx: Transaction,
   ): Promise<{ runId: RunId }> {
     await verifyRunOwnership(event.runId, projectId, tx);
+
+    if (this.config.get('NODE_ENV') === 'production') {
+      throw new NotImplementedException('Artifact storage not yet implemented');
+    }
 
     // Artifact binary data (event.payload.data) is accepted but not stored.
     // Real upload to MinIO deferred to Sprint 1.

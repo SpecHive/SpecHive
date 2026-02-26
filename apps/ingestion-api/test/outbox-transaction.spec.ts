@@ -1,9 +1,9 @@
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { Test } from '@nestjs/testing';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { SQL } from 'drizzle-orm';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { DATABASE_CONNECTION } from '../src/constants';
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 import { ArtifactService } from '../src/modules/ingestion/services/artifact.service';
 import { RunService } from '../src/modules/ingestion/services/run.service';

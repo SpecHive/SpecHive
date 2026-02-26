@@ -1,10 +1,10 @@
 import { createDbConnection, getRawClient, type Transaction } from '@assertly/database';
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 
-import { DATABASE_CONNECTION } from '../../constants';
 import { type EnvConfig } from '../config/env.validation';
 
 import { IngestionController } from './ingestion.controller';
@@ -13,6 +13,8 @@ import { ArtifactService } from './services/artifact.service';
 import { RunService } from './services/run.service';
 import { SuiteService } from './services/suite.service';
 import { TestService } from './services/test.service';
+
+const DEFAULT_WORKER_WEBHOOK_URL = 'http://worker:3001/webhooks/outboxy';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { TestService } from './services/test.service';
           return client.unsafe(sql, params as never[]);
         },
         defaultDestinationUrl:
-          config.get<string>('WORKER_WEBHOOK_URL') ?? 'http://worker:3001/webhooks/outboxy',
+          config.get<string>('WORKER_WEBHOOK_URL') ?? DEFAULT_WORKER_WEBHOOK_URL,
         defaultDestinationType: 'http' as const,
       }),
       isGlobal: false,
@@ -47,6 +49,6 @@ import { TestService } from './services/test.service';
     TestService,
     ArtifactService,
   ],
-  exports: [IngestionService, DATABASE_CONNECTION],
+  exports: [IngestionService],
 })
 export class IngestionModule {}

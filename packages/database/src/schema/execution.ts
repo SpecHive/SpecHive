@@ -1,4 +1,13 @@
-import { ArtifactType, RunStatus, TestStatus } from '@assertly/shared-types';
+import {
+  type ArtifactId,
+  type ProjectId,
+  type RunId,
+  type SuiteId,
+  type TestId,
+  ArtifactType,
+  RunStatus,
+  TestStatus,
+} from '@assertly/shared-types';
 import { sql } from 'drizzle-orm';
 import {
   foreignKey,
@@ -34,8 +43,9 @@ export const artifactTypeEnum = pgEnum(
 export const runs = pgTable(
   'runs',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<RunId>(),
     projectId: uuid('project_id')
+      .$type<ProjectId>()
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     status: runStatusEnum('status').notNull().default('pending'),
@@ -59,12 +69,13 @@ export const runs = pgTable(
 export const suites = pgTable(
   'suites',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<SuiteId>(),
     runId: uuid('run_id')
+      .$type<RunId>()
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
-    parentSuiteId: uuid('parent_suite_id'),
+    parentSuiteId: uuid('parent_suite_id').$type<SuiteId>(),
     ...timestamps,
   },
   (table) => [
@@ -79,11 +90,13 @@ export const suites = pgTable(
 export const tests = pgTable(
   'tests',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<TestId>(),
     suiteId: uuid('suite_id')
+      .$type<SuiteId>()
       .notNull()
       .references(() => suites.id, { onDelete: 'cascade' }),
     runId: uuid('run_id')
+      .$type<RunId>()
       .notNull()
       .references(() => runs.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 500 }).notNull(),
@@ -105,8 +118,9 @@ export const tests = pgTable(
 export const artifacts = pgTable(
   'artifacts',
   {
-    id: uuidv7PK(),
+    id: uuidv7PK<ArtifactId>(),
     testId: uuid('test_id')
+      .$type<TestId>()
       .notNull()
       .references(() => tests.id, { onDelete: 'cascade' }),
     type: artifactTypeEnum('type').notNull(),

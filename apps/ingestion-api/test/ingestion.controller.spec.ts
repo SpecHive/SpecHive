@@ -1,4 +1,5 @@
 import { AllExceptionsFilter } from '@assertly/nestjs-common';
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { ExecutionContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
@@ -8,7 +9,6 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
-import { DATABASE_CONNECTION } from '../src/constants';
 import { ProjectTokenGuard } from '../src/guards/project-token.guard';
 import type { ProjectContext } from '../src/guards/project-token.guard';
 import { IngestionController } from '../src/modules/ingestion/ingestion.controller';

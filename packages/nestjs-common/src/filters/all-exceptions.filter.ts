@@ -22,11 +22,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
-    const message =
+    const rawMessage =
       typeof exceptionResponse === 'string'
         ? exceptionResponse
         : (exceptionResponse as Record<string, unknown>).message ||
           (exception instanceof Error ? exception.message : 'Internal server error');
+
+    // class-validator errors surface as string[], join them so the response is always a string.
+    const message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage;
 
     this.logger.error(
       `${statusCode} ${message}`,

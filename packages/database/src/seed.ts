@@ -10,14 +10,16 @@ import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env['NODE_ENV'] === 'production') {
   console.error('Seed script cannot run in production. Aborting.');
   process.exit(1);
 }
 
 async function seed() {
   // Seeding must use the superuser role to bypass RLS
-  const db = createDbConnection(process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL']);
+  const dbUrl = process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL'];
+  if (!dbUrl) throw new Error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
+  const db = createDbConnection(dbUrl);
 
   try {
     console.log('Seeding database...');
@@ -108,6 +110,7 @@ async function seed() {
         startedAt: new Date('2026-02-24T10:00:00Z'),
         finishedAt: new Date('2026-02-24T10:01:00Z'),
       })
+      .onConflictDoNothing()
       .returning();
 
     const [failedRun] = await db
@@ -122,17 +125,20 @@ async function seed() {
         startedAt: new Date('2026-02-24T11:00:00Z'),
         finishedAt: new Date('2026-02-24T11:01:00Z'),
       })
+      .onConflictDoNothing()
       .returning();
 
     if (passedRun && failedRun) {
       const [passedSuite] = await db
         .insert(suites)
         .values({ runId: passedRun.id, name: 'Auth Suite' })
+        .onConflictDoNothing()
         .returning();
 
       const [failedSuite] = await db
         .insert(suites)
         .values({ runId: failedRun.id, name: 'Auth Suite' })
+        .onConflictDoNothing()
         .returning();
 
       if (passedSuite) {
@@ -158,17 +164,21 @@ async function seed() {
               finishedAt: new Date('2026-02-24T10:00:05Z'),
             },
           ])
+          .onConflictDoNothing()
           .returning();
 
         for (const t of passedTests) {
-          await db.insert(artifacts).values({
-            testId: t.id,
-            type: ArtifactType.Screenshot,
-            name: `${t.name}.png`,
-            storagePath: `assertly-artifacts/${seedProject.id}/${passedRun.id}/${t.id}/screenshot.png`,
-            sizeBytes: 24_576,
-            mimeType: 'image/png',
-          });
+          await db
+            .insert(artifacts)
+            .values({
+              testId: t.id,
+              type: ArtifactType.Screenshot,
+              name: `${t.name}.png`,
+              storagePath: `assertly-artifacts/${seedProject.id}/${passedRun.id}/${t.id}/screenshot.png`,
+              sizeBytes: 24_576,
+              mimeType: 'image/png',
+            })
+            .onConflictDoNothing();
         }
       }
 
@@ -197,17 +207,21 @@ async function seed() {
               finishedAt: new Date('2026-02-24T11:00:05Z'),
             },
           ])
+          .onConflictDoNothing()
           .returning();
 
         for (const t of failedTests) {
-          await db.insert(artifacts).values({
-            testId: t.id,
-            type: t.status === TestStatus.Failed ? ArtifactType.Trace : ArtifactType.Screenshot,
-            name: t.status === TestStatus.Failed ? `${t.name}.trace` : `${t.name}.png`,
-            storagePath: `assertly-artifacts/${seedProject.id}/${failedRun.id}/${t.id}/${t.status === TestStatus.Failed ? 'trace.json' : 'screenshot.png'}`,
-            sizeBytes: t.status === TestStatus.Failed ? 102_400 : 24_576,
-            mimeType: t.status === TestStatus.Failed ? 'application/json' : 'image/png',
-          });
+          await db
+            .insert(artifacts)
+            .values({
+              testId: t.id,
+              type: t.status === TestStatus.Failed ? ArtifactType.Trace : ArtifactType.Screenshot,
+              name: t.status === TestStatus.Failed ? `${t.name}.trace` : `${t.name}.png`,
+              storagePath: `assertly-artifacts/${seedProject.id}/${failedRun.id}/${t.id}/${t.status === TestStatus.Failed ? 'trace.json' : 'screenshot.png'}`,
+              sizeBytes: t.status === TestStatus.Failed ? 102_400 : 24_576,
+              mimeType: t.status === TestStatus.Failed ? 'application/json' : 'image/png',
+            })
+            .onConflictDoNothing();
         }
       }
     }

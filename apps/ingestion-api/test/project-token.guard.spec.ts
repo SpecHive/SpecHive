@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { DATABASE_CONNECTION } from '../src/constants';
 import { ProjectTokenGuard } from '../src/guards/project-token.guard';
 import type { ProjectContext } from '../src/guards/project-token.guard';
 
