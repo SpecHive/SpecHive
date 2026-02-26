@@ -7,6 +7,7 @@ import { organizations, users, memberships } from './tenant.js';
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   memberships: many(memberships),
   projects: many(projects),
+  runs: many(runs),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -44,6 +45,10 @@ export const runsRelations = relations(runs, ({ one, many }) => ({
   project: one(projects, {
     fields: [runs.projectId],
     references: [projects.id],
+  }),
+  organization: one(organizations, {
+    fields: [runs.organizationId],
+    references: [organizations.id],
   }),
   suites: many(suites),
   tests: many(tests),

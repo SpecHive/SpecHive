@@ -4,7 +4,6 @@ import { envSchema } from '../src/modules/config/env.validation';
 
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
-  TOKEN_HASH_KEY: 'test-token-hash-key-minimum-32-characters',
 };
 
 describe('ingestion-api envSchema', () => {
@@ -54,9 +53,9 @@ describe('ingestion-api envSchema', () => {
     expect(result.CORS_ORIGIN).toBe('https://app.assertly.dev');
   });
 
-  it('WORKER_WEBHOOK_URL is optional', () => {
+  it('defaults WORKER_WEBHOOK_URL when omitted', () => {
     const result = envSchema.parse(VALID_ENV);
-    expect(result.WORKER_WEBHOOK_URL).toBeUndefined();
+    expect(result.WORKER_WEBHOOK_URL).toBe('http://worker:3001/webhooks/outboxy');
   });
 
   it('accepts a valid WORKER_WEBHOOK_URL', () => {

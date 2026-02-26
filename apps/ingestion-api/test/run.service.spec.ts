@@ -1,5 +1,5 @@
 import type { Database } from '@assertly/database';
-import type { ProjectId, RunId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { RunStatus } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RunService } from '../src/modules/ingestion/services/run.service';
 
 const PROJECT_ID = 'project-1' as ProjectId;
+const ORG_ID = '00000000-0000-4000-a000-000000000099' as OrganizationId;
 const RUN_ID = '00000000-0000-4000-a000-000000000001' as RunId;
 const TIMESTAMP = '2026-02-24T10:00:00.000Z';
 
@@ -54,7 +55,12 @@ describe('RunService', () => {
         payload: {},
       };
 
-      const result = await service.handleRunStart(event, PROJECT_ID, mockTx as unknown as Database);
+      const result = await service.handleRunStart(
+        event,
+        PROJECT_ID,
+        ORG_ID,
+        mockTx as unknown as Database,
+      );
 
       expect(result).toEqual({ runId: RUN_ID });
       expect(mockTx.insert).toHaveBeenCalledTimes(1);
@@ -63,6 +69,7 @@ describe('RunService', () => {
       expect(valuesArg).toMatchObject({
         id: RUN_ID,
         projectId: PROJECT_ID,
+        organizationId: ORG_ID,
         status: RunStatus.Pending,
       });
       expect(valuesArg['startedAt']).toBeInstanceOf(Date);
@@ -79,7 +86,7 @@ describe('RunService', () => {
         payload: {},
       };
 
-      await service.handleRunStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleRunStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(valuesArg['metadata']).toEqual({});
@@ -97,7 +104,7 @@ describe('RunService', () => {
         payload: { metadata },
       };
 
-      await service.handleRunStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleRunStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(valuesArg['metadata']).toEqual(metadata);
@@ -114,7 +121,7 @@ describe('RunService', () => {
         payload: {},
       };
 
-      await service.handleRunStart(event, PROJECT_ID, mockTx as unknown as Database);
+      await service.handleRunStart(event, PROJECT_ID, ORG_ID, mockTx as unknown as Database);
 
       const valuesArg = mockTx.insert().values.mock.calls[0]?.[0] as Record<string, unknown>;
       expect((valuesArg['startedAt'] as Date).toISOString()).toBe(TIMESTAMP);

@@ -1,23 +1,7 @@
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_role') THEN
-    CREATE TYPE "public"."membership_role" AS ENUM('owner', 'admin', 'member', 'viewer');
-  END IF;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'artifact_type') THEN
-    CREATE TYPE "public"."artifact_type" AS ENUM('screenshot', 'video', 'trace', 'log', 'other');
-  END IF;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'run_status') THEN
-    CREATE TYPE "public"."run_status" AS ENUM('pending', 'running', 'passed', 'failed', 'cancelled');
-  END IF;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'test_status') THEN
-    CREATE TYPE "public"."test_status" AS ENUM('pending', 'running', 'passed', 'failed', 'skipped', 'flaky');
-  END IF;
-END $$;--> statement-breakpoint
+CREATE TYPE "public"."membership_role" AS ENUM('owner', 'admin', 'member', 'viewer');--> statement-breakpoint
+CREATE TYPE "public"."artifact_type" AS ENUM('screenshot', 'video', 'trace', 'log', 'other');--> statement-breakpoint
+CREATE TYPE "public"."run_status" AS ENUM('pending', 'running', 'passed', 'failed', 'cancelled');--> statement-breakpoint
+CREATE TYPE "public"."test_status" AS ENUM('pending', 'running', 'passed', 'failed', 'skipped', 'flaky');--> statement-breakpoint
 CREATE TABLE "memberships" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -50,7 +34,8 @@ CREATE TABLE "project_tokens" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
 	"name" varchar(255) NOT NULL,
-	"token_hash" varchar(64) NOT NULL,
+	"token_hash" varchar(255) NOT NULL,
+	"token_prefix" varchar(16) NOT NULL,
 	"last_used_at" timestamp with time zone,
 	"revoked_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -82,6 +67,7 @@ CREATE TABLE "artifacts" (
 CREATE TABLE "runs" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"status" "run_status" DEFAULT 'pending' NOT NULL,
 	"total_tests" integer DEFAULT 0 NOT NULL,
 	"passed_tests" integer DEFAULT 0 NOT NULL,
@@ -128,19 +114,22 @@ ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_organizations_id
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_test_id_tests_id_fk" FOREIGN KEY ("test_id") REFERENCES "public"."tests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "runs" ADD CONSTRAINT "runs_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "runs" ADD CONSTRAINT "runs_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "suites" ADD CONSTRAINT "suites_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "suites" ADD CONSTRAINT "suites_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "suites" ADD CONSTRAINT "suites_parent_suite_id_suites_id_fk" FOREIGN KEY ("parent_suite_id") REFERENCES "public"."suites"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tests" ADD CONSTRAINT "tests_suite_id_suites_id_fk" FOREIGN KEY ("suite_id") REFERENCES "public"."suites"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tests" ADD CONSTRAINT "tests_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tests" ADD CONSTRAINT "tests_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tests" ADD CONSTRAINT "tests_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "memberships_org_user_idx" ON "memberships" USING btree ("organization_id","user_id");--> statement-breakpoint
+CREATE INDEX "project_tokens_prefix_idx" ON "project_tokens" USING btree ("token_prefix");--> statement-breakpoint
 CREATE UNIQUE INDEX "project_tokens_hash_idx" ON "project_tokens" USING btree ("token_hash");--> statement-breakpoint
 CREATE UNIQUE INDEX "projects_org_slug_idx" ON "projects" USING btree ("organization_id","slug");--> statement-breakpoint
 CREATE INDEX "artifacts_test_idx" ON "artifacts" USING btree ("test_id");--> statement-breakpoint
 CREATE INDEX "artifacts_organization_id_idx" ON "artifacts" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "runs_project_created_idx" ON "runs" USING btree ("project_id","created_at");--> statement-breakpoint
 CREATE INDEX "runs_project_status_idx" ON "runs" USING btree ("project_id","status");--> statement-breakpoint
+CREATE INDEX "runs_organization_id_idx" ON "runs" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "suites_run_id_idx" ON "suites" USING btree ("run_id");--> statement-breakpoint
 CREATE INDEX "suites_organization_id_idx" ON "suites" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "tests_suite_idx" ON "tests" USING btree ("suite_id");--> statement-breakpoint
@@ -231,19 +220,13 @@ CREATE POLICY tenant_isolation_policy ON "project_tokens"
     WHERE organization_id = current_setting('app.current_organization_id')::uuid
   ));--> statement-breakpoint
 
+-- 7. RLS policies: direct organization_id on denormalized tables --------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "runs";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "runs"
   FOR ALL
-  USING (project_id IN (
-    SELECT id FROM projects
-    WHERE organization_id = current_setting('app.current_organization_id')::uuid
-  ))
-  WITH CHECK (project_id IN (
-    SELECT id FROM projects
-    WHERE organization_id = current_setting('app.current_organization_id')::uuid
-  ));--> statement-breakpoint
+  USING (organization_id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
--- 7. RLS policies: direct organization_id on denormalized tables --------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "suites";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "suites"
   FOR ALL
@@ -263,15 +246,14 @@ CREATE POLICY tenant_isolation_policy ON "artifacts"
   WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
 -- 9. SECURITY DEFINER functions for token auth -------------------------
-CREATE OR REPLACE FUNCTION validate_project_token(p_token_hash text)
-RETURNS TABLE(project_id uuid, organization_id uuid)
+CREATE OR REPLACE FUNCTION validate_project_token_by_prefix(p_token_prefix text)
+RETURNS TABLE(token_hash varchar, project_id uuid, organization_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER
 AS $$
-  SELECT pt.project_id, p.organization_id
+  SELECT pt.token_hash, pt.project_id, p.organization_id
   FROM project_tokens pt
   JOIN projects p ON pt.project_id = p.id
-  WHERE pt.token_hash = p_token_hash AND pt.revoked_at IS NULL
-  LIMIT 1;
+  WHERE pt.token_prefix = p_token_prefix AND pt.revoked_at IS NULL;
 $$;--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION touch_project_token_usage(p_token_hash text)
@@ -282,6 +264,6 @@ AS $$
 $$;--> statement-breakpoint
 
 -- Requires assertly_app role from init.sh to be created before running this migration
-GRANT EXECUTE ON FUNCTION validate_project_token(text) TO assertly_app;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION validate_project_token_by_prefix(text) TO assertly_app;--> statement-breakpoint
 -- Requires assertly_app role from init.sh to be created before running this migration
 GRANT EXECUTE ON FUNCTION touch_project_token_usage(text) TO assertly_app;

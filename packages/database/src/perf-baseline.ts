@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
-import { createHmac, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
+import { hash } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 
@@ -110,14 +111,15 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
 
   const projectId = project!.id;
 
-  const tokenHashKey = process.env['TOKEN_HASH_KEY'];
-  if (!tokenHashKey) throw new Error('TOKEN_HASH_KEY environment variable is required');
+  const TOKEN_PREFIX_LENGTH = 16;
   const rawToken = randomBytes(32).toString('hex');
-  const tokenHash = createHmac('sha256', tokenHashKey).update(rawToken).digest('hex');
+  const tokenPrefix = rawToken.slice(0, TOKEN_PREFIX_LENGTH);
+  const tokenHash = await hash(rawToken, { type: 2 });
   await db.insert(projectTokens).values({
     projectId,
     name: 'Perf Token',
     tokenHash,
+    tokenPrefix,
   });
 
   // Build all run rows up-front to avoid per-row async overhead

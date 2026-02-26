@@ -50,6 +50,10 @@ export const runs = pgTable(
       .$type<ProjectId>()
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     status: runStatusEnum('status').notNull().default('pending'),
     totalTests: integer('total_tests').notNull().default(0),
     passedTests: integer('passed_tests').notNull().default(0),
@@ -65,6 +69,7 @@ export const runs = pgTable(
   (table) => [
     index('runs_project_created_idx').on(table.projectId, table.createdAt),
     index('runs_project_status_idx').on(table.projectId, table.status),
+    index('runs_organization_id_idx').on(table.organizationId),
   ],
 );
 

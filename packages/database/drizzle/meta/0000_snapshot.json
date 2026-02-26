@@ -1,5 +1,5 @@
 {
-  "id": "d7c397a6-2563-448e-b713-49695acf88cb",
+  "id": "6639a454-534d-42bb-bfbe-71e0e583f4c5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -229,7 +229,13 @@
         },
         "token_hash": {
           "name": "token_hash",
-          "type": "varchar(64)",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_prefix": {
+          "name": "token_prefix",
+          "type": "varchar(16)",
           "primaryKey": false,
           "notNull": true
         },
@@ -261,6 +267,21 @@
         }
       },
       "indexes": {
+        "project_tokens_prefix_idx": {
+          "name": "project_tokens_prefix_idx",
+          "columns": [
+            {
+              "expression": "token_prefix",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "project_tokens_hash_idx": {
           "name": "project_tokens_hash_idx",
           "columns": [
@@ -519,6 +540,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
         "status": {
           "name": "status",
           "type": "run_status",
@@ -631,6 +658,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "runs_organization_id_idx": {
+          "name": "runs_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -639,6 +681,15 @@
           "tableFrom": "runs",
           "tableTo": "projects",
           "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "runs_organization_id_organizations_id_fk": {
+          "name": "runs_organization_id_organizations_id_fk",
+          "tableFrom": "runs",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"

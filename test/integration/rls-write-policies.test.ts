@@ -95,10 +95,10 @@ describe('RLS write-path isolation', () => {
         (${TOKEN_B_ID}, ${PROJECT_B_ID}, 'Token B', 'write-hash-b')
     `;
     await superSql`
-      INSERT INTO runs (id, project_id, status, metadata, total_tests, passed_tests, failed_tests, skipped_tests)
+      INSERT INTO runs (id, project_id, organization_id, status, metadata, total_tests, passed_tests, failed_tests, skipped_tests)
       VALUES
-        (${RUN_A_ID}, ${PROJECT_A_ID}, 'running', '{}', 0, 0, 0, 0),
-        (${RUN_B_ID}, ${PROJECT_B_ID}, 'running', '{}', 0, 0, 0, 0)
+        (${RUN_A_ID}, ${PROJECT_A_ID}, ${ORG_A_ID}, 'running', '{}', 0, 0, 0, 0),
+        (${RUN_B_ID}, ${PROJECT_B_ID}, ${ORG_B_ID}, 'running', '{}', 0, 0, 0, 0)
     `;
     await superSql`
       INSERT INTO suites (id, run_id, organization_id, name)

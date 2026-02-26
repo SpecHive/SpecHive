@@ -31,7 +31,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-EOSQL
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO assertly_app;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO assertly_app;
 
-  -- Outboxy role (restricted to outbox tables only)
+  -- Outboxy role — restricted to outbox tables only.
+  -- ALTER DEFAULT PRIVILEGES grants access to ALL future tables created by the superuser,
+  -- including application tables created by assertly-migrate. The restrict-outboxy
+  -- docker-compose service revokes access to application tables after migrations complete.
   DO \$\$
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'outboxy') THEN
@@ -44,9 +47,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-EOSQL
 
   GRANT CONNECT ON DATABASE $DB TO outboxy;
   GRANT USAGE ON SCHEMA public TO outboxy;
-  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO outboxy;
-  GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO outboxy;
 
-  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO outboxy;
-  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO outboxy;
+  ALTER DEFAULT PRIVILEGES FOR ROLE $POSTGRES_USER IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO outboxy;
+  ALTER DEFAULT PRIVILEGES FOR ROLE $POSTGRES_USER IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO outboxy;
 EOSQL

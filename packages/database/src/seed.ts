@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import 'dotenv/config';
-import { randomBytes, createHmac } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -82,10 +82,10 @@ export async function seed(dbUrl?: string) {
 
     if (!seedProject) throw new Error('Failed to seed project');
 
-    const tokenHashKey = process.env['TOKEN_HASH_KEY'];
-    if (!tokenHashKey) throw new Error('TOKEN_HASH_KEY environment variable is required');
+    const TOKEN_PREFIX_LENGTH = 16;
     const plainToken = randomBytes(32).toString('hex');
-    const tokenHash = createHmac('sha256', tokenHashKey).update(plainToken).digest('hex');
+    const tokenPrefix = plainToken.slice(0, TOKEN_PREFIX_LENGTH);
+    const tokenHash = await hash(plainToken, { type: 2 });
 
     await db
       .insert(projectTokens)
@@ -93,6 +93,7 @@ export async function seed(dbUrl?: string) {
         projectId: seedProject.id,
         name: 'Default Token',
         tokenHash,
+        tokenPrefix,
       })
       .onConflictDoNothing();
 
@@ -101,6 +102,7 @@ export async function seed(dbUrl?: string) {
       .insert(runs)
       .values({
         projectId: seedProject.id,
+        organizationId: seedOrg.id,
         status: RunStatus.Passed,
         totalTests: 2,
         passedTests: 2,
@@ -116,6 +118,7 @@ export async function seed(dbUrl?: string) {
       .insert(runs)
       .values({
         projectId: seedProject.id,
+        organizationId: seedOrg.id,
         status: RunStatus.Failed,
         totalTests: 2,
         passedTests: 1,

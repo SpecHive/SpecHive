@@ -135,6 +135,7 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
       'artifacts_test_idx',
       'artifacts_organization_id_idx',
       'projects_org_slug_idx',
+      'project_tokens_prefix_idx',
       'project_tokens_hash_idx',
       'memberships_org_user_idx',
     ];
@@ -176,12 +177,12 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
       SELECT routine_name
       FROM information_schema.routines
       WHERE routine_schema = 'public'
-        AND routine_name IN ('validate_project_token', 'touch_project_token_usage')
+        AND routine_name IN ('validate_project_token_by_prefix', 'touch_project_token_usage')
       ORDER BY routine_name
     `;
 
     const funcNames = rows.map((r) => r.routine_name as string);
-    expect(funcNames).toContain('validate_project_token');
+    expect(funcNames).toContain('validate_project_token_by_prefix');
     expect(funcNames).toContain('touch_project_token_usage');
   });
 
@@ -340,7 +341,7 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
   });
 
   it('SECURITY DEFINER functions are accessible to assertly_app', async () => {
-    const functions = ['validate_project_token', 'touch_project_token_usage'];
+    const functions = ['validate_project_token_by_prefix', 'touch_project_token_usage'];
 
     for (const funcName of functions) {
       const funcSignature = `${funcName}(text)`;

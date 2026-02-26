@@ -1,5 +1,5 @@
 import { type OrganizationId, type ProjectId, type ProjectTokenId } from '@assertly/shared-types';
-import { pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { index, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
 import { organizations } from './tenant.js';
@@ -28,10 +28,14 @@ export const projectTokens = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
-    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+    tokenPrefix: varchar('token_prefix', { length: 16 }).notNull(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     ...timestamps,
   },
-  (table) => [uniqueIndex('project_tokens_hash_idx').on(table.tokenHash)],
+  (table) => [
+    index('project_tokens_prefix_idx').on(table.tokenPrefix),
+    uniqueIndex('project_tokens_hash_idx').on(table.tokenHash),
+  ],
 );

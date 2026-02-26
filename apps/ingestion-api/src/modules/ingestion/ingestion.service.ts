@@ -61,7 +61,7 @@ export class IngestionService {
   ): Promise<{ runId: RunId }> {
     switch (event.eventType) {
       case 'run.start':
-        return this.runService.handleRunStart(event, projectId, tx);
+        return this.runService.handleRunStart(event, projectId, organizationId, tx);
       case 'run.end':
         return this.runService.handleRunEnd(event, projectId, tx);
       case 'suite.start':
