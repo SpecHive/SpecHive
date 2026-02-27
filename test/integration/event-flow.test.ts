@@ -2,7 +2,7 @@
  * End-to-end event flow integration test.
  *
  * Verifies the full ingest pipeline: send events to the ingestion API and
- * verify DB state. Requires the full Docker Compose stack running:
+ * verify publish-only behavior. Requires the full Docker Compose stack running:
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  *
  * Run with:
@@ -54,12 +54,10 @@ describe('End-to-end event flow', () => {
   }, 30_000);
 
   afterAll(async () => {
-    // Clean up seeded run data
-    await sql`DELETE FROM runs WHERE id = ${RUN_ID}`;
     await sql.end();
   });
 
-  it('ingests a run.start event and creates a run record', async () => {
+  it('ingests a run.start event and returns an eventId (no domain row created)', async () => {
     const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
       method: 'POST',
       headers: {
@@ -78,37 +76,12 @@ describe('End-to-end event flow', () => {
     expect(response.status).toBe(202);
 
     const body = (await response.json()) as Record<string, unknown>;
-    expect(body).toHaveProperty('runId', RUN_ID);
+    expect(body).toHaveProperty('eventId');
+    expect(typeof body['eventId']).toBe('string');
 
-    // Verify run exists in DB (superuser bypasses RLS)
-    const [run] = await sql`SELECT id, status FROM runs WHERE id = ${RUN_ID}`;
-    expect(run).toBeDefined();
-    expect(run!.status).toBe('pending');
-  });
-
-  it('ingests a run.end event and updates the run status', async () => {
-    const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: RUN_ID,
-        eventType: 'run.end',
-        payload: { status: 'passed' },
-      }),
-    });
-
-    expect(response.status).toBe(202);
-
-    // Verify run status was updated
-    const [run] = await sql`SELECT id, status, finished_at FROM runs WHERE id = ${RUN_ID}`;
-    expect(run).toBeDefined();
-    expect(run!.status).toBe('passed');
-    expect(run!.finished_at).not.toBeNull();
+    // Verify NO run row was created (publish-only mode)
+    const rows = await sql`SELECT id FROM runs WHERE id = ${RUN_ID}`;
+    expect(rows).toHaveLength(0);
   });
 
   it('rejects events without a project token', async () => {

@@ -4,14 +4,11 @@ import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
-import { ArtifactService } from '../src/modules/ingestion/services/artifact.service';
-import { RunService } from '../src/modules/ingestion/services/run.service';
-import { SuiteService } from '../src/modules/ingestion/services/suite.service';
-import { TestService } from '../src/modules/ingestion/services/test.service';
 
 const PROJECT_ID = 'project-1';
 const ORG_ID = '00000000-0000-4000-a000-000000000099';
 const RUN_ID = '00000000-0000-4000-a000-000000000001';
+const MOCK_EVENT_ID = 'evt-mock-id';
 
 function makeRunStartEvent(overrides: Record<string, unknown> = {}) {
   return {
@@ -28,6 +25,7 @@ describe('IngestionService', () => {
   let service: IngestionService;
 
   const mockPublish = vi.fn();
+  const mockTxExecute = vi.fn().mockResolvedValue(undefined);
 
   const mockDb = {
     transaction: vi.fn(),
@@ -37,51 +35,20 @@ describe('IngestionService', () => {
     publish: mockPublish,
   };
 
-  const mockRunService = {
-    handleRunStart: vi.fn(),
-    handleRunEnd: vi.fn(),
-  };
-
-  const mockSuiteService = {
-    handleSuiteStart: vi.fn(),
-    handleSuiteEnd: vi.fn(),
-  };
-
-  const mockTestService = {
-    handleTestStart: vi.fn(),
-    handleTestEnd: vi.fn(),
-  };
-
-  const mockArtifactService = {
-    handleArtifactUpload: vi.fn(),
-  };
-
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    mockRunService.handleRunStart.mockResolvedValue({ runId: RUN_ID });
-    mockRunService.handleRunEnd.mockResolvedValue({ runId: RUN_ID });
-    mockSuiteService.handleSuiteStart.mockResolvedValue({ runId: RUN_ID });
-    mockSuiteService.handleSuiteEnd.mockResolvedValue({ runId: RUN_ID });
-    mockTestService.handleTestStart.mockResolvedValue({ runId: RUN_ID });
-    mockTestService.handleTestEnd.mockResolvedValue({ runId: RUN_ID });
-    mockArtifactService.handleArtifactUpload.mockResolvedValue({ runId: RUN_ID });
-
     mockDb.transaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => {
-      return cb({ $client: {}, execute: vi.fn().mockResolvedValue(undefined) });
+      return cb({ $client: {}, execute: mockTxExecute });
     });
 
-    mockPublish.mockResolvedValue(undefined);
+    mockPublish.mockResolvedValue(MOCK_EVENT_ID);
 
     const module = await Test.createTestingModule({
       providers: [
         IngestionService,
         { provide: DATABASE_CONNECTION, useValue: mockDb },
         { provide: OUTBOXY_CLIENT, useValue: mockOutboxy },
-        { provide: RunService, useValue: mockRunService },
-        { provide: SuiteService, useValue: mockSuiteService },
-        { provide: TestService, useValue: mockTestService },
-        { provide: ArtifactService, useValue: mockArtifactService },
       ],
     }).compile();
 
@@ -89,22 +56,17 @@ describe('IngestionService', () => {
   });
 
   describe('run.start', () => {
-    it('delegates to RunService and publishes outbox event', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = makeRunStartEvent();
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
 
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockRunService.handleRunStart).toHaveBeenCalledWith(
-        event,
-        PROJECT_ID,
-        ORG_ID,
-        expect.anything(),
-      );
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
       expect(mockPublish).toHaveBeenCalledWith(
         expect.objectContaining({
           aggregateType: 'TestRun',
           aggregateId: RUN_ID,
           eventType: 'run.start',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
         }),
         expect.anything(),
       );
@@ -112,7 +74,7 @@ describe('IngestionService', () => {
   });
 
   describe('run.end', () => {
-    it('delegates to RunService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -122,17 +84,21 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockRunService.handleRunEnd).toHaveBeenCalledWith(
-        event,
-        PROJECT_ID,
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'run.end',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
         expect.anything(),
       );
     });
   });
 
   describe('suite.start', () => {
-    it('delegates to SuiteService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -145,13 +111,21 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockSuiteService.handleSuiteStart).toHaveBeenCalled();
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'suite.start',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
+        expect.anything(),
+      );
     });
   });
 
   describe('suite.end', () => {
-    it('delegates to SuiteService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -163,13 +137,21 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockSuiteService.handleSuiteEnd).toHaveBeenCalled();
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'suite.end',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
+        expect.anything(),
+      );
     });
   });
 
   describe('test.start', () => {
-    it('delegates to TestService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -183,13 +165,21 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockTestService.handleTestStart).toHaveBeenCalled();
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'test.start',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
+        expect.anything(),
+      );
     });
   });
 
   describe('test.end', () => {
-    it('delegates to TestService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -203,13 +193,21 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockTestService.handleTestEnd).toHaveBeenCalled();
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'test.end',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
+        expect.anything(),
+      );
     });
   });
 
   describe('artifact.upload', () => {
-    it('delegates to ArtifactService', async () => {
+    it('publishes enriched envelope and returns eventId', async () => {
       const event = {
         version: '1' as const,
         timestamp: '2026-02-24T10:01:00.000Z',
@@ -224,8 +222,16 @@ describe('IngestionService', () => {
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
-      expect(result).toEqual({ runId: RUN_ID });
-      expect(mockArtifactService.handleArtifactUpload).toHaveBeenCalled();
+      expect(result).toEqual({ eventId: MOCK_EVENT_ID });
+      expect(mockPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aggregateType: 'TestRun',
+          aggregateId: RUN_ID,
+          eventType: 'artifact.upload',
+          payload: { event, organizationId: ORG_ID, projectId: PROJECT_ID },
+        }),
+        expect.anything(),
+      );
     });
   });
 
@@ -236,6 +242,32 @@ describe('IngestionService', () => {
       await expect(service.processEvent(makeRunStartEvent(), PROJECT_ID, ORG_ID)).rejects.toThrow(
         'Outbox publish failed',
       );
+    });
+  });
+
+  describe('idempotency key', () => {
+    it('sends the same idempotency key for the same event processed twice', async () => {
+      const event = makeRunStartEvent();
+
+      await service.processEvent(event, PROJECT_ID, ORG_ID);
+      await service.processEvent(event, PROJECT_ID, ORG_ID);
+
+      expect(mockPublish).toHaveBeenCalledTimes(2);
+
+      const [firstCall, secondCall] = mockPublish.mock.calls as [
+        [{ idempotencyKey: string }, unknown],
+        [{ idempotencyKey: string }, unknown],
+      ];
+
+      expect(firstCall[0].idempotencyKey).toBe(secondCall[0].idempotencyKey);
+    });
+  });
+
+  describe('no tenant context', () => {
+    it('does not call setTenantContext (tx.execute not called)', async () => {
+      await service.processEvent(makeRunStartEvent(), PROJECT_ID, ORG_ID);
+
+      expect(mockTxExecute).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,11 +1,11 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, type InjectionToken, Module } from '@nestjs/common';
 
 import { S3_BUCKET, S3_CLIENT, type S3ModuleConfig } from './s3.constants';
 import { S3Service } from './s3.service';
 
 interface S3ModuleAsyncOptions {
-  inject?: unknown[];
+  inject?: InjectionToken[];
   useFactory: (...args: unknown[]) => S3ModuleConfig | Promise<S3ModuleConfig>;
   isGlobal?: boolean;
 }

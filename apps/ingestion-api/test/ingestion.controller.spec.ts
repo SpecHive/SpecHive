@@ -28,7 +28,7 @@ const VALID_PAYLOAD = {
 };
 
 function buildModule(nodeEnv: string) {
-  const mockProcessEvent = vi.fn().mockResolvedValue({ runId: VALID_PAYLOAD.runId });
+  const mockProcessEvent = vi.fn().mockResolvedValue({ eventId: 'evt-mock-id' });
 
   const mockConfigService = {
     get: vi.fn().mockReturnValue(nodeEnv),
@@ -110,7 +110,7 @@ describe('IngestionController', () => {
     });
 
     it('POST /v1/events with valid payload returns 202 Accepted', async () => {
-      mockProcessEvent.mockResolvedValue({ runId: VALID_PAYLOAD.runId });
+      mockProcessEvent.mockResolvedValue({ eventId: 'evt-mock-id' });
 
       const response = await app.inject({
         method: 'POST',
@@ -133,7 +133,7 @@ describe('IngestionController', () => {
       const TIMESTAMP = '2026-02-24T10:00:00.000Z';
 
       beforeEach(() => {
-        mockProcessEvent.mockResolvedValue({ runId: RUN_ID });
+        mockProcessEvent.mockResolvedValue({ eventId: 'evt-mock-id' });
       });
 
       it('routes run.end and returns 202', async () => {

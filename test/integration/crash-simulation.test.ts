@@ -122,23 +122,9 @@ describe('Crash simulation: ingestion-api', () => {
 
     expect(requestError === null || requestError instanceof Error).toBe(true);
 
-    // Verify no partial state by attempting a run.end for the same runId
-    const verifyRes = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: VALID_TIMESTAMP,
-        runId: RUN_ID,
-        eventType: 'run.end',
-        payload: { status: 'passed' },
-      }),
-    });
-
-    expect([200, 202, 400, 401, 404, 422].includes(verifyRes.status)).toBe(true);
+    // In publish-only mode, verify the service is still healthy after abort
+    const healthRes = await fetch(`${INGESTION_API_URL}/health`);
+    expect(healthRes.ok).toBe(true);
   });
 
   it('invalid payload returns 400 and does not crash the service', async () => {
