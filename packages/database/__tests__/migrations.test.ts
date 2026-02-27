@@ -177,13 +177,15 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
       SELECT routine_name
       FROM information_schema.routines
       WHERE routine_schema = 'public'
-        AND routine_name IN ('validate_project_token_by_prefix', 'touch_project_token_usage')
+        AND routine_name IN ('validate_project_token_by_prefix', 'touch_project_token_usage', 'authenticate_user_by_email', 'get_user_organizations')
       ORDER BY routine_name
     `;
 
     const funcNames = rows.map((r) => r.routine_name as string);
     expect(funcNames).toContain('validate_project_token_by_prefix');
     expect(funcNames).toContain('touch_project_token_usage');
+    expect(funcNames).toContain('authenticate_user_by_email');
+    expect(funcNames).toContain('get_user_organizations');
   });
 
   it('enum types exist with correct values', async () => {
@@ -341,14 +343,21 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
   });
 
   it('SECURITY DEFINER functions are accessible to assertly_app', async () => {
-    const functions = ['validate_project_token_by_prefix', 'touch_project_token_usage'];
+    const functions = [
+      {
+        name: 'validate_project_token_by_prefix',
+        signature: 'validate_project_token_by_prefix(text)',
+      },
+      { name: 'touch_project_token_usage', signature: 'touch_project_token_usage(text)' },
+      { name: 'authenticate_user_by_email', signature: 'authenticate_user_by_email(text)' },
+      { name: 'get_user_organizations', signature: 'get_user_organizations(uuid)' },
+    ];
 
-    for (const funcName of functions) {
-      const funcSignature = `${funcName}(text)`;
+    for (const func of functions) {
       const rows = await testSql`
-        SELECT has_function_privilege('assertly_app', ${funcSignature}, 'EXECUTE') AS has_priv
+        SELECT has_function_privilege('assertly_app', ${func.signature}, 'EXECUTE') AS has_priv
       `;
-      expect(rows[0]!.has_priv, `assertly_app should be able to EXECUTE ${funcName}`).toBe(true);
+      expect(rows[0]!.has_priv, `assertly_app should be able to EXECUTE ${func.name}`).toBe(true);
     }
   });
 });

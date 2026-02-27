@@ -22,6 +22,13 @@
       "when": 1772275358458,
       "tag": "0002_fix_test_run_consistency_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772361758458,
+      "tag": "0003_auth_security_definer_functions",
+      "breakpoints": true
     }
   ]
 }

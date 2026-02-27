@@ -13,3 +13,8 @@ export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard
 // Centralised injection token — import this symbol in both ingestion-api and worker
 // instead of defining local Symbols, so the same reference is always used.
 export const DATABASE_CONNECTION = Symbol('DATABASE_CONNECTION');
+
+export { S3Module } from './s3/s3.module';
+export { S3Service } from './s3/s3.service';
+export { S3_CLIENT, S3_BUCKET } from './s3/s3.constants';
+export type { S3ModuleConfig } from './s3/s3.constants';
