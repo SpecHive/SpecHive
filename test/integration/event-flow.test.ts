@@ -1,8 +1,9 @@
 /**
  * End-to-end event flow integration test.
  *
- * Verifies the full ingest pipeline: send events to the ingestion API and
- * verify publish-only behavior. Requires the full Docker Compose stack running:
+ * Verifies the full ingest pipeline: send events to the ingestion API,
+ * wait for the worker to process them via Outboxy, and verify domain rows
+ * exist in the database. Requires the full Docker Compose stack running:
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  *
  * Run with:
@@ -39,8 +40,48 @@ async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Pro
   throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
 }
 
+async function waitForRow(
+  sql: ReturnType<typeof postgres>,
+  table: string,
+  id: string,
+  maxAttempts = 30,
+  delayMs = 500,
+): Promise<Record<string, unknown>> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const rows = await sql`SELECT * FROM ${sql(table)} WHERE id = ${id}`;
+    if (rows.length > 0) return rows[0] as Record<string, unknown>;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  throw new Error(`Row ${id} not found in ${table} after ${maxAttempts * delayMs}ms`);
+}
+
+async function sendEvent(
+  eventType: string,
+  runId: string,
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-project-token': PROJECT_TOKEN,
+    },
+    body: JSON.stringify({
+      version: '1',
+      timestamp: new Date().toISOString(),
+      runId,
+      eventType,
+      payload,
+    }),
+  });
+
+  expect(response.status).toBe(202);
+  return (await response.json()) as Record<string, unknown>;
+}
+
 const RUN_ID = crypto.randomUUID();
-const VALID_TIMESTAMP = new Date().toISOString();
+const SUITE_ID = crypto.randomUUID();
+const TEST_ID = crypto.randomUUID();
 
 describe('End-to-end event flow', () => {
   let sql: ReturnType<typeof postgres>;
@@ -57,40 +98,13 @@ describe('End-to-end event flow', () => {
     await sql.end();
   });
 
-  it('ingests a run.start event and returns an eventId (no domain row created)', async () => {
-    const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: VALID_TIMESTAMP,
-        runId: RUN_ID,
-        eventType: 'run.start',
-        payload: {},
-      }),
-    });
-
-    expect(response.status).toBe(202);
-
-    const body = (await response.json()) as Record<string, unknown>;
-    expect(body).toHaveProperty('eventId');
-    expect(typeof body['eventId']).toBe('string');
-
-    // Verify NO run row was created (publish-only mode)
-    const rows = await sql`SELECT id FROM runs WHERE id = ${RUN_ID}`;
-    expect(rows).toHaveLength(0);
-  });
-
   it('rejects events without a project token', async () => {
     const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         version: '1',
-        timestamp: VALID_TIMESTAMP,
+        timestamp: new Date().toISOString(),
         runId: crypto.randomUUID(),
         eventType: 'run.start',
         payload: {},
@@ -109,7 +123,7 @@ describe('End-to-end event flow', () => {
       },
       body: JSON.stringify({
         version: '1',
-        timestamp: VALID_TIMESTAMP,
+        timestamp: new Date().toISOString(),
         runId: crypto.randomUUID(),
         eventType: 'run.start',
         payload: {},
@@ -118,4 +132,92 @@ describe('End-to-end event flow', () => {
 
     expect(response.status).toBe(401);
   });
+
+  it('processes a full lifecycle: run.start -> suite.start -> test.start -> test.end -> suite.end -> run.end', async () => {
+    // 1. run.start
+    await sendEvent('run.start', RUN_ID, { metadata: { ci: true } });
+    const run = await waitForRow(sql, 'runs', RUN_ID);
+    expect(run['status']).toBe('pending');
+
+    // 2. suite.start
+    await sendEvent('suite.start', RUN_ID, {
+      suiteId: SUITE_ID,
+      suiteName: 'Auth Tests',
+    });
+    const suite = await waitForRow(sql, 'suites', SUITE_ID);
+    expect(suite['name']).toBe('Auth Tests');
+    expect(suite['run_id']).toBe(RUN_ID);
+
+    // 3. test.start
+    await sendEvent('test.start', RUN_ID, {
+      testId: TEST_ID,
+      suiteId: SUITE_ID,
+      testName: 'should login successfully',
+    });
+    const testRow = await waitForRow(sql, 'tests', TEST_ID);
+    expect(testRow['name']).toBe('should login successfully');
+    expect(testRow['status']).toBe('pending');
+
+    // 4. test.end
+    await sendEvent('test.end', RUN_ID, {
+      testId: TEST_ID,
+      status: 'passed',
+      durationMs: 150,
+    });
+    // Wait for the test to be updated
+    let updatedTest: Record<string, unknown> | undefined;
+    for (let i = 0; i < 30; i++) {
+      const rows = await sql`SELECT * FROM tests WHERE id = ${TEST_ID}`;
+      if (rows[0] && rows[0]['status'] === 'passed') {
+        updatedTest = rows[0] as Record<string, unknown>;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(updatedTest).toBeDefined();
+    expect(updatedTest!['status']).toBe('passed');
+    expect(updatedTest!['duration_ms']).toBe(150);
+
+    // 5. suite.end (no-op for DB, but still should be accepted)
+    await sendEvent('suite.end', RUN_ID, { suiteId: SUITE_ID });
+
+    // 6. run.end
+    await sendEvent('run.end', RUN_ID, { status: 'passed' });
+    // Wait for run to finish
+    let finishedRun: Record<string, unknown> | undefined;
+    for (let i = 0; i < 30; i++) {
+      const rows = await sql`SELECT * FROM runs WHERE id = ${RUN_ID}`;
+      if (rows[0] && rows[0]['status'] === 'passed') {
+        finishedRun = rows[0] as Record<string, unknown>;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(finishedRun).toBeDefined();
+    expect(finishedRun!['status']).toBe('passed');
+    expect(finishedRun!['total_tests']).toBe(1);
+    expect(finishedRun!['passed_tests']).toBe(1);
+  }, 60_000);
+
+  it('skips duplicate events', async () => {
+    const duplicateRunId = crypto.randomUUID();
+
+    // Send the same event twice with the same runId
+    const body1 = await sendEvent('run.start', duplicateRunId, {});
+    const body2 = await sendEvent('run.start', duplicateRunId, {});
+
+    // Both should be accepted by the ingestion API (publish-only)
+    expect(body1).toHaveProperty('eventId');
+    expect(body2).toHaveProperty('eventId');
+
+    // Wait for the first event to be processed
+    await waitForRow(sql, 'runs', duplicateRunId);
+
+    // Give extra time for potential duplicate processing
+    await new Promise((r) => setTimeout(r, 2000));
+
+    // Should only have one run row (deduplication prevents duplicate insert)
+    const rows = await sql`SELECT * FROM runs WHERE id = ${duplicateRunId}`;
+    expect(rows).toHaveLength(1);
+  }, 30_000);
 });

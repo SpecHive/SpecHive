@@ -245,6 +245,11 @@ services:
       PORT: '3001'
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
+      MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
+      MINIO_USE_SSL: 'false'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health']
       interval: 10s
@@ -258,6 +263,8 @@ services:
         condition: service_healthy
       outboxy-api:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   dashboard:
     build:

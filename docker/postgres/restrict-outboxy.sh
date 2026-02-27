@@ -13,4 +13,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-EOSQL
     organizations, users, memberships, projects, project_tokens,
     runs, suites, tests, artifacts
   FROM outboxy;
+
+  -- Allow assertly_app to use Inboxy deduplication
+  GRANT SELECT, INSERT ON TABLE inbox_events TO assertly_app;
 EOSQL
