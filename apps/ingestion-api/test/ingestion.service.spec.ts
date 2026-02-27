@@ -1,13 +1,23 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import {
+  asRunId,
+  asSuiteId,
+  asTestId,
+  asProjectId,
+  asOrganizationId,
+  RunStatus,
+  TestStatus,
+  ArtifactType,
+} from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 
-const PROJECT_ID = 'project-1';
-const ORG_ID = '00000000-0000-4000-a000-000000000099';
-const RUN_ID = '00000000-0000-4000-a000-000000000001';
+const PROJECT_ID = asProjectId('project-1');
+const ORG_ID = asOrganizationId('00000000-0000-4000-a000-000000000099');
+const RUN_ID = asRunId('00000000-0000-4000-a000-000000000001');
 const MOCK_EVENT_ID = 'evt-mock-id';
 
 function makeRunStartEvent(overrides: Record<string, unknown> = {}) {
@@ -80,7 +90,7 @@ describe('IngestionService', () => {
         timestamp: '2026-02-24T10:01:00.000Z',
         runId: RUN_ID,
         eventType: 'run.end' as const,
-        payload: { status: 'passed' as const },
+        payload: { status: RunStatus.Passed },
       };
 
       const result = await service.processEvent(event, PROJECT_ID, ORG_ID);
@@ -105,7 +115,7 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'suite.start' as const,
         payload: {
-          suiteId: '00000000-0000-4000-a000-000000000010',
+          suiteId: asSuiteId('00000000-0000-4000-a000-000000000010'),
           suiteName: 'Test Suite',
         },
       };
@@ -132,7 +142,7 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'suite.end' as const,
         payload: {
-          suiteId: '00000000-0000-4000-a000-000000000010',
+          suiteId: asSuiteId('00000000-0000-4000-a000-000000000010'),
         },
       };
 
@@ -158,8 +168,8 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'test.start' as const,
         payload: {
-          testId: '00000000-0000-4000-a000-000000000020',
-          suiteId: '00000000-0000-4000-a000-000000000010',
+          testId: asTestId('00000000-0000-4000-a000-000000000020'),
+          suiteId: asSuiteId('00000000-0000-4000-a000-000000000010'),
           testName: 'should pass',
         },
       };
@@ -186,8 +196,8 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'test.end' as const,
         payload: {
-          testId: '00000000-0000-4000-a000-000000000020',
-          status: 'passed' as const,
+          testId: asTestId('00000000-0000-4000-a000-000000000020'),
+          status: TestStatus.Passed,
           durationMs: 100,
         },
       };
@@ -214,8 +224,8 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'artifact.upload' as const,
         payload: {
-          testId: '00000000-0000-4000-a000-000000000020',
-          artifactType: 'screenshot' as const,
+          testId: asTestId('00000000-0000-4000-a000-000000000020'),
+          artifactType: ArtifactType.Screenshot,
           name: 'failure.png',
           data: 'base64data',
         },
