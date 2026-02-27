@@ -39,6 +39,10 @@ export const projectTokensRelations = relations(projectTokens, ({ one }) => ({
     fields: [projectTokens.projectId],
     references: [projects.id],
   }),
+  organization: one(organizations, {
+    fields: [projectTokens.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const runsRelations = relations(runs, ({ one, many }) => ({

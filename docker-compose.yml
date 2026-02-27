@@ -185,6 +185,13 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
@@ -222,6 +229,13 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       NODE_ENV: production
       PORT: '3001'
@@ -250,6 +264,15 @@ services:
     restart: unless-stopped
     networks:
       - assertly-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     healthcheck:

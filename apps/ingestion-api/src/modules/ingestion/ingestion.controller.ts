@@ -1,25 +1,14 @@
-import { isProductionEnv } from '@assertly/nestjs-common';
+import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
 import { V1EventSchema } from '@assertly/reporter-core-protocol';
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import { z } from 'zod';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
 import { ProjectTokenGuard } from '../../guards/project-token.guard';
 import type { ProjectContext } from '../../guards/project-token.guard';
 import type { EnvConfig } from '../config/env.validation';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { IngestionService } from './ingestion.service';
 
 const INGESTION_RATE_LIMIT_TTL_MS = 60_000;
@@ -44,10 +33,7 @@ export class IngestionController {
     const result = V1EventSchema.safeParse(body);
 
     if (!result.success) {
-      const message = this.isProduction
-        ? 'Invalid event payload'
-        : `Invalid event payload: ${JSON.stringify(z.flattenError(result.error))}`;
-      throw new BadRequestException({ message });
+      throwZodBadRequest(result.error, 'Invalid event payload', this.isProduction);
     }
 
     return this.ingestionService.processEvent(

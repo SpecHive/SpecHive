@@ -4,7 +4,13 @@ import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ArtifactType, MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
+import {
+  ArtifactType,
+  MembershipRole,
+  RunStatus,
+  TOKEN_PREFIX_LENGTH,
+  TestStatus,
+} from '@assertly/shared-types';
 import { hash } from 'argon2';
 
 import { createDbConnection, getRawClient } from './connection.js';
@@ -35,7 +41,8 @@ export async function seed(dbUrl?: string) {
 
     if (!seedOrg) throw new Error('Failed to seed organization');
 
-    const passwordHash = await hash('changeme', { type: 2 });
+    const seedPassword = process.env['SEED_USER_PASSWORD'] ?? 'changeme';
+    const passwordHash = await hash(seedPassword, { type: 2 });
     const [user] = await db
       .insert(users)
       .values({
@@ -82,7 +89,6 @@ export async function seed(dbUrl?: string) {
 
     if (!seedProject) throw new Error('Failed to seed project');
 
-    const TOKEN_PREFIX_LENGTH = 16;
     const plainToken = randomBytes(32).toString('hex');
     const tokenPrefix = plainToken.slice(0, TOKEN_PREFIX_LENGTH);
     const tokenHash = await hash(plainToken, { type: 2 });
@@ -91,6 +97,7 @@ export async function seed(dbUrl?: string) {
       .insert(projectTokens)
       .values({
         projectId: seedProject.id,
+        organizationId: seedOrg.id,
         name: 'Default Token',
         tokenHash,
         tokenPrefix,

@@ -6,13 +6,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ArtifactService } from './services/artifact.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { RunService } from './services/run.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { SuiteService } from './services/suite.service';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { TestService } from './services/test.service';
 
 @Injectable()
@@ -44,13 +40,33 @@ export class IngestionService {
           aggregateId: event.runId,
           eventType: event.eventType,
           payload: event as unknown as Record<string, unknown>,
-          idempotencyKey: `${event.runId}:${event.eventType}:${event.timestamp}`,
+          idempotencyKey: `${event.runId}:${event.eventType}:${this.getEventEntityId(event)}:${event.timestamp}`,
         },
         tx,
       );
 
       return result;
     });
+  }
+
+  private getEventEntityId(event: V1Event): string {
+    switch (event.eventType) {
+      case 'run.start':
+      case 'run.end':
+        return event.runId;
+      case 'suite.start':
+      case 'suite.end':
+        return event.payload.suiteId;
+      case 'test.start':
+      case 'test.end':
+        return event.payload.testId;
+      case 'artifact.upload':
+        return event.payload.testId;
+      default: {
+        const _exhaustive: never = event;
+        throw _exhaustive;
+      }
+    }
   }
 
   private async handleEvent(

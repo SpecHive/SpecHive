@@ -1,23 +1,11 @@
-import { isProductionEnv } from '@assertly/nestjs-common';
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Logger,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
+import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { Body, Controller, HttpCode, HttpStatus, Logger, Post, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import { z } from 'zod';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
 import { OutboxyEnvelopeSchema } from '../../types/outboxy-envelope';
 import type { EnvConfig } from '../config/env.validation';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- NestJS DI requires value import
 import { ResultProcessorService } from '../result-processor/result-processor.service';
 
 const WEBHOOK_RATE_LIMIT_TTL_MS = 60_000;
@@ -49,10 +37,7 @@ export class WebhookReceiverController {
       } else {
         this.logger.warn(`Invalid webhook payload: ${JSON.stringify(result.error.flatten())}`);
       }
-      const message = this.isProduction
-        ? 'Invalid webhook payload'
-        : `Invalid webhook payload: ${JSON.stringify(z.flattenError(result.error))}`;
-      throw new BadRequestException({ message });
+      throwZodBadRequest(result.error, 'Invalid webhook payload', this.isProduction);
     }
 
     this.logger.log(`Received Outboxy webhook event: ${result.data.eventType}`);

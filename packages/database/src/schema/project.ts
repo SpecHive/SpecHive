@@ -27,6 +27,10 @@ export const projectTokens = pgTable(
       .$type<ProjectId>()
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     tokenHash: varchar('token_hash', { length: 255 }).notNull(),
     tokenPrefix: varchar('token_prefix', { length: 16 }).notNull(),
@@ -37,5 +41,6 @@ export const projectTokens = pgTable(
   (table) => [
     index('project_tokens_prefix_idx').on(table.tokenPrefix),
     uniqueIndex('project_tokens_hash_idx').on(table.tokenHash),
+    index('project_tokens_organization_id_idx').on(table.organizationId),
   ],
 );

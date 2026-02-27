@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MembershipRole, RunStatus, TestStatus } from '@assertly/shared-types';
+import { MembershipRole, RunStatus, TOKEN_PREFIX_LENGTH, TestStatus } from '@assertly/shared-types';
 import { hash } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
@@ -110,13 +110,14 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
     .returning();
 
   const projectId = project!.id;
+  const orgId = org!.id;
 
-  const TOKEN_PREFIX_LENGTH = 16;
   const rawToken = randomBytes(32).toString('hex');
   const tokenPrefix = rawToken.slice(0, TOKEN_PREFIX_LENGTH);
   const tokenHash = await hash(rawToken, { type: 2 });
   await db.insert(projectTokens).values({
     projectId,
+    organizationId: orgId,
     name: 'Perf Token',
     tokenHash,
     tokenPrefix,
@@ -126,6 +127,7 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   const runRows = Array.from({ length: RUN_COUNT }, (_, i) => ({
     id: uuidv7(),
     projectId,
+    organizationId: orgId,
     status: RUN_STATUSES[i % RUN_STATUSES.length]!,
     totalTests: SUITES_PER_RUN * TESTS_PER_SUITE,
     passedTests: 0,
@@ -143,7 +145,6 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   const sampleFailedRunId = runRows.find((r) => r.status === RunStatus.Failed)!.id;
 
   console.log(`  Inserting ${RUN_COUNT * SUITES_PER_RUN} suites...`);
-  const orgId = org!.id;
   const suiteRows: {
     id: string;
     runId: string;

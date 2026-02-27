@@ -15,7 +15,8 @@ export interface BootstrapOptions {
 }
 
 export async function bootstrapNestApp(options: BootstrapOptions): Promise<void> {
-  const adapterOpts = options.bodyLimit !== undefined ? { bodyLimit: options.bodyLimit } : {};
+  const adapterOpts: Record<string, unknown> = { trustProxy: true };
+  if (options.bodyLimit !== undefined) adapterOpts.bodyLimit = options.bodyLimit;
   const app = await NestFactory.create<NestFastifyApplication>(
     options.module,
     new FastifyAdapter(adapterOpts),

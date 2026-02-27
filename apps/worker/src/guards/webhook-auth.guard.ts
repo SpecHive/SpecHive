@@ -2,11 +2,15 @@ import { timingSafeEqual } from 'node:crypto';
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { ConfigService } from '@nestjs/config';
 
 import type { EnvConfig } from '../modules/config/env.validation';
 
+// TODO: Upgrade to HMAC-SHA256 signature verification (x-webhook-signature header)
+// once Outboxy supports signing outbound HTTP payloads. The current approach uses a
+// static shared secret (x-webhook-secret) because Outboxy's HTTP publisher does not
+// support HMAC natively — it would require either Outboxy adding signing support or
+// an intermediate proxy that computes the signature.
 @Injectable()
 export class WebhookAuthGuard implements CanActivate {
   private readonly webhookSecret: string;

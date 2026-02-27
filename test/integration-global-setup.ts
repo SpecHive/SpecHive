@@ -34,7 +34,7 @@ const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
 const INTEGRATION_TOKEN_ID = '01970000-0000-7000-8000-000000000003';
 
 const TEST_TOKEN = 'test-token';
-const TOKEN_PREFIX_LENGTH = 16;
+const TOKEN_PREFIX_LENGTH = 16; // Synced with @assertly/shared-types — kept inline since globalSetup runs outside Vitest env
 
 async function computeTestTokenHash(): Promise<string> {
   const { hash } = await import('argon2');
@@ -82,10 +82,11 @@ export async function setup(): Promise<void> {
     const tokenPrefix = TEST_TOKEN.slice(0, TOKEN_PREFIX_LENGTH);
 
     await sql`
-      INSERT INTO project_tokens (id, project_id, name, token_hash, token_prefix, created_at, updated_at)
+      INSERT INTO project_tokens (id, project_id, organization_id, name, token_hash, token_prefix, created_at, updated_at)
       VALUES (
         ${INTEGRATION_TOKEN_ID},
         ${INTEGRATION_PROJECT_ID},
+        ${INTEGRATION_ORG_ID},
         'integration-test-token',
         ${tokenHash},
         ${tokenPrefix},

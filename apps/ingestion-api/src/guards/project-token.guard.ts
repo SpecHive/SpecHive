@@ -1,7 +1,7 @@
 import type { Database } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId } from '@assertly/shared-types';
-import { asOrganizationId, asProjectId } from '@assertly/shared-types';
+import { TOKEN_PREFIX_LENGTH, asOrganizationId, asProjectId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { verify } from 'argon2';
@@ -11,8 +11,6 @@ export interface ProjectContext {
   projectId: ProjectId;
   organizationId: OrganizationId;
 }
-
-const TOKEN_PREFIX_LENGTH = 16;
 
 @Injectable()
 export class ProjectTokenGuard implements CanActivate {

@@ -32,4 +32,10 @@ export default [
       ],
     },
   },
+  {
+    files: ['**/apps/*/src/**/*.ts', '**/packages/nestjs-common/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
 ];

@@ -33,6 +33,7 @@ CREATE TABLE "users" (
 CREATE TABLE "project_tokens" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"project_id" uuid NOT NULL,
+	"organization_id" uuid NOT NULL,
 	"name" varchar(255) NOT NULL,
 	"token_hash" varchar(255) NOT NULL,
 	"token_prefix" varchar(16) NOT NULL,
@@ -110,6 +111,7 @@ CREATE TABLE "tests" (
 ALTER TABLE "memberships" ADD CONSTRAINT "memberships_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "memberships" ADD CONSTRAINT "memberships_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_tokens" ADD CONSTRAINT "project_tokens_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "project_tokens" ADD CONSTRAINT "project_tokens_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_test_id_tests_id_fk" FOREIGN KEY ("test_id") REFERENCES "public"."tests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -124,6 +126,7 @@ ALTER TABLE "tests" ADD CONSTRAINT "tests_organization_id_organizations_id_fk" F
 CREATE UNIQUE INDEX "memberships_org_user_idx" ON "memberships" USING btree ("organization_id","user_id");--> statement-breakpoint
 CREATE INDEX "project_tokens_prefix_idx" ON "project_tokens" USING btree ("token_prefix");--> statement-breakpoint
 CREATE UNIQUE INDEX "project_tokens_hash_idx" ON "project_tokens" USING btree ("token_hash");--> statement-breakpoint
+CREATE INDEX "project_tokens_organization_id_idx" ON "project_tokens" USING btree ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "projects_org_slug_idx" ON "projects" USING btree ("organization_id","slug");--> statement-breakpoint
 CREATE INDEX "artifacts_test_idx" ON "artifacts" USING btree ("test_id");--> statement-breakpoint
 CREATE INDEX "artifacts_organization_id_idx" ON "artifacts" USING btree ("organization_id");--> statement-breakpoint
@@ -198,7 +201,9 @@ CREATE POLICY tenant_isolation_policy ON "memberships"
 
 DROP POLICY IF EXISTS "org_tenant_isolation" ON "organizations";--> statement-breakpoint
 CREATE POLICY org_tenant_isolation ON "organizations"
-  USING (id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
+  FOR ALL
+  USING (id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
 DROP POLICY IF EXISTS "users_tenant_isolation" ON "users";--> statement-breakpoint
 CREATE POLICY users_tenant_isolation ON "users"
@@ -207,18 +212,12 @@ CREATE POLICY users_tenant_isolation ON "users"
     WHERE organization_id = current_setting('app.current_organization_id')::uuid
   ));--> statement-breakpoint
 
--- 6. RLS policies: via project_id -> projects ---------------------------
+-- 6. RLS policies: project_tokens (direct organization_id) ---------------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "project_tokens";--> statement-breakpoint
 CREATE POLICY tenant_isolation_policy ON "project_tokens"
   FOR ALL
-  USING (project_id IN (
-    SELECT id FROM projects
-    WHERE organization_id = current_setting('app.current_organization_id')::uuid
-  ))
-  WITH CHECK (project_id IN (
-    SELECT id FROM projects
-    WHERE organization_id = current_setting('app.current_organization_id')::uuid
-  ));--> statement-breakpoint
+  USING (organization_id = current_setting('app.current_organization_id')::uuid)
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
 -- 7. RLS policies: direct organization_id on denormalized tables --------
 DROP POLICY IF EXISTS "tenant_isolation_policy" ON "runs";--> statement-breakpoint
@@ -248,19 +247,18 @@ CREATE POLICY tenant_isolation_policy ON "artifacts"
 -- 9. SECURITY DEFINER functions for token auth -------------------------
 CREATE OR REPLACE FUNCTION validate_project_token_by_prefix(p_token_prefix text)
 RETURNS TABLE(token_hash varchar, project_id uuid, organization_id uuid)
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
 AS $$
-  SELECT pt.token_hash, pt.project_id, p.organization_id
-  FROM project_tokens pt
-  JOIN projects p ON pt.project_id = p.id
+  SELECT pt.token_hash, pt.project_id, pt.organization_id
+  FROM public.project_tokens pt
   WHERE pt.token_prefix = p_token_prefix AND pt.revoked_at IS NULL;
 $$;--> statement-breakpoint
 
 CREATE OR REPLACE FUNCTION touch_project_token_usage(p_token_hash text)
 RETURNS void
-LANGUAGE sql SECURITY DEFINER
+LANGUAGE sql SECURITY DEFINER SET search_path = ''
 AS $$
-  UPDATE project_tokens SET last_used_at = now() WHERE token_hash = p_token_hash;
+  UPDATE public.project_tokens SET last_used_at = now() WHERE token_hash = p_token_hash;
 $$;--> statement-breakpoint
 
 -- Requires assertly_app role from init.sh to be created before running this migration
