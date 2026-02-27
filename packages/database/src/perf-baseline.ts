@@ -396,10 +396,8 @@ function printReport(results: QueryResult[]): boolean {
 // Entry point
 // ---------------------------------------------------------------------------
 
-export async function main(dbUrl?: string): Promise<void> {
-  const url = dbUrl ?? process.env['DATABASE_URL'];
-  if (!url) throw new Error('DATABASE_URL environment variable is required');
-  const db = createDbConnection(url);
+export async function main(dbUrl: string): Promise<void> {
+  const db = createDbConnection(dbUrl);
 
   let projectId: string | undefined;
 
@@ -434,5 +432,10 @@ export async function main(dbUrl?: string): Promise<void> {
 
 // CLI entry point
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
-  main();
+  const url = process.env['DATABASE_URL'];
+  if (!url) {
+    console.error('DATABASE_URL environment variable is required');
+    process.exit(1);
+  }
+  main(url);
 }

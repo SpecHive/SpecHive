@@ -92,6 +92,7 @@ export const suites = pgTable(
   (table) => [
     index('suites_run_id_idx').on(table.runId),
     index('suites_organization_id_idx').on(table.organizationId),
+    index('suites_parent_suite_id_idx').on(table.parentSuiteId),
     foreignKey({
       columns: [table.parentSuiteId],
       foreignColumns: [table.id],

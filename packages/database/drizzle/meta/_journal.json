@@ -8,6 +8,20 @@
       "when": 1772123474848,
       "tag": "0000_brainy_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772188958458,
+      "tag": "0001_vengeful_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772275358458,
+      "tag": "0002_fix_test_run_consistency_trigger",
+      "breakpoints": true
     }
   ]
 }

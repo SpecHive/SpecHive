@@ -35,10 +35,10 @@ export class IngestionService {
 
       await this.outboxy.publish(
         {
-          // Sprint 1: derive aggregateType from event type when multiple aggregates exist
           aggregateType: 'TestRun',
           aggregateId: event.runId,
           eventType: event.eventType,
+          // Adapts the typed V1Event to Outboxy's generic payload signature
           payload: event as unknown as Record<string, unknown>,
           idempotencyKey: `${event.runId}:${event.eventType}:${this.getEventEntityId(event)}:${event.timestamp}`,
         },

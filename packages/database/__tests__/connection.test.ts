@@ -5,6 +5,7 @@
  * is unreachable, following the same pattern as migrations.test.ts.
  */
 
+import { asOrganizationId } from '@assertly/shared-types';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const DATABASE_URL =
@@ -73,6 +74,15 @@ describe.skipIf(!canConnect)('getRawClient', () => {
     });
   });
 
+  it('transaction client shares the same transactional context', async () => {
+    await db.transaction(async (tx) => {
+      const client = getRawClient(tx);
+      await client`SELECT set_config('app.current_organization_id', 'test-org-id', true)`;
+      const [row] = await client`SELECT current_setting('app.current_organization_id') AS org_id`;
+      expect(row!.org_id).toBe('test-org-id');
+    });
+  });
+
   it('throws for an invalid input', () => {
     expect(() => getRawClient({} as never)).toThrow('Failed to extract raw client');
   });
@@ -91,7 +101,7 @@ describe.skipIf(!canConnect)('setTenantContext', () => {
   });
 
   it('sets the organization ID within a transaction', async () => {
-    const orgId = '01970000-0000-7000-8000-000000000099';
+    const orgId = asOrganizationId('01970000-0000-7000-8000-000000000099');
 
     await db.transaction(async (tx) => {
       await setTenantContext(tx, orgId);
@@ -103,7 +113,7 @@ describe.skipIf(!canConnect)('setTenantContext', () => {
   });
 
   it('setting is transaction-scoped and not visible outside', async () => {
-    const orgId = '01970000-0000-7000-8000-000000000088';
+    const orgId = asOrganizationId('01970000-0000-7000-8000-000000000088');
 
     await db.transaction(async (tx) => {
       await setTenantContext(tx, orgId);

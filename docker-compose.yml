@@ -69,6 +69,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
     entrypoint: ['/bin/sh', '/init.sh']
     restart: 'no'
 
@@ -119,6 +121,8 @@ services:
       PUBLISHER_TYPE: http
       PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
     healthcheck:
+      # Outboxy worker is a background poller with no HTTP endpoint.
+      # Process check is the best available option.
       test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
       interval: 15s
       timeout: 5s
@@ -200,8 +204,8 @@ services:
       WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
       OUTBOXY_API_URL: http://outboxy-api:3100
       MINIO_ENDPOINT: minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
+      MINIO_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: 'false'
     healthcheck:

@@ -8,6 +8,8 @@ import {
 } from '@assertly/shared-types';
 import { z } from 'zod';
 
+const MAX_METADATA_BYTES = 1_000_000;
+
 const baseEnvelopeFields = {
   version: z.literal('1'),
   timestamp: z.string().datetime(),
@@ -19,7 +21,20 @@ export const RunStartSchema = z.object({
   eventType: z.literal('run.start'),
   payload: z.object({
     runName: z.string().optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .refine(
+        (val) => {
+          if (!val) return true;
+          try {
+            return JSON.stringify(val).length <= MAX_METADATA_BYTES;
+          } catch {
+            return false;
+          }
+        },
+        { message: 'metadata must be under 1MB when serialized' },
+      ),
   }),
 });
 

@@ -31,12 +31,8 @@ export class WebhookReceiverController {
     const result = OutboxyEnvelopeSchema.safeParse(body);
 
     if (!result.success) {
-      if (this.isProduction) {
-        this.logger.warn('Invalid webhook payload received');
-        this.logger.debug(`Validation details: ${JSON.stringify(result.error.flatten())}`);
-      } else {
-        this.logger.warn(`Invalid webhook payload: ${JSON.stringify(result.error.flatten())}`);
-      }
+      this.logger.warn('Invalid webhook payload received');
+      this.logger.debug(`Validation details: ${JSON.stringify(result.error.flatten())}`);
       throwZodBadRequest(result.error, 'Invalid webhook payload', this.isProduction);
     }
 

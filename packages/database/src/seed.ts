@@ -18,10 +18,8 @@ import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
-export async function seed(dbUrl?: string) {
-  const url = dbUrl ?? process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL'];
-  if (!url) throw new Error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
-  const db = createDbConnection(url);
+export async function seed(dbUrl: string, password?: string) {
+  const db = createDbConnection(dbUrl);
 
   try {
     console.log('Seeding database...');
@@ -41,7 +39,7 @@ export async function seed(dbUrl?: string) {
 
     if (!seedOrg) throw new Error('Failed to seed organization');
 
-    const seedPassword = process.env['SEED_USER_PASSWORD'] ?? 'changeme';
+    const seedPassword = password ?? 'changeme';
     const passwordHash = await hash(seedPassword, { type: 2 });
     const [user] = await db
       .insert(users)
@@ -255,7 +253,12 @@ if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
     console.error('Seed script cannot run in production. Aborting.');
     process.exit(1);
   }
-  seed().catch((err) => {
+  const url = process.env['SEED_DATABASE_URL'] ?? process.env['DATABASE_URL'];
+  if (!url) {
+    console.error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
+    process.exit(1);
+  }
+  seed(url, process.env['SEED_USER_PASSWORD']).catch((err) => {
     console.error('Seed failed:', err);
     process.exit(1);
   });

@@ -1,3 +1,4 @@
+import type { OrganizationId } from '@assertly/shared-types';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -17,7 +18,7 @@ export type Database = ReturnType<typeof createDbConnection>;
 export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 /** Sets the RLS tenant context for the current transaction (must be called inside db.transaction). */
-export async function setTenantContext(tx: Transaction, organizationId: string) {
+export async function setTenantContext(tx: Transaction, organizationId: OrganizationId) {
   await tx.execute(sql`SELECT set_config('app.current_organization_id', ${organizationId}, true)`);
 }
 

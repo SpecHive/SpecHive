@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/throttle-test.helper.d.ts",
+      "default": "./dist/testing/throttle-test.helper.js"
     }
   },
   "scripts": {
@@ -30,6 +34,7 @@
   },
   "devDependencies": {
     "@assertly/typescript-config": "workspace:*",
+    "@nestjs/testing": "^11.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"

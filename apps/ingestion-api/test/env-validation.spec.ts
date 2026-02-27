@@ -6,6 +6,15 @@ const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
 };
 
+const VALID_PRODUCTION_ENV = {
+  ...VALID_ENV,
+  NODE_ENV: 'production',
+  CORS_ORIGIN: 'https://app.assertly.dev',
+  MINIO_USE_SSL: 'true',
+  MINIO_ENDPOINT: 'minio.prod.example.com:9000',
+  TOKEN_HASH_KEY: 'a'.repeat(32),
+};
+
 describe('ingestion-api envSchema', () => {
   it('parses valid config with required DATABASE_URL', () => {
     const result = envSchema.parse(VALID_ENV);
@@ -45,11 +54,7 @@ describe('ingestion-api envSchema', () => {
   });
 
   it('allows a non-localhost CORS_ORIGIN in production', () => {
-    const result = envSchema.parse({
-      ...VALID_ENV,
-      NODE_ENV: 'production',
-      CORS_ORIGIN: 'https://app.assertly.dev',
-    });
+    const result = envSchema.parse(VALID_PRODUCTION_ENV);
     expect(result.CORS_ORIGIN).toBe('https://app.assertly.dev');
   });
 
@@ -74,5 +79,128 @@ describe('ingestion-api envSchema', () => {
   it('inherits PORT default from base schema', () => {
     const result = envSchema.parse(VALID_ENV);
     expect(result.PORT).toBe(3000);
+  });
+
+  describe('MinIO SSL refinement', () => {
+    it('requires MINIO_USE_SSL=true in production for non-localhost endpoints', () => {
+      expect(() => envSchema.parse({ ...VALID_PRODUCTION_ENV, MINIO_USE_SSL: 'false' })).toThrow(
+        'MINIO_USE_SSL must be true in production for non-localhost endpoints',
+      );
+    });
+
+    it('allows MINIO_USE_SSL=false for localhost in production', () => {
+      const result = envSchema.parse({
+        ...VALID_PRODUCTION_ENV,
+        MINIO_ENDPOINT: 'localhost:9000',
+        MINIO_USE_SSL: 'false',
+      });
+      expect(result.MINIO_USE_SSL).toBe('false');
+    });
+
+    it('allows MINIO_USE_SSL=false for 127.0.0.1 in production', () => {
+      const result = envSchema.parse({
+        ...VALID_PRODUCTION_ENV,
+        MINIO_ENDPOINT: '127.0.0.1:9000',
+        MINIO_USE_SSL: 'false',
+      });
+      expect(result.MINIO_USE_SSL).toBe('false');
+    });
+
+    it('allows MINIO_USE_SSL=false for [::1] in production', () => {
+      const result = envSchema.parse({
+        ...VALID_PRODUCTION_ENV,
+        MINIO_ENDPOINT: '[::1]:9000',
+        MINIO_USE_SSL: 'false',
+      });
+      expect(result.MINIO_USE_SSL).toBe('false');
+    });
+
+    it('rejects localhost.evil.com as loopback in production', () => {
+      expect(() =>
+        envSchema.parse({
+          ...VALID_PRODUCTION_ENV,
+          MINIO_ENDPOINT: 'localhost.evil.com',
+          MINIO_USE_SSL: 'false',
+        }),
+      ).toThrow('MINIO_USE_SSL must be true in production for non-localhost endpoints');
+    });
+
+    it('rejects localhost-minio.internal as loopback in production', () => {
+      expect(() =>
+        envSchema.parse({
+          ...VALID_PRODUCTION_ENV,
+          MINIO_ENDPOINT: 'localhost-minio.internal',
+          MINIO_USE_SSL: 'false',
+        }),
+      ).toThrow('MINIO_USE_SSL must be true in production for non-localhost endpoints');
+    });
+
+    it('allows MINIO_USE_SSL=true for non-localhost in production', () => {
+      const result = envSchema.parse(VALID_PRODUCTION_ENV);
+      expect(result.MINIO_USE_SSL).toBe('true');
+    });
+
+    it('allows MINIO_USE_SSL=false in development', () => {
+      const result = envSchema.parse({
+        ...VALID_ENV,
+        NODE_ENV: 'development',
+        MINIO_ENDPOINT: 'minio.dev.example.com:9000',
+        MINIO_USE_SSL: 'false',
+      });
+      expect(result.MINIO_USE_SSL).toBe('false');
+    });
+  });
+
+  describe('TOKEN_HASH_KEY validation', () => {
+    it('allows TOKEN_HASH_KEY to be omitted in development', () => {
+      const result = envSchema.parse(VALID_ENV);
+      expect(result.TOKEN_HASH_KEY).toBeUndefined();
+    });
+
+    it('rejects TOKEN_HASH_KEY omitted in production', () => {
+      const envWithoutKey = Object.fromEntries(
+        Object.entries(VALID_PRODUCTION_ENV).filter(([k]) => k !== 'TOKEN_HASH_KEY'),
+      );
+      expect(() => envSchema.parse(envWithoutKey)).toThrow(
+        'TOKEN_HASH_KEY is required and must be at least 32 characters in production',
+      );
+    });
+
+    it('rejects empty string TOKEN_HASH_KEY in production', () => {
+      expect(() => envSchema.parse({ ...VALID_PRODUCTION_ENV, TOKEN_HASH_KEY: '' })).toThrow(
+        'TOKEN_HASH_KEY is required and must be at least 32 characters in production',
+      );
+    });
+
+    it('allows short TOKEN_HASH_KEY in development', () => {
+      const result = envSchema.parse({
+        ...VALID_ENV,
+        TOKEN_HASH_KEY: 'short',
+      });
+      expect(result.TOKEN_HASH_KEY).toBe('short');
+    });
+
+    it('rejects TOKEN_HASH_KEY under 32 chars in production', () => {
+      expect(() =>
+        envSchema.parse({ ...VALID_PRODUCTION_ENV, TOKEN_HASH_KEY: 'too-short' }),
+      ).toThrow('TOKEN_HASH_KEY is required and must be at least 32 characters in production');
+    });
+
+    it('allows TOKEN_HASH_KEY of 32+ chars in production', () => {
+      const result = envSchema.parse(VALID_PRODUCTION_ENV);
+      expect(result.TOKEN_HASH_KEY).toBe('a'.repeat(32));
+    });
+  });
+
+  describe('MinIO app credentials', () => {
+    it('defaults MINIO_APP_ACCESS_KEY to assertly-app', () => {
+      const result = envSchema.parse(VALID_ENV);
+      expect(result.MINIO_APP_ACCESS_KEY).toBe('assertly-app');
+    });
+
+    it('defaults MINIO_APP_SECRET_KEY to assertly-app-secret-key', () => {
+      const result = envSchema.parse(VALID_ENV);
+      expect(result.MINIO_APP_SECRET_KEY).toBe('assertly-app-secret-key');
+    });
   });
 });

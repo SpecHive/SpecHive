@@ -95,6 +95,30 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
+  describe('production message sanitization', () => {
+    it('hides raw error message for plain Error in production', () => {
+      const filter = new AllExceptionsFilter(makeConfigService('production'));
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(new Error('sensitive internal detail'), host);
+
+      const body = send.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.message).toBe('Internal server error');
+    });
+
+    it('exposes raw error message for plain Error in development', () => {
+      const filter = new AllExceptionsFilter(makeConfigService('development'));
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(new Error('sensitive internal detail'), host);
+
+      const body = send.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.message).toBe('sensitive internal detail');
+    });
+  });
+
   describe('stack trace inclusion', () => {
     it('includes stack in development mode when the exception is an Error', () => {
       const filter = new AllExceptionsFilter(makeConfigService('development'));
@@ -128,6 +152,54 @@ describe('AllExceptionsFilter', () => {
 
       const body = send.mock.calls[0][0] as Record<string, unknown>;
       expect(body.stack).toBeUndefined();
+    });
+  });
+
+  describe('error code resolution', () => {
+    it.each([
+      [HttpStatus.NOT_FOUND, 'NOT_FOUND'],
+      [HttpStatus.UNAUTHORIZED, 'UNAUTHORIZED'],
+      [HttpStatus.CONFLICT, 'CONFLICT'],
+      [HttpStatus.METHOD_NOT_ALLOWED, 'METHOD_NOT_ALLOWED'],
+      [HttpStatus.REQUEST_TIMEOUT, 'REQUEST_TIMEOUT'],
+      [HttpStatus.UNPROCESSABLE_ENTITY, 'UNPROCESSABLE_ENTITY'],
+    ])('maps %i to %s', (httpStatus, expectedCode) => {
+      const filter = new AllExceptionsFilter(makeConfigService('production'));
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(new HttpException('test', httpStatus), host);
+
+      const body = send.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.code).toBe(expectedCode);
+    });
+
+    it('propagates custom code from exception payload', () => {
+      const filter = new AllExceptionsFilter(makeConfigService('production'));
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(
+        new HttpException(
+          { message: 'Invalid input', code: 'CUSTOM_CODE' },
+          HttpStatus.BAD_REQUEST,
+        ),
+        host,
+      );
+
+      const body = send.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.code).toBe('CUSTOM_CODE');
+    });
+
+    it('falls back to INTERNAL_ERROR for non-HttpException errors', () => {
+      const filter = new AllExceptionsFilter(makeConfigService('production'));
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(new Error('boom'), host);
+
+      const body = send.mock.calls[0][0] as Record<string, unknown>;
+      expect(body.code).toBe('INTERNAL_ERROR');
     });
   });
 
