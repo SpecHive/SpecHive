@@ -1,30 +1,52 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { MemoryRouter } from 'react-router';
+import { describe, expect, it, vi } from 'vitest';
 
+import { AuthProvider } from '@/lib/auth-context';
 import { DashboardPage } from '@/pages/dashboard';
+
+vi.mock('@/hooks/use-api', () => ({
+  useApi: vi.fn().mockReturnValue({
+    data: null,
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+    setToken: vi.fn(),
+  },
+}));
+
+function renderDashboard() {
+  return render(
+    <MemoryRouter>
+      <AuthProvider>
+        <DashboardPage />
+      </AuthProvider>
+    </MemoryRouter>,
+  );
+}
 
 describe('DashboardPage', () => {
   it('renders the page heading', () => {
-    render(<DashboardPage />);
+    renderDashboard();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('renders all four stat cards', () => {
-    render(<DashboardPage />);
-    expect(screen.getByText('Total Runs')).toBeInTheDocument();
-    expect(screen.getByText('Pass Rate')).toBeInTheDocument();
-    expect(screen.getByText('Failed Tests')).toBeInTheDocument();
-    expect(screen.getByText('Avg. Duration')).toBeInTheDocument();
-  });
-
   it('renders the recent runs section', () => {
-    render(<DashboardPage />);
+    renderDashboard();
     expect(screen.getByText('Recent Runs')).toBeInTheDocument();
   });
 
-  it('renders stat values', () => {
-    render(<DashboardPage />);
-    expect(screen.getByText('1,284')).toBeInTheDocument();
-    expect(screen.getByText('94.2%')).toBeInTheDocument();
+  it('renders empty state when no data', () => {
+    renderDashboard();
+    expect(
+      screen.getByText('No test runs found. Push some test results to get started.'),
+    ).toBeInTheDocument();
   });
 });

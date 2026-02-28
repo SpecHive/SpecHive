@@ -1,6 +1,8 @@
-import { LayoutDashboard, PlayCircle, FlaskConical, Settings } from 'lucide-react';
+import { LayoutDashboard, LogOut, PlayCircle, FlaskConical, Settings } from 'lucide-react';
 import { NavLink } from 'react-router';
 
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -17,6 +19,8 @@ const navItems: NavItem[] = [
 ];
 
 export function Sidebar() {
+  const { logout } = useAuth();
+
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
@@ -45,7 +49,16 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t p-4">
-        <p className="text-xs text-muted-foreground">v{__APP_VERSION__}</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-muted-foreground"
+          onClick={logout}
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          Sign out
+        </Button>
+        <p className="mt-2 text-xs text-muted-foreground">v{__APP_VERSION__}</p>
       </div>
     </aside>
   );

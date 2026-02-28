@@ -1,9 +1,47 @@
+import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
+import { useNavigate } from 'react-router';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/lib/auth-context';
 
 export function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
@@ -12,10 +50,18 @@ export function LoginPage() {
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form onSubmit={(e) => e.preventDefault()}>
+          <Form onSubmit={handleSubmit}>
             <FormItem>
               <FormLabel htmlFor="email">Email</FormLabel>
-              <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
             </FormItem>
             <FormItem>
               <FormLabel htmlFor="password">Password</FormLabel>
@@ -24,11 +70,14 @@ export function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </FormItem>
-            {/* Auth integration deferred to Sprint 1 */}
-            <Button type="submit" className="w-full" disabled>
-              Sign in
+            <FormMessage>{error}</FormMessage>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </Form>
         </CardContent>

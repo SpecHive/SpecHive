@@ -1,34 +1,48 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { AuthProvider } from '@/lib/auth-context';
 import { AppRoutes } from '@/routes';
 
-describe('AppRoutes', () => {
-  it('renders DashboardPage at root path', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
+vi.mock('@/lib/api-client', () => ({
+  apiClient: {
+    get: vi
+      .fn()
+      .mockResolvedValue({ data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }),
+    post: vi.fn(),
+    setToken: vi.fn(),
+  },
+}));
+
+function renderRoute(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AuthProvider>
         <AppRoutes />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+      </AuthProvider>
+    </MemoryRouter>,
+  );
+}
+
+describe('AppRoutes', () => {
+  it('renders LoginPage at /login', () => {
+    renderRoute('/login');
+    expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument();
   });
 
-  it('renders LoginPage at /login', () => {
-    render(
-      <MemoryRouter initialEntries={['/login']}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
+  it('redirects unauthenticated users to /login from /', () => {
+    renderRoute('/');
+    expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument();
+  });
+
+  it('redirects unauthenticated users to /login from /runs', () => {
+    renderRoute('/runs');
     expect(screen.getByText('Sign in to your account to continue')).toBeInTheDocument();
   });
 
   it('renders NotFoundPage for an unknown path', () => {
-    render(
-      <MemoryRouter initialEntries={['/this-path-does-not-exist']}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
+    renderRoute('/this-path-does-not-exist');
     expect(screen.getByText('404')).toBeInTheDocument();
     expect(screen.getByText('Page not found')).toBeInTheDocument();
   });
