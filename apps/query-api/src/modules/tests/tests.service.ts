@@ -1,0 +1,97 @@
+import type { Database } from '@assertly/database';
+import { artifacts, setTenantContext, tests } from '@assertly/database';
+import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { and, asc, count, eq } from 'drizzle-orm';
+
+import { buildPaginatedResponse, getOffset } from '../../common/pagination';
+import type { PaginationParams } from '../../common/pagination';
+
+@Injectable()
+export class TestsService {
+  constructor(
+    @Inject(DATABASE_CONNECTION)
+    private readonly db: Database,
+  ) {}
+
+  async listTests(
+    organizationId: OrganizationId,
+    runId: RunId,
+    pagination: PaginationParams,
+    status?: string,
+    suiteId?: SuiteId,
+  ) {
+    return this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+
+      const offset = getOffset(pagination.page, pagination.pageSize);
+
+      const conditions = [eq(tests.runId, runId)];
+      if (status) conditions.push(eq(tests.status, status));
+      if (suiteId) conditions.push(eq(tests.suiteId, suiteId));
+
+      const where = and(...conditions);
+
+      const [rows, totalResult] = await Promise.all([
+        tx
+          .select({
+            id: tests.id,
+            suiteId: tests.suiteId,
+            runId: tests.runId,
+            name: tests.name,
+            status: tests.status,
+            durationMs: tests.durationMs,
+            errorMessage: tests.errorMessage,
+            retryCount: tests.retryCount,
+            startedAt: tests.startedAt,
+            finishedAt: tests.finishedAt,
+            createdAt: tests.createdAt,
+          })
+          .from(tests)
+          .where(where)
+          .orderBy(asc(tests.createdAt))
+          .limit(pagination.pageSize)
+          .offset(offset),
+        tx.select({ count: count() }).from(tests).where(where),
+      ]);
+
+      const total = totalResult[0]?.count ?? 0;
+
+      return buildPaginatedResponse(rows, total, pagination.page, pagination.pageSize);
+    });
+  }
+
+  async getTestById(organizationId: OrganizationId, runId: RunId, testId: TestId) {
+    return this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+
+      const [row] = await tx
+        .select()
+        .from(tests)
+        .where(and(eq(tests.id, testId), eq(tests.runId, runId)))
+        .limit(1);
+
+      if (!row) {
+        throw new NotFoundException(`Test ${testId} not found`);
+      }
+
+      const testArtifacts = await tx
+        .select({
+          id: artifacts.id,
+          type: artifacts.type,
+          name: artifacts.name,
+          sizeBytes: artifacts.sizeBytes,
+          mimeType: artifacts.mimeType,
+          createdAt: artifacts.createdAt,
+        })
+        .from(artifacts)
+        .where(eq(artifacts.testId, testId));
+
+      return {
+        ...row,
+        artifacts: testArtifacts,
+      };
+    });
+  }
+}

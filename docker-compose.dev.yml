@@ -54,6 +54,22 @@ services:
       - ./apps/worker/src:/app/apps/worker/src:ro
       - ./packages:/app/packages:ro
 
+  query-api:
+    ports:
+      - '3002:3002'
+    build:
+      context: .
+      dockerfile: apps/query-api/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
+    volumes:
+      - ./apps/query-api/src:/app/apps/query-api/src:ro
+      - ./packages:/app/packages:ro
+
   dashboard:
     ports:
       - '5173:8080'
