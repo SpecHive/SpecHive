@@ -20,6 +20,7 @@ import type { EnvConfig } from './modules/config/env.validation';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RunsModule } from './modules/runs/runs.module';
+import { SuitesModule } from './modules/suites/suites.module';
 import { TestsModule } from './modules/tests/tests.module';
 
 const GLOBAL_RATE_LIMIT_MAX = 120;
@@ -50,6 +51,7 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
     OrganizationsModule,
     ProjectsModule,
     RunsModule,
+    SuitesModule,
     TestsModule,
     ArtifactsModule,
   ],

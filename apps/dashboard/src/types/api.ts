@@ -32,6 +32,13 @@ export interface RunDetail extends RunSummary {
   updatedAt: string | null;
 }
 
+export interface SuiteSummary {
+  id: string;
+  name: string;
+  parentSuiteId: string | null;
+  createdAt: string | null;
+}
+
 export interface TestSummary {
   id: string;
   suiteId: string;
