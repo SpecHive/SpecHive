@@ -77,7 +77,7 @@ describe('AuthController', () => {
       payload: { email: 'test@assertly.dev', password: 'password123' },
     });
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.payload) as { token: string };
     expect(body.token).toBeDefined();
   });

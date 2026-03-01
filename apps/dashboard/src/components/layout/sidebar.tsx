@@ -1,12 +1,4 @@
-import {
-  FlaskConical,
-  LayoutDashboard,
-  LogOut,
-  Moon,
-  PlayCircle,
-  Settings,
-  Sun,
-} from 'lucide-react';
+import { LayoutDashboard, LogOut, Moon, PlayCircle, Sun } from 'lucide-react';
 import { NavLink } from 'react-router';
 
 import { Button } from '@/components/ui/button';
@@ -23,12 +15,10 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Runs', href: '/runs', icon: PlayCircle },
-  { label: 'Tests', href: '/tests', icon: FlaskConical },
-  { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
-  const { logout } = useAuth();
+  const { logout, user, organization } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const cycleTheme = () => {
@@ -82,6 +72,12 @@ export function Sidebar() {
             <span className="capitalize">{themeLabel}</span>
           </Button>
         </div>
+        {user && organization && (
+          <div className="mb-2 px-1">
+            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{organization.name}</p>
+          </div>
+        )}
         <Button
           variant="ghost"
           size="sm"

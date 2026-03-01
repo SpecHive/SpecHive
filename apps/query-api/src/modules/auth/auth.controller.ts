@@ -1,5 +1,5 @@
 import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
-import { Controller, Get, Post, Req } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
@@ -28,6 +28,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @HttpCode(200)
   async login(@Req() req: { body: unknown }) {
     const result = loginSchema.safeParse(req.body);
     if (!result.success)
