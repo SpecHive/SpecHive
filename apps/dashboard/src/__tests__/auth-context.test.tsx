@@ -13,6 +13,12 @@ vi.mock('@/lib/api-client', () => ({
   },
 }));
 
+const mockLoginResponse = {
+  token: 'jwt-token',
+  user: { id: '1', email: 'a@b.com', name: 'Test User' },
+  organization: { id: '1', name: 'Test Org', slug: 'test-org' },
+};
+
 function TestConsumer() {
   const { isAuthenticated, user, login, logout } = useAuth();
   return (
@@ -37,6 +43,7 @@ function renderWithAuth() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
 });
 
 describe('AuthContext', () => {
@@ -46,11 +53,7 @@ describe('AuthContext', () => {
   });
 
   it('logs in successfully', async () => {
-    vi.mocked(apiClient.post).mockResolvedValueOnce({
-      token: 'jwt-token',
-      user: { id: '1', email: 'a@b.com', name: 'Test User' },
-      organization: { id: '1', name: 'Test Org', slug: 'test-org' },
-    });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(mockLoginResponse);
 
     renderWithAuth();
 
@@ -64,11 +67,7 @@ describe('AuthContext', () => {
   });
 
   it('logs out successfully', async () => {
-    vi.mocked(apiClient.post).mockResolvedValueOnce({
-      token: 'jwt-token',
-      user: { id: '1', email: 'a@b.com', name: 'Test User' },
-      organization: { id: '1', name: 'Test Org', slug: 'test-org' },
-    });
+    vi.mocked(apiClient.post).mockResolvedValueOnce(mockLoginResponse);
 
     renderWithAuth();
 
@@ -82,5 +81,76 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
     });
     expect(apiClient.setToken).toHaveBeenCalledWith(null);
+  });
+
+  describe('sessionStorage persistence', () => {
+    it('persists auth state to sessionStorage on login', async () => {
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockLoginResponse);
+
+      renderWithAuth();
+      await userEvent.click(screen.getByText('Login'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+      });
+
+      expect(sessionStorage.getItem('assertly_token')).toBe('jwt-token');
+      expect(JSON.parse(sessionStorage.getItem('assertly_user')!)).toEqual(mockLoginResponse.user);
+      expect(JSON.parse(sessionStorage.getItem('assertly_org')!)).toEqual(
+        mockLoginResponse.organization,
+      );
+    });
+
+    it('restores auth state from sessionStorage on mount', () => {
+      sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
+      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+
+      renderWithAuth();
+
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+      expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
+      expect(apiClient.setToken).toHaveBeenCalledWith('stored-token');
+    });
+
+    it('clears sessionStorage on logout', async () => {
+      sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
+      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+
+      renderWithAuth();
+      await userEvent.click(screen.getByText('Logout'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
+      });
+
+      expect(sessionStorage.getItem('assertly_token')).toBeNull();
+      expect(sessionStorage.getItem('assertly_user')).toBeNull();
+      expect(sessionStorage.getItem('assertly_org')).toBeNull();
+    });
+
+    it('falls back to unauthenticated when sessionStorage JSON is corrupted', () => {
+      sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_user', '{invalid json');
+      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+
+      renderWithAuth();
+
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
+      expect(sessionStorage.getItem('assertly_token')).toBeNull();
+      expect(sessionStorage.getItem('assertly_user')).toBeNull();
+      expect(sessionStorage.getItem('assertly_org')).toBeNull();
+    });
+
+    it('falls back to unauthenticated when token exists but user is missing', () => {
+      sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+
+      renderWithAuth();
+
+      expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
+      expect(sessionStorage.getItem('assertly_token')).toBeNull();
+    });
   });
 });
