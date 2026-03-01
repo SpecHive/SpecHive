@@ -214,80 +214,89 @@ export function RunDetailPage() {
 
       {/* Test detail drawer */}
       {selectedTestId && testDetail && (
-        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg border-l bg-background shadow-xl">
-          <div className="flex h-full flex-col overflow-y-auto">
-            <div className="flex items-center justify-between border-b p-4">
-              <h2 className="text-lg font-semibold">Test Details</h2>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedTestId(null)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-6 p-4">
-              <div>
-                <h3 className="font-medium">{testDetail.name}</h3>
-                <div className="mt-2 flex items-center gap-4 text-sm">
-                  <StatusBadge status={testDetail.status} />
-                  <span>{testDetail.durationMs}ms</span>
-                  {testDetail.retryCount > 0 && (
-                    <span className="text-muted-foreground">{testDetail.retryCount} retries</span>
-                  )}
-                </div>
+        <>
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50"
+            onClick={() => setSelectedTestId(null)}
+            aria-hidden="true"
+          />
+          {/* Drawer panel */}
+          <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg border-l bg-background shadow-xl">
+            <div className="flex h-full flex-col overflow-y-auto">
+              <div className="flex items-center justify-between border-b p-4">
+                <h2 className="text-lg font-semibold">Test Details</h2>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedTestId(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
 
-              {testDetail.errorMessage && (
-                <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
-                  <p className="text-sm font-medium text-destructive">Error</p>
-                  <p className="mt-1 text-sm">{testDetail.errorMessage}</p>
-                </div>
-              )}
-
-              {testDetail.errorMessage && (
+              <div className="space-y-6 p-4">
                 <div>
-                  <button
-                    onClick={() => setStackTraceOpen(!stackTraceOpen)}
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    {stackTraceOpen ? 'Hide' : 'Show'} stack trace
-                  </button>
-                  {stackTraceOpen && (
-                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
-                      {testDetail.errorMessage}
-                    </pre>
-                  )}
-                </div>
-              )}
-
-              {testDetail.artifacts.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium">Artifacts</h4>
-                  <div className="mt-2 space-y-2">
-                    {testDetail.artifacts.map((artifact) => (
-                      <div
-                        key={artifact.id}
-                        className="flex items-center justify-between rounded-md border p-2 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium">{artifact.name}</span>
-                          <span className="ml-2 text-muted-foreground">
-                            ({(artifact.sizeBytes / 1024).toFixed(1)} KB)
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(artifact.id)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  <h3 className="font-medium">{testDetail.name}</h3>
+                  <div className="mt-2 flex items-center gap-4 text-sm">
+                    <StatusBadge status={testDetail.status} />
+                    <span>{testDetail.durationMs}ms</span>
+                    {testDetail.retryCount > 0 && (
+                      <span className="text-muted-foreground">{testDetail.retryCount} retries</span>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {testDetail.errorMessage && (
+                  <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
+                    <p className="text-sm font-medium text-destructive">Error</p>
+                    <p className="mt-1 text-sm">{testDetail.errorMessage}</p>
+                  </div>
+                )}
+
+                {testDetail.errorMessage && (
+                  <div>
+                    <button
+                      onClick={() => setStackTraceOpen(!stackTraceOpen)}
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      {stackTraceOpen ? 'Hide' : 'Show'} stack trace
+                    </button>
+                    {stackTraceOpen && (
+                      <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
+                        {testDetail.errorMessage}
+                      </pre>
+                    )}
+                  </div>
+                )}
+
+                {testDetail.artifacts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium">Artifacts</h4>
+                    <div className="mt-2 space-y-2">
+                      {testDetail.artifacts.map((artifact) => (
+                        <div
+                          key={artifact.id}
+                          className="flex items-center justify-between rounded-md border p-2 text-sm"
+                        >
+                          <div>
+                            <span className="font-medium">{artifact.name}</span>
+                            <span className="ml-2 text-muted-foreground">
+                              ({(artifact.sizeBytes / 1024).toFixed(1)} KB)
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownload(artifact.id)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
