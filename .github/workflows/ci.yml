@@ -155,21 +155,91 @@ jobs:
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
-      - name: Run integration tests
+      - name: Run DB integration tests
         run: pnpm test:integration:db
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
-      # TODO: Enable when a dedicated CI job with Docker Compose services is available
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared-types
+        run: pnpm --filter @assertly/shared-types build
+
+      - name: Build reporter-core-protocol
+        run: pnpm --filter @assertly/reporter-core-protocol build
+
+      - name: Build database
+        run: pnpm --filter @assertly/database build
+
+      - name: Start Docker Compose stack
+        run: docker compose -f .github/docker-compose.ci.yml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for postgres to be healthy..."
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T postgres pg_isready -U assertly -d assertly; do sleep 2; done'
+          echo "Waiting for minio to be healthy..."
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
+          echo "Waiting for outboxy-api to be healthy..."
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T outboxy-api wget -qO- http://127.0.0.1:3100/health; do sleep 2; done'
+          echo "All services are healthy!"
+
+      - name: Run database migrations
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+
       - name: Run full integration tests
-        if: false
         run: pnpm test:integration
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_ACCESS_KEY: assertly-app
+          MINIO_SECRET_KEY: assertly-app-secret-key
+          MINIO_BUCKET: assertly-artifacts
+          MINIO_USE_SSL: 'false'
+          OUTBOXY_API_URL: http://localhost:3100
+
+      - name: Cleanup Docker Compose stack
+        if: always()
+        run: docker compose -f .github/docker-compose.ci.yml down -v
 
   docker-build:
     name: Docker Build
@@ -191,3 +261,6 @@ jobs:
 
       - name: Build dashboard image
         run: docker build --secret id=npm_token,env=NPM_TOKEN -f apps/dashboard/Dockerfile .
+
+      - name: Build query-api image
+        run: docker build --secret id=npm_token,env=NPM_TOKEN -f apps/query-api/Dockerfile .

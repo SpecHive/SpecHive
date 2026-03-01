@@ -203,6 +203,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
       WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
       OUTBOXY_API_URL: http://outboxy-api:3100
+      TOKEN_HASH_KEY: ${TOKEN_HASH_KEY}
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
       MINIO_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}

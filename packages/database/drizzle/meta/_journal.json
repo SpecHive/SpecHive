@@ -29,6 +29,13 @@
       "when": 1772361758458,
       "tag": "0003_auth_security_definer_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772371847673,
+      "tag": "0004_plain_lilith",
+      "breakpoints": true
     }
   ]
 }

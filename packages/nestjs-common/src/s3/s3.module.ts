@@ -4,15 +4,15 @@ import { DynamicModule, type InjectionToken, Module } from '@nestjs/common';
 import { S3_BUCKET, S3_CLIENT, type S3ModuleConfig } from './s3.constants';
 import { S3Service } from './s3.service';
 
-interface S3ModuleAsyncOptions {
+interface S3ModuleAsyncOptions<T extends unknown[] = unknown[]> {
   inject?: InjectionToken[];
-  useFactory: (...args: unknown[]) => S3ModuleConfig | Promise<S3ModuleConfig>;
+  useFactory: (...args: T) => S3ModuleConfig | Promise<S3ModuleConfig>;
   isGlobal?: boolean;
 }
 
 @Module({})
 export class S3Module {
-  static forRootAsync(options: S3ModuleAsyncOptions): DynamicModule {
+  static forRootAsync<T extends unknown[]>(options: S3ModuleAsyncOptions<T>): DynamicModule {
     return {
       module: S3Module,
       global: options.isGlobal ?? false,
@@ -20,7 +20,7 @@ export class S3Module {
         {
           provide: S3_CLIENT,
           inject: options.inject ?? [],
-          useFactory: async (...args: unknown[]) => {
+          useFactory: async (...args: T) => {
             const config = await options.useFactory(...args);
             const protocol = config.useSSL ? 'https' : 'http';
             return new S3Client({
@@ -37,7 +37,7 @@ export class S3Module {
         {
           provide: S3_BUCKET,
           inject: options.inject ?? [],
-          useFactory: async (...args: unknown[]) => {
+          useFactory: async (...args: T) => {
             const config = await options.useFactory(...args);
             return config.bucket;
           },

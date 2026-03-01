@@ -1,5 +1,6 @@
 import { createDbConnection, getRawClient, type Transaction } from '@assertly/database';
 import {
+  createS3ModuleOptions,
   DATABASE_CONNECTION,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
@@ -47,17 +48,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     }),
     S3Module.forRootAsync({
       inject: [ConfigService],
-      useFactory: (...args: unknown[]) => {
-        const config = args[0] as ConfigService<EnvConfig>;
-        return {
-          endpoint: config.getOrThrow<string>('MINIO_ENDPOINT'),
-          region: 'us-east-1',
-          accessKeyId: config.getOrThrow<string>('MINIO_APP_ACCESS_KEY'),
-          secretAccessKey: config.getOrThrow<string>('MINIO_APP_SECRET_KEY'),
-          useSSL: config.getOrThrow<string>('MINIO_USE_SSL') === 'true',
-          bucket: config.getOrThrow<string>('MINIO_BUCKET'),
-        };
-      },
+      useFactory: (config: ConfigService<EnvConfig>) => createS3ModuleOptions(config),
       isGlobal: true,
     }),
     WebhookReceiverModule,

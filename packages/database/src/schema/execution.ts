@@ -19,6 +19,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
@@ -70,6 +71,9 @@ export const runs = pgTable(
     index('runs_project_created_idx').on(table.projectId, table.createdAt),
     index('runs_project_status_idx').on(table.projectId, table.status),
     index('runs_organization_id_idx').on(table.organizationId),
+    index('runs_project_finished_idx')
+      .on(table.projectId, sql`${table.finishedAt} DESC`)
+      .where(sql`${table.finishedAt} IS NOT NULL`),
   ],
 );
 
@@ -90,6 +94,7 @@ export const suites = pgTable(
     ...timestamps,
   },
   (table) => [
+    uniqueIndex('suites_run_name_unique_idx').on(table.runId, table.name),
     index('suites_run_id_idx').on(table.runId),
     index('suites_organization_id_idx').on(table.organizationId),
     index('suites_parent_suite_id_idx').on(table.parentSuiteId),
