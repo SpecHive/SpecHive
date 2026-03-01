@@ -4,21 +4,14 @@ import { Link } from 'react-router';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
+import { statusColorsDot } from '@/lib/constants';
 import { computePassRate, formatDuration, formatRelativeTime } from '@/lib/formatters';
 import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
-
-const statusColors: Record<string, string> = {
-  passed: 'bg-green-500',
-  failed: 'bg-destructive',
-  running: 'bg-blue-500',
-  pending: 'bg-gray-400',
-  cancelled: 'bg-yellow-500',
-};
 
 function StatusDot({ status }: { status: string }) {
   return (
     <div
-      className={`h-2 w-2 rounded-full ${statusColors[status] || 'bg-gray-400'}`}
+      className={`h-2 w-2 rounded-full ${statusColorsDot[status] || 'bg-gray-400'}`}
       aria-label={status}
     />
   );

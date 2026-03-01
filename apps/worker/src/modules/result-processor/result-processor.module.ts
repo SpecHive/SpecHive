@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import {
   ArtifactUploadHandler,
+  EVENT_HANDLER,
   RunEndHandler,
   RunStartHandler,
   SuiteEndHandler,
@@ -21,6 +22,27 @@ import { ResultProcessorService } from './result-processor.service';
     TestStartHandler,
     TestEndHandler,
     ArtifactUploadHandler,
+    {
+      provide: EVENT_HANDLER,
+      useFactory: (
+        runStart: RunStartHandler,
+        runEnd: RunEndHandler,
+        suiteStart: SuiteStartHandler,
+        suiteEnd: SuiteEndHandler,
+        testStart: TestStartHandler,
+        testEnd: TestEndHandler,
+        artifactUpload: ArtifactUploadHandler,
+      ) => [runStart, runEnd, suiteStart, suiteEnd, testStart, testEnd, artifactUpload],
+      inject: [
+        RunStartHandler,
+        RunEndHandler,
+        SuiteStartHandler,
+        SuiteEndHandler,
+        TestStartHandler,
+        TestEndHandler,
+        ArtifactUploadHandler,
+      ],
+    },
   ],
   exports: [ResultProcessorService],
 })

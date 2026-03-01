@@ -3,23 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
+import { runStatusOptions, statusColorsDot } from '@/lib/constants';
 import { formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
 import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
-
-const statusColors: Record<string, string> = {
-  passed: 'bg-green-500',
-  failed: 'bg-destructive',
-  running: 'bg-blue-500',
-  pending: 'bg-gray-400',
-  cancelled: 'bg-yellow-500',
-};
-
-const statusOptions = ['', 'passed', 'failed', 'running', 'pending', 'cancelled'];
 
 function StatusBadge({ status }: { status: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className={`h-2 w-2 rounded-full ${statusColors[status] || 'bg-gray-400'}`} />
+      <span className={`h-2 w-2 rounded-full ${statusColorsDot[status] || 'bg-gray-400'}`} />
       {status}
     </span>
   );
@@ -89,7 +80,7 @@ export function RunsPage() {
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
-          {statusOptions.filter(Boolean).map((s) => (
+          {runStatusOptions.filter(Boolean).map((s) => (
             <option key={s} value={s}>
               {s}
             </option>

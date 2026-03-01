@@ -105,8 +105,8 @@ describe('JwtAuthGuard', () => {
 
   it('sets request.user with correct UserContext on valid token', async () => {
     const token = await signToken({
-      sub: 'user-123',
-      organizationId: 'org-456',
+      sub: '019caa05-18f9-73f3-979e-a91d0dd0552f',
+      organizationId: '019caa05-18f9-73f3-979e-a91d0dd05530',
       role: 'admin',
     });
 
@@ -117,8 +117,8 @@ describe('JwtAuthGuard', () => {
 
     expect(result).toBe(true);
     expect(request.user).toEqual({
-      userId: 'user-123',
-      organizationId: 'org-456',
+      userId: '019caa05-18f9-73f3-979e-a91d0dd0552f',
+      organizationId: '019caa05-18f9-73f3-979e-a91d0dd05530',
       role: 'admin',
     });
   });

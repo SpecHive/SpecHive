@@ -1,8 +1,9 @@
 /**
  * Vitest globalSetup for integration tests.
  *
- * Seeds a known organization, project, and project token into Postgres
- * so that `x-project-token: test-token` is valid for integration tests.
+ * Seeds a known organization, project, project token, and test user into Postgres
+ * so that `x-project-token: test-token` is valid for ingestion-api tests and
+ * login with `test-user@assertly.dev` / `test-password` works for query-api auth tests.
  * All inserts use ON CONFLICT DO NOTHING for idempotency.
  */
 
@@ -32,13 +33,21 @@ function loadDotEnv(): void {
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
 const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
 const INTEGRATION_TOKEN_ID = '01970000-0000-7000-8000-000000000003';
+const INTEGRATION_USER_ID = '01970000-0000-7000-8000-000000000004';
 
 const TEST_TOKEN = 'test-token';
+const TEST_USER_EMAIL = 'test-user@assertly.dev';
+const TEST_USER_PASSWORD = 'test-password';
 const TOKEN_PREFIX_LENGTH = 16; // Synced with @assertly/shared-types — kept inline since globalSetup runs outside Vitest env
 
 async function computeTestTokenHash(): Promise<string> {
   const { hash } = await import('argon2');
   return hash(TEST_TOKEN, { type: 2 });
+}
+
+async function computeTestPasswordHash(): Promise<string> {
+  const { hash } = await import('argon2');
+  return hash(TEST_USER_PASSWORD, { type: 2 });
 }
 
 export async function setup(): Promise<void> {
@@ -94,6 +103,33 @@ export async function setup(): Promise<void> {
         NOW()
       )
       ON CONFLICT (id) DO NOTHING
+    `;
+
+    const passwordHash = await computeTestPasswordHash();
+
+    await sql`
+      INSERT INTO users (id, email, password_hash, name, created_at, updated_at)
+      VALUES (
+        ${INTEGRATION_USER_ID},
+        ${TEST_USER_EMAIL},
+        ${passwordHash},
+        'Test User',
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+
+    await sql`
+      INSERT INTO memberships (organization_id, user_id, role, created_at, updated_at)
+      VALUES (
+        ${INTEGRATION_ORG_ID},
+        ${INTEGRATION_USER_ID},
+        'owner',
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (organization_id, user_id) DO NOTHING
     `;
   } finally {
     await sql.end();

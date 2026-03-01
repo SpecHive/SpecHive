@@ -3,15 +3,7 @@ import { Test } from '@nestjs/testing';
 import { INBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import {
-  ArtifactUploadHandler,
-  RunEndHandler,
-  RunStartHandler,
-  SuiteEndHandler,
-  SuiteStartHandler,
-  TestEndHandler,
-  TestStartHandler,
-} from '../src/modules/result-processor/handlers';
+import { EVENT_HANDLER, type IEventHandler } from '../src/modules/result-processor/handlers';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
 import type { OutboxyEnvelope } from '../src/types/outboxy-envelope';
 
@@ -47,12 +39,19 @@ function makeEnvelope(
   };
 }
 
+function createMockHandler(eventType: string): IEventHandler {
+  return {
+    eventType: eventType as IEventHandler['eventType'],
+    handle: vi.fn(),
+  };
+}
+
 describe('ResultProcessorService', () => {
   let service: ResultProcessorService;
   let mockTx: Record<string, unknown>;
   let mockDb: { transaction: ReturnType<typeof vi.fn> };
   let mockInbox: { receive: ReturnType<typeof vi.fn> };
-  let handlers: Record<string, { handle: ReturnType<typeof vi.fn> }>;
+  let handlers: IEventHandler[];
 
   beforeEach(async () => {
     mockTx = { execute: vi.fn() };
@@ -62,44 +61,42 @@ describe('ResultProcessorService', () => {
     mockInbox = {
       receive: vi.fn().mockResolvedValue({ eventId: 'inbox-1', status: 'processed' }),
     };
-    handlers = {
-      runStart: { handle: vi.fn() },
-      runEnd: { handle: vi.fn() },
-      suiteStart: { handle: vi.fn() },
-      suiteEnd: { handle: vi.fn() },
-      testStart: { handle: vi.fn() },
-      testEnd: { handle: vi.fn() },
-      artifactUpload: { handle: vi.fn() },
-    };
+
+    // Create mock handlers with proper eventType
+    handlers = [
+      createMockHandler('run.start'),
+      createMockHandler('run.end'),
+      createMockHandler('suite.start'),
+      createMockHandler('suite.end'),
+      createMockHandler('test.start'),
+      createMockHandler('test.end'),
+      createMockHandler('artifact.upload'),
+    ];
 
     const module = await Test.createTestingModule({
       providers: [
         ResultProcessorService,
         { provide: DATABASE_CONNECTION, useValue: mockDb },
         { provide: INBOXY_CLIENT, useValue: mockInbox },
-        { provide: RunStartHandler, useValue: handlers.runStart },
-        { provide: RunEndHandler, useValue: handlers.runEnd },
-        { provide: SuiteStartHandler, useValue: handlers.suiteStart },
-        { provide: SuiteEndHandler, useValue: handlers.suiteEnd },
-        { provide: TestStartHandler, useValue: handlers.testStart },
-        { provide: TestEndHandler, useValue: handlers.testEnd },
-        { provide: ArtifactUploadHandler, useValue: handlers.artifactUpload },
+        { provide: EVENT_HANDLER, useValue: handlers },
       ],
     }).compile();
 
     service = module.get(ResultProcessorService);
+    // Manually call onModuleInit to build handlerMap
+    service.onModuleInit();
   });
 
   it('routes run.start to RunStartHandler', async () => {
     const envelope = makeEnvelope('run.start', {});
     await service.processEvent(envelope);
-    expect(handlers.runStart.handle).toHaveBeenCalledOnce();
+    expect(handlers[0]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes run.end to RunEndHandler', async () => {
     const envelope = makeEnvelope('run.end', { status: 'passed' });
     await service.processEvent(envelope);
-    expect(handlers.runEnd.handle).toHaveBeenCalledOnce();
+    expect(handlers[1]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes suite.start to SuiteStartHandler', async () => {
@@ -108,13 +105,13 @@ describe('ResultProcessorService', () => {
       suiteName: 'Auth Tests',
     });
     await service.processEvent(envelope);
-    expect(handlers.suiteStart.handle).toHaveBeenCalledOnce();
+    expect(handlers[2]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes suite.end to SuiteEndHandler', async () => {
     const envelope = makeEnvelope('suite.end', { suiteId: SUITE_ID });
     await service.processEvent(envelope);
-    expect(handlers.suiteEnd.handle).toHaveBeenCalledOnce();
+    expect(handlers[3]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes test.start to TestStartHandler', async () => {
@@ -124,7 +121,7 @@ describe('ResultProcessorService', () => {
       testName: 'should login',
     });
     await service.processEvent(envelope);
-    expect(handlers.testStart.handle).toHaveBeenCalledOnce();
+    expect(handlers[4]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes test.end to TestEndHandler', async () => {
@@ -133,7 +130,7 @@ describe('ResultProcessorService', () => {
       status: 'passed',
     });
     await service.processEvent(envelope);
-    expect(handlers.testEnd.handle).toHaveBeenCalledOnce();
+    expect(handlers[5]!.handle).toHaveBeenCalledOnce();
   });
 
   it('routes artifact.upload to ArtifactUploadHandler', async () => {
@@ -144,7 +141,7 @@ describe('ResultProcessorService', () => {
       data: Buffer.from('test').toString('base64'),
     });
     await service.processEvent(envelope);
-    expect(handlers.artifactUpload.handle).toHaveBeenCalledOnce();
+    expect(handlers[6]!.handle).toHaveBeenCalledOnce();
   });
 
   it('logs error and returns on invalid payload', async () => {
@@ -163,7 +160,7 @@ describe('ResultProcessorService', () => {
     mockInbox.receive.mockResolvedValue({ eventId: null, status: 'duplicate' });
     const envelope = makeEnvelope('run.start', {});
     await service.processEvent(envelope);
-    expect(handlers.runStart.handle).not.toHaveBeenCalled();
+    expect(handlers[0]!.handle).not.toHaveBeenCalled();
   });
 
   it('sets RLS context before routing to handler', async () => {
@@ -178,7 +175,8 @@ describe('ResultProcessorService', () => {
     const envelope = makeEnvelope('run.start', {});
     await service.processEvent(envelope);
 
-    const [, ctx] = handlers.runStart.handle.mock.calls[0];
+    const handlerMock = handlers[0]!.handle as ReturnType<typeof vi.fn>;
+    const [, ctx] = handlerMock.mock.calls[0];
     expect(ctx.tx).toBe(mockTx);
     expect(ctx.organizationId).toBe(ORG_ID);
     expect(ctx.projectId).toBe(PROJECT_ID);

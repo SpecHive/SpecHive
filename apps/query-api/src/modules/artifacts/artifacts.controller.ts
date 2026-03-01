@@ -2,14 +2,12 @@ import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { ArtifactId } from '@assertly/shared-types';
 import { Controller, Get, Param } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { z } from 'zod';
 
+import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import type { UserContext } from '../auth/types';
 
 import { ArtifactsService } from './artifacts.service';
-
-const uuidSchema = z.string().uuid();
 
 @Controller('v1/artifacts')
 export class ArtifactsController {

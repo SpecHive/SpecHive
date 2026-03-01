@@ -3,36 +3,27 @@ import type { Transaction } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { EnrichedEventEnvelopeSchema, type V1Event } from '@assertly/reporter-core-protocol';
 import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
 
 import type { OutboxyEnvelope } from '../../types/outboxy-envelope';
 
-import {
-  ArtifactUploadHandler,
-  RunEndHandler,
-  RunStartHandler,
-  SuiteEndHandler,
-  SuiteStartHandler,
-  TestEndHandler,
-  TestStartHandler,
-} from './handlers';
+import { EVENT_HANDLER, type EventHandlerContext, type IEventHandler } from './handlers';
 
 @Injectable()
-export class ResultProcessorService {
+export class ResultProcessorService implements OnModuleInit {
   private readonly logger = new Logger(ResultProcessorService.name);
+  private handlerMap!: Map<V1Event['eventType'], IEventHandler>;
 
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     @Inject(INBOXY_CLIENT) private readonly inbox: InboxyClient<Transaction>,
-    private readonly runStartHandler: RunStartHandler,
-    private readonly runEndHandler: RunEndHandler,
-    private readonly suiteStartHandler: SuiteStartHandler,
-    private readonly suiteEndHandler: SuiteEndHandler,
-    private readonly testStartHandler: TestStartHandler,
-    private readonly testEndHandler: TestEndHandler,
-    private readonly artifactUploadHandler: ArtifactUploadHandler,
+    @Inject(EVENT_HANDLER) private readonly handlers: IEventHandler[],
   ) {}
+
+  onModuleInit(): void {
+    this.handlerMap = new Map(this.handlers.map((h) => [h.eventType, h]));
+  }
 
   async processEvent(envelope: OutboxyEnvelope): Promise<void> {
     const parsed = EnrichedEventEnvelopeSchema.safeParse(envelope.payload);
@@ -63,7 +54,7 @@ export class ResultProcessorService {
 
       await setTenantContext(tx, organizationId as OrganizationId);
 
-      const ctx = {
+      const ctx: EventHandlerContext = {
         tx,
         organizationId: organizationId as OrganizationId,
         projectId: projectId as ProjectId,
@@ -73,28 +64,13 @@ export class ResultProcessorService {
     });
   }
 
-  private async routeEvent(
-    event: V1Event,
-    ctx: { tx: Transaction; organizationId: OrganizationId; projectId: ProjectId },
-  ): Promise<void> {
-    switch (event.eventType) {
-      case 'run.start':
-        return this.runStartHandler.handle(event, ctx);
-      case 'run.end':
-        return this.runEndHandler.handle(event, ctx);
-      case 'suite.start':
-        return this.suiteStartHandler.handle(event, ctx);
-      case 'suite.end':
-        return this.suiteEndHandler.handle(event, ctx);
-      case 'test.start':
-        return this.testStartHandler.handle(event, ctx);
-      case 'test.end':
-        return this.testEndHandler.handle(event, ctx);
-      case 'artifact.upload':
-        return this.artifactUploadHandler.handle(event, ctx);
-      default:
-        // Exhaustive check — if all event types are handled, this is unreachable
-        this.logger.warn(`Unknown event type: ${(event as V1Event).eventType}`);
+  private async routeEvent(event: V1Event, ctx: EventHandlerContext): Promise<void> {
+    const handler = this.handlerMap.get(event.eventType);
+
+    if (handler) {
+      return handler.handle(event, ctx);
     }
+
+    this.logger.warn(`Unknown event type: ${event.eventType}`);
   }
 }

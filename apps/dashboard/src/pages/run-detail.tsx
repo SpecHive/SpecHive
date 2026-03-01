@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
+import { statusColorsBadge, testStatusOptions } from '@/lib/constants';
 import { formatDateTime, formatDuration, truncateId } from '@/lib/formatters';
 import type {
   ArtifactDownloadResponse,
@@ -15,28 +16,17 @@ import type {
   TestSummary,
 } from '@/types/api';
 
-const statusColors: Record<string, string> = {
-  passed: 'bg-green-500 text-white',
-  failed: 'bg-destructive text-destructive-foreground',
-  running: 'bg-blue-500 text-white',
-  pending: 'bg-gray-400 text-white',
-  cancelled: 'bg-yellow-500 text-white',
-  skipped: 'bg-gray-300 text-gray-700',
-};
-
 function StatusBadge({ status, large }: { status: string; large?: boolean }) {
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${
-        statusColors[status] || 'bg-gray-400 text-white'
+        statusColorsBadge[status] || 'bg-gray-400 text-white'
       } ${large ? 'text-sm' : 'text-xs'}`}
     >
       {status}
     </span>
   );
 }
-
-const testStatusOptions = ['', 'passed', 'failed', 'skipped', 'pending'];
 
 export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();

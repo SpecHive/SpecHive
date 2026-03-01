@@ -1,10 +1,11 @@
 import type { SuiteEndEvent } from '@assertly/reporter-core-protocol';
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { EventHandlerContext } from './event-handler.interface';
+import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
 @Injectable()
-export class SuiteEndHandler {
+export class SuiteEndHandler implements IEventHandler<SuiteEndEvent> {
+  readonly eventType = 'suite.end' as const;
   private readonly logger = new Logger(SuiteEndHandler.name);
 
   // Suites table has no status or finishedAt — nothing to persist

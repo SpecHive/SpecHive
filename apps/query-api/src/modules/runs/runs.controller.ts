@@ -4,7 +4,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 
-import { paginationSchema } from '../../common/pagination';
+import { paginationSchema, uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import type { UserContext } from '../auth/types';
 
@@ -14,8 +14,6 @@ const listRunsSchema = paginationSchema.extend({
   projectId: z.string().uuid(),
   status: z.string().optional(),
 });
-
-const uuidSchema = z.string().uuid();
 
 @Controller('v1/runs')
 export class RunsController {

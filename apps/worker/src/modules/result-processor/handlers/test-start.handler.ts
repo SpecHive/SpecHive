@@ -3,10 +3,11 @@ import type { TestStartEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 
-import type { EventHandlerContext } from './event-handler.interface';
+import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
 @Injectable()
-export class TestStartHandler {
+export class TestStartHandler implements IEventHandler<TestStartEvent> {
+  readonly eventType = 'test.start' as const;
   private readonly logger = new Logger(TestStartHandler.name);
 
   async handle(event: TestStartEvent, ctx: EventHandlerContext): Promise<void> {

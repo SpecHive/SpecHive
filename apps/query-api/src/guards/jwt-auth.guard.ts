@@ -6,7 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { jwtVerify } from 'jose';
 
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import type { JwtPayload, UserContext } from '../modules/auth/types';
+import { JwtPayloadSchema, type UserContext } from '../modules/auth/types';
 import type { EnvConfig } from '../modules/config/env.validation';
 
 @Injectable()
@@ -39,7 +39,13 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const { payload } = await jwtVerify(token, this.secret, { algorithms: ['HS256'] });
-      const jwtPayload = payload as unknown as JwtPayload;
+      const parseResult = JwtPayloadSchema.safeParse(payload);
+
+      if (!parseResult.success) {
+        throw new UnauthorizedException('Invalid token payload');
+      }
+
+      const jwtPayload = parseResult.data;
 
       const userContext: UserContext = {
         userId: jwtPayload.sub as UserId,

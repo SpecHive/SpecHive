@@ -5,12 +5,13 @@ import { asArtifactId, sanitizeArtifactName } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 import { uuidv7 } from 'uuidv7';
 
-import type { EventHandlerContext } from './event-handler.interface';
+import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
 const LARGE_ARTIFACT_BYTES = 5 * 1024 * 1024;
 
 @Injectable()
-export class ArtifactUploadHandler {
+export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent> {
+  readonly eventType = 'artifact.upload' as const;
   private readonly logger = new Logger(ArtifactUploadHandler.name);
 
   constructor(private readonly s3: S3Service) {}
