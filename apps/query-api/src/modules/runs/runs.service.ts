@@ -38,6 +38,7 @@ export class RunsService {
           .select({
             id: runs.id,
             projectId: runs.projectId,
+            name: runs.name,
             status: runs.status,
             totalTests: runs.totalTests,
             passedTests: runs.passedTests,
@@ -69,6 +70,7 @@ export class RunsService {
         .select({
           id: runs.id,
           projectId: runs.projectId,
+          name: runs.name,
           status: runs.status,
           totalTests: runs.totalTests,
           passedTests: runs.passedTests,

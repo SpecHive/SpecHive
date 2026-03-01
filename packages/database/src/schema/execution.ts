@@ -55,6 +55,7 @@ export const runs = pgTable(
       .$type<OrganizationId>()
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 500 }),
     status: runStatusEnum('status').notNull().default('pending'),
     totalTests: integer('total_tests').notNull().default(0),
     passedTests: integer('passed_tests').notNull().default(0),

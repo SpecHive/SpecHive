@@ -15,6 +15,7 @@ export interface Project {
 export interface RunSummary {
   id: string;
   projectId: string;
+  name: string | null;
   status: string;
   totalTests: number;
   passedTests: number;

@@ -47,6 +47,19 @@ function generateCommitSha(): string {
   return randomBytes(20).toString('hex').slice(0, 7);
 }
 
+const RUN_NAMES: (string | null)[] = [
+  'Nightly E2E',
+  'PR #142 Checks',
+  'Release v1.2.0',
+  null,
+  'Smoke Tests',
+  null,
+  'Merge Queue',
+  'PR #87 Checks',
+  null,
+  'Hotfix Validation',
+];
+
 // ============================================================================
 // Project Configuration
 // ============================================================================
@@ -545,11 +558,14 @@ export async function seed(dbUrl: string, password?: string) {
             ? null
             : new Date(startedAt.getTime() + randomInt(60_000, 600_000));
 
+        const runName = RUN_NAMES[runIndex % RUN_NAMES.length] ?? null;
+
         const [run] = await db
           .insert(runs)
           .values({
             projectId,
             organizationId: seedOrg.id,
+            name: runName,
             status: runStatus,
             totalTests: testCount,
             passedTests: 0, // Will update after creating tests

@@ -43,10 +43,26 @@ describe('RunStartHandler', () => {
       id: 'run-1',
       projectId: 'proj-1',
       organizationId: 'org-1',
+      name: null,
       status: RunStatus.Pending,
       startedAt: new Date('2025-01-01T00:00:00.000Z'),
       metadata: { ci: true },
     });
+  });
+
+  it('passes runName through as name', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-3' as RunId,
+      eventType: 'run.start' as const,
+      payload: { runName: 'Nightly E2E', metadata: {} },
+    };
+
+    await handler.handle(event, ctx);
+
+    const valuesCall = mockInsert.mock.results[0].value.values;
+    expect(valuesCall).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nightly E2E' }));
   });
 
   it('defaults metadata to empty object when not provided', async () => {

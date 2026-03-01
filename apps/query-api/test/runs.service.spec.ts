@@ -35,6 +35,7 @@ describe('RunsService', () => {
       const mockRun = {
         id: 'run-1',
         projectId: 'proj-1',
+        name: 'Nightly E2E',
         status: 'passed',
         totalTests: 10,
         passedTests: 8,
@@ -93,6 +94,7 @@ describe('RunsService', () => {
       const mockRun = {
         id: 'run-1',
         projectId: 'proj-1',
+        name: null,
         status: 'passed',
         totalTests: 10,
         passedTests: 8,
