@@ -24,6 +24,7 @@ services:
   ingestion-api:
     ports:
       - '3000:3000'
+    read_only: false
     build:
       context: .
       dockerfile: apps/ingestion-api/Dockerfile
@@ -41,6 +42,7 @@ services:
   worker:
     ports:
       - '3001:3001'
+    read_only: false
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
@@ -57,6 +59,7 @@ services:
   query-api:
     ports:
       - '3002:3002'
+    read_only: false
     build:
       context: .
       dockerfile: apps/query-api/Dockerfile
@@ -73,6 +76,7 @@ services:
   dashboard:
     ports:
       - '5173:8080'
+    read_only: false
     build:
       context: .
       dockerfile: apps/dashboard/Dockerfile

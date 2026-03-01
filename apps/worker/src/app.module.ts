@@ -1,7 +1,7 @@
 import { createDbConnection, getRawClient, type Transaction } from '@assertly/database';
 import {
   createS3ModuleOptions,
-  DATABASE_CONNECTION,
+  DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
   S3Module,
@@ -31,6 +31,13 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
       },
     ]),
     HealthModule,
+    DatabaseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvConfig>) => {
+        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
+        return createDbConnection(databaseUrl);
+      },
+    }),
     OutboxyModule.forRootAsync({
       useFactory: () => ({
         dialect: new PostgreSqlDialect(),
@@ -54,16 +61,6 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     WebhookReceiverModule,
     ResultProcessorModule,
   ],
-  providers: [
-    { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
-    {
-      provide: DATABASE_CONNECTION,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig>) => {
-        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
-      },
-    },
-  ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })
 export class AppModule {}

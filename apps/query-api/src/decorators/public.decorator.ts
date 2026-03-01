@@ -1,4 +1,5 @@
+import { IS_PUBLIC_KEY } from '@assertly/nestjs-common';
 import { SetMetadata } from '@nestjs/common';
 
-export const IS_PUBLIC_KEY = 'isPublic';
+export { IS_PUBLIC_KEY };
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);

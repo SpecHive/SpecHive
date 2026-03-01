@@ -1,7 +1,7 @@
 import { createDbConnection } from '@assertly/database';
 import {
   createS3ModuleOptions,
-  DATABASE_CONNECTION,
+  DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
   S3Module,
@@ -34,6 +34,13 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
       },
     ]),
     HealthModule,
+    DatabaseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvConfig>) => {
+        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
+        return createDbConnection(databaseUrl);
+      },
+    }),
     S3Module.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvConfig>) => createS3ModuleOptions(config),
@@ -49,14 +56,6 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    {
-      provide: DATABASE_CONNECTION,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig>) => {
-        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
-      },
-    },
   ],
 })
 export class AppModule {}

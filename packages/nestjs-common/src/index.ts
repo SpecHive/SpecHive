@@ -12,9 +12,9 @@ export { throwZodBadRequest } from './utils/zod-error';
 export { GLOBAL_RATE_LIMIT_TTL_MS } from './utils/rate-limit';
 export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard';
 
-// Centralised injection token — import this symbol in both ingestion-api and worker
-// instead of defining local Symbols, so the same reference is always used.
-export const DATABASE_CONNECTION = Symbol('DATABASE_CONNECTION');
+export { DATABASE_CONNECTION, IS_PUBLIC_KEY } from './constants';
+
+export { DatabaseModule } from './database/database.module';
 
 export { S3Module } from './s3/s3.module';
 export { S3Service } from './s3/s3.service';
