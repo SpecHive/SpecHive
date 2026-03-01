@@ -1,0 +1,36 @@
+{
+  "name": "@assertly/playwright-reporter",
+  "version": "0.0.1",
+  "description": "Playwright reporter for Assertly test reporting platform",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "dependencies": {
+    "@assertly/reporter-core-protocol": "workspace:*",
+    "@assertly/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@assertly/typescript-config": "workspace:*",
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}
