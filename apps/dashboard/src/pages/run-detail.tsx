@@ -250,7 +250,7 @@ export function RunDetailPage() {
                   </div>
                 )}
 
-                {testDetail.errorMessage && (
+                {testDetail.stackTrace && (
                   <div>
                     <button
                       onClick={() => setStackTraceOpen(!stackTraceOpen)}
@@ -260,7 +260,7 @@ export function RunDetailPage() {
                     </button>
                     {stackTraceOpen && (
                       <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
-                        {testDetail.errorMessage}
+                        {testDetail.stackTrace}
                       </pre>
                     )}
                   </div>

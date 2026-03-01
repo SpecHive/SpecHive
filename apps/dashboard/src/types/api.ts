@@ -40,6 +40,7 @@ export interface TestSummary {
   status: string;
   durationMs: number;
   errorMessage: string | null;
+  stackTrace: string | null;
   retryCount: number;
   startedAt: string | null;
   finishedAt: string | null;

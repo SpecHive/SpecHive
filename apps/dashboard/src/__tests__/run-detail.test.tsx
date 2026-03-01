@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -105,5 +106,102 @@ describe('RunDetailPage', () => {
 
     renderRunDetail();
     expect(screen.getByText('Tests')).toBeInTheDocument();
+  });
+
+  describe('test detail drawer', () => {
+    const mockTest = {
+      id: 'test-1',
+      suiteId: 'suite-1',
+      runId: mockRun.id,
+      name: 'should pass',
+      status: 'failed',
+      durationMs: 120,
+      errorMessage: null,
+      stackTrace: null,
+      retryCount: 0,
+      startedAt: '2026-01-01T00:00:00Z',
+      finishedAt: '2026-01-01T00:00:01Z',
+      createdAt: '2026-01-01T00:00:00Z',
+    };
+
+    function setupMocks(testDetail: Record<string, unknown>) {
+      mockUseApi.mockImplementation((path: string) => {
+        if (path && path.match(/\/tests\/test-1$/)) {
+          return {
+            data: { ...testDetail, updatedAt: null, artifacts: [] },
+            loading: false,
+            error: null,
+            refetch: vi.fn(),
+          };
+        }
+        if (path && path.includes('/tests')) {
+          return {
+            data: { data: [mockTest], meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 } },
+            loading: false,
+            error: null,
+            refetch: vi.fn(),
+          };
+        }
+        return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
+      });
+    }
+
+    it('shows stack trace section when stackTrace is present', async () => {
+      const user = userEvent.setup();
+      setupMocks({ ...mockTest, stackTrace: 'Error: boom\n  at foo.ts:1:1' });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      expect(screen.getByText('Show stack trace')).toBeInTheDocument();
+    });
+
+    it('hides stack trace section when stackTrace is null', async () => {
+      const user = userEvent.setup();
+      setupMocks({ ...mockTest, stackTrace: null, errorMessage: 'something broke' });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      expect(screen.queryByText('Show stack trace')).not.toBeInTheDocument();
+      expect(screen.getByText('something broke')).toBeInTheDocument();
+    });
+
+    it('shows error message section when errorMessage is present', async () => {
+      const user = userEvent.setup();
+      setupMocks({ ...mockTest, errorMessage: 'assertion failed', stackTrace: null });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      expect(screen.getByText('assertion failed')).toBeInTheDocument();
+      expect(screen.queryByText('Show stack trace')).not.toBeInTheDocument();
+    });
+
+    it('shows both error and stack trace independently', async () => {
+      const user = userEvent.setup();
+      setupMocks({
+        ...mockTest,
+        errorMessage: 'assertion failed',
+        stackTrace: 'Error: boom\n  at bar.ts:2:3',
+      });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      expect(screen.getByText('assertion failed')).toBeInTheDocument();
+      expect(screen.getByText('Show stack trace')).toBeInTheDocument();
+    });
+
+    it('renders stack trace content when expanded', async () => {
+      const user = userEvent.setup();
+      setupMocks({ ...mockTest, stackTrace: 'Error: boom\n  at foo.ts:1:1' });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      await user.click(screen.getByText('Show stack trace'));
+
+      const pre = document.querySelector('pre');
+      expect(pre).toBeInTheDocument();
+      expect(pre?.textContent).toContain('Error: boom');
+      expect(pre?.textContent).toContain('at foo.ts:1:1');
+      expect(screen.getByText('Hide stack trace')).toBeInTheDocument();
+    });
   });
 });
