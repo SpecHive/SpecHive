@@ -3,4 +3,5 @@ export interface AssertlyReporterConfig {
   projectToken: string;
   timeout?: number;
   enabled?: boolean;
+  captureArtifacts?: boolean;
 }

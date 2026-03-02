@@ -1,5 +1,5 @@
 import type { V1Event } from '@assertly/reporter-core-protocol';
-import { RunStatus, TestStatus } from '@assertly/shared-types';
+import { ArtifactType, RunStatus, TestStatus } from '@assertly/shared-types';
 import type {
   FullConfig,
   FullResult,
@@ -12,7 +12,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AssertlyReporter from '../src/index.js';
 import type { AssertlyReporterConfig } from '../src/types.js';
 
-const mockSendEvent = vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1' });
+const { mockSendEvent, mockReadFile } = vi.hoisted(() => ({
+  mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1' }),
+  mockReadFile: vi.fn(),
+}));
 
 vi.mock('../src/client.js', () => {
   return {
@@ -21,6 +24,8 @@ vi.mock('../src/client.js', () => {
     },
   };
 });
+
+vi.mock('node:fs/promises', () => ({ readFile: mockReadFile }));
 
 function makeConfig(): AssertlyReporterConfig {
   return { apiUrl: 'https://api.test', projectToken: 'tok-123' };
@@ -53,6 +58,7 @@ function makeTestResult(overrides: Partial<TestResult> = {}): TestResult {
     duration: 150,
     retry: 0,
     error: undefined,
+    attachments: [],
     ...overrides,
   } as unknown as TestResult;
 }
@@ -62,6 +68,7 @@ describe('AssertlyReporter', () => {
 
   beforeEach(() => {
     mockSendEvent.mockClear();
+    mockReadFile.mockReset();
     reporter = new AssertlyReporter(makeConfig());
   });
 
@@ -209,6 +216,173 @@ describe('AssertlyReporter', () => {
       mockSendEvent.mockClear();
       r.onTestEnd(makeTest('test'), makeTestResult());
       expect(mockSendEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('artifact capture', () => {
+    function setupReporter(config?: Partial<AssertlyReporterConfig>): AssertlyReporter {
+      const r = new AssertlyReporter({ ...makeConfig(), ...config });
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      r.onBegin({} as FullConfig, root);
+      mockSendEvent.mockClear();
+      return r;
+    }
+
+    function collectArtifactEvents(): V1Event[] {
+      return sentEvents().filter((e) => e.eventType === 'artifact.upload');
+    }
+
+    it('sends artifact.upload for attachment with path', async () => {
+      const r = setupReporter();
+      const content = Buffer.from('screenshot-data');
+      mockReadFile.mockResolvedValue(content);
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [
+            { name: 'screenshot.png', contentType: 'image/png', path: '/tmp/screenshot.png' },
+          ],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const artifacts = collectArtifactEvents();
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0]!.payload.data).toBe(content.toString('base64'));
+      expect(artifacts[0]!.payload.artifactType).toBe(ArtifactType.Screenshot);
+      expect(artifacts[0]!.payload.name).toBe('screenshot.png');
+      expect(artifacts[0]!.payload.mimeType).toBe('image/png');
+    });
+
+    it('sends artifact.upload for attachment with body', async () => {
+      const r = setupReporter();
+      const body = Buffer.from('inline-body');
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [{ name: 'log.txt', contentType: 'text/plain', body }],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const artifacts = collectArtifactEvents();
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0]!.payload.data).toBe(body.toString('base64'));
+    });
+
+    it('skips attachment with neither path nor body', async () => {
+      const r = setupReporter();
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [{ name: 'empty', contentType: 'text/plain' }],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      expect(collectArtifactEvents()).toHaveLength(0);
+    });
+
+    it.each([
+      ['image/png', ArtifactType.Screenshot],
+      ['image/jpeg', ArtifactType.Screenshot],
+      ['video/webm', ArtifactType.Video],
+      ['application/zip', ArtifactType.Trace],
+      ['text/plain', ArtifactType.Log],
+      ['application/octet-stream', ArtifactType.Other],
+    ] as const)('maps content type "%s" to %s', async (contentType, expected) => {
+      const r = setupReporter();
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [{ name: 'file', contentType, body: Buffer.from('x') }],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const artifacts = collectArtifactEvents();
+      expect(artifacts[0]!.payload.artifactType).toBe(expected);
+    });
+
+    it('skips oversized artifacts with console.error', async () => {
+      const r = setupReporter();
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const oversized = Buffer.alloc(11 * 1024 * 1024);
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [{ name: 'huge.png', contentType: 'image/png', body: oversized }],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      expect(collectArtifactEvents()).toHaveLength(0);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Skipping artifact'));
+    });
+
+    it('warns for large artifacts but still sends them', async () => {
+      const r = setupReporter();
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const large = Buffer.alloc(6 * 1024 * 1024);
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [{ name: 'big.png', contentType: 'image/png', body: large }],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      expect(collectArtifactEvents()).toHaveLength(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Large artifact'));
+    });
+
+    it('does not send artifacts when captureArtifacts is false', async () => {
+      const r = setupReporter({ captureArtifacts: false });
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [
+            { name: 'screenshot.png', contentType: 'image/png', body: Buffer.from('x') },
+          ],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      expect(collectArtifactEvents()).toHaveLength(0);
+    });
+
+    it('sanitizes artifact names', async () => {
+      const r = setupReporter();
+
+      const test = makeTest('test');
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          attachments: [
+            { name: '../../../etc/passwd', contentType: 'text/plain', body: Buffer.from('x') },
+          ],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const artifacts = collectArtifactEvents();
+      expect(artifacts[0]!.payload.name).not.toContain('..');
+      expect(artifacts[0]!.payload.name).not.toContain('/');
     });
   });
 
