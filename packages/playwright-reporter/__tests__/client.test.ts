@@ -38,7 +38,7 @@ describe('AssertlyClient', () => {
   it('sends event with correct URL, headers, and body', async () => {
     fetchSpy.mockResolvedValueOnce(jsonResponse({ eventId: 'evt-1' }));
 
-    const client = new AssertlyClient('https://api.test', 'tok-123');
+    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
     await client.sendEvent(MOCK_EVENT);
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -55,31 +55,32 @@ describe('AssertlyClient', () => {
   it('returns ok with eventId on success', async () => {
     fetchSpy.mockResolvedValueOnce(jsonResponse({ eventId: 'evt-42' }));
 
-    const client = new AssertlyClient('https://api.test', 'tok-123');
+    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
-    expect(result).toEqual({ ok: true, eventId: 'evt-42' });
+    expect(result).toEqual({ ok: true, eventId: 'evt-42', retries: 0 });
   });
 
-  it('returns ok: false and warns on HTTP error', async () => {
+  it('returns ok: false on HTTP 400 without retrying', async () => {
     fetchSpy.mockResolvedValueOnce(textResponse('Bad Request', 400));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123');
+    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
-    expect(result).toEqual({ ok: false });
+    expect(result).toEqual({ ok: false, retryable: false, statusCode: 400, retries: 0 });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Event send failed (400)'));
+    expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
-  it('returns ok: false and warns on network error', async () => {
+  it('returns ok: false on network error', async () => {
     fetchSpy.mockRejectedValueOnce(new Error('Network failure'));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123');
+    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
-    expect(result).toEqual({ ok: false });
+    expect(result).toEqual({ ok: false, retryable: true, retries: 0 });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Network failure'));
   });
 
@@ -95,10 +96,41 @@ describe('AssertlyClient', () => {
     );
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10);
+    const client = new AssertlyClient('https://api.test', 'tok-123', 10, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
-    expect(result).toEqual({ ok: false });
+    expect(result).toEqual({ ok: false, retryable: true, retries: 0 });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Event send error'));
+  });
+
+  describe('checkHealth', () => {
+    it('returns true when health endpoint responds ok', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const result = await client.checkHealth();
+
+      expect(result).toBe(true);
+      const [url] = fetchSpy.mock.calls[0] as [string];
+      expect(url).toBe('https://api.test/health');
+    });
+
+    it('returns false when health endpoint returns non-ok', async () => {
+      fetchSpy.mockResolvedValueOnce(new Response('', { status: 503 }));
+
+      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const result = await client.checkHealth();
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false on network error', async () => {
+      fetchSpy.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+
+      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const result = await client.checkHealth();
+
+      expect(result).toBe(false);
+    });
   });
 });

@@ -12,8 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AssertlyReporter from '../src/index.js';
 import type { AssertlyReporterConfig } from '../src/types.js';
 
-const { mockSendEvent, mockReadFile } = vi.hoisted(() => ({
-  mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1' }),
+const { mockSendEvent, mockCheckHealth, mockReadFile } = vi.hoisted(() => ({
+  mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 }),
+  mockCheckHealth: vi.fn().mockResolvedValue(true),
   mockReadFile: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock('../src/client.js', () => {
   return {
     AssertlyClient: class MockAssertlyClient {
       sendEvent = mockSendEvent;
+      checkHealth = mockCheckHealth;
     },
   };
 });
@@ -38,7 +40,6 @@ function makeSuite(title: string, children: Suite[] = [], tests: TestCase[] = []
     tests,
     type: title === '' ? 'root' : 'describe',
   } as unknown as Suite;
-  // Wire parent references for children
   for (const child of children) {
     (child as { parent: Suite }).parent = suite;
   }
@@ -63,11 +64,16 @@ function makeTestResult(overrides: Partial<TestResult> = {}): TestResult {
   } as unknown as TestResult;
 }
 
+async function flushQueue(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 0));
+}
+
 describe('AssertlyReporter', () => {
   let reporter: AssertlyReporter;
 
   beforeEach(() => {
     mockSendEvent.mockClear();
+    mockCheckHealth.mockClear();
     mockReadFile.mockReset();
     reporter = new AssertlyReporter(makeConfig());
   });
@@ -88,11 +94,12 @@ describe('AssertlyReporter', () => {
   });
 
   describe('onBegin', () => {
-    it('sends run.start with project suite title', () => {
+    it('sends run.start with project suite title', async () => {
       const projectSuite = makeSuite('my-project');
       const rootSuite = makeSuite('', [projectSuite]);
 
-      reporter.onBegin({} as FullConfig, rootSuite);
+      await reporter.onBegin({} as FullConfig, rootSuite);
+      await flushQueue();
 
       const events = sentEvents();
       const runStart = events.find((e) => e.eventType === 'run.start');
@@ -100,22 +107,24 @@ describe('AssertlyReporter', () => {
       expect(runStart!.payload.runName).toBe('my-project');
     });
 
-    it('falls back to "Playwright Run" when no project suite', () => {
+    it('falls back to "Playwright Run" when no project suite', async () => {
       const rootSuite = makeSuite('', []);
 
-      reporter.onBegin({} as FullConfig, rootSuite);
+      await reporter.onBegin({} as FullConfig, rootSuite);
+      await flushQueue();
 
       const events = sentEvents();
       const runStart = events.find((e) => e.eventType === 'run.start');
       expect(runStart!.payload.runName).toBe('Playwright Run');
     });
 
-    it('sends suite.start for each child suite with parent relationships', () => {
+    it('sends suite.start for each child suite with parent relationships', async () => {
       const grandchild = makeSuite('grandchild');
       const child = makeSuite('child', [grandchild]);
       const root = makeSuite('', [child]);
 
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
 
       const events = sentEvents();
       const suiteEvents = events.filter((e) => e.eventType === 'suite.start');
@@ -130,23 +139,49 @@ describe('AssertlyReporter', () => {
       expect(grandchildEvent.payload.parentSuiteId).toBe(childEvent.payload.suiteId);
     });
 
-    it('does nothing when disabled', () => {
+    it('does nothing when disabled', async () => {
       const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
-      r.onBegin({} as FullConfig, makeSuite(''));
+      await r.onBegin({} as FullConfig, makeSuite(''));
       expect(mockSendEvent).not.toHaveBeenCalled();
+    });
+
+    it('calls checkHealth and continues on success', async () => {
+      const rootSuite = makeSuite('', [makeSuite('project')]);
+      await reporter.onBegin({} as FullConfig, rootSuite);
+      expect(mockCheckHealth).toHaveBeenCalledOnce();
+    });
+
+    it('warns but continues when health check fails', async () => {
+      mockCheckHealth.mockResolvedValueOnce(false);
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const rootSuite = makeSuite('', [makeSuite('project')]);
+
+      await reporter.onBegin({} as FullConfig, rootSuite);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Cannot reach'));
+    });
+
+    it('throws when health check fails and failOnConnectionError is true', async () => {
+      mockCheckHealth.mockResolvedValueOnce(false);
+      const r = new AssertlyReporter({ ...makeConfig(), failOnConnectionError: true });
+      const rootSuite = makeSuite('', [makeSuite('project')]);
+
+      await expect(r.onBegin({} as FullConfig, rootSuite)).rejects.toThrow('Cannot reach');
     });
   });
 
   describe('onTestEnd', () => {
-    it('sends test.start and test.end for a passed test', () => {
+    it('sends test.start and test.end for a passed test', async () => {
       const child = makeSuite('my-suite');
       const root = makeSuite('', [child]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
 
       const test = makeTest('should pass', child);
       reporter.onTestEnd(test, makeTestResult({ status: 'passed', duration: 200 }));
+      await flushQueue();
 
       const events = sentEvents();
       expect(events).toHaveLength(2);
@@ -162,23 +197,26 @@ describe('AssertlyReporter', () => {
       ['timedOut', TestStatus.Failed],
       ['interrupted', TestStatus.Failed],
       ['skipped', TestStatus.Skipped],
-    ] as const)('maps Playwright status "%s" to %s', (pwStatus, expected) => {
+    ] as const)('maps Playwright status "%s" to %s', async (pwStatus, expected) => {
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
 
       const test = makeTest('test', child);
       reporter.onTestEnd(test, makeTestResult({ status: pwStatus }));
+      await flushQueue();
 
       const events = sentEvents();
       expect(events[1]!.payload.status).toBe(expected);
     });
 
-    it('truncates error message and stack trace', () => {
+    it('truncates error message and stack trace', async () => {
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
 
       const longMessage = 'x'.repeat(20_000);
@@ -191,6 +229,7 @@ describe('AssertlyReporter', () => {
           error: { message: longMessage, stack: longStack } as TestResult['error'],
         }),
       );
+      await flushQueue();
 
       const events = sentEvents();
       const testEnd = events[1]!;
@@ -198,20 +237,22 @@ describe('AssertlyReporter', () => {
       expect(testEnd.payload.stackTrace.length).toBe(50_000);
     });
 
-    it('includes retryCount from result', () => {
+    it('includes retryCount from result', async () => {
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
 
       const test = makeTest('test', child);
       reporter.onTestEnd(test, makeTestResult({ retry: 2 }));
+      await flushQueue();
 
       const events = sentEvents();
       expect(events[1]!.payload.retryCount).toBe(2);
     });
 
-    it('does nothing when disabled', () => {
+    it('does nothing when disabled', async () => {
       const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
       r.onTestEnd(makeTest('test'), makeTestResult());
@@ -220,11 +261,14 @@ describe('AssertlyReporter', () => {
   });
 
   describe('artifact capture', () => {
-    function setupReporter(config?: Partial<AssertlyReporterConfig>): AssertlyReporter {
+    async function setupReporter(
+      config?: Partial<AssertlyReporterConfig>,
+    ): Promise<AssertlyReporter> {
       const r = new AssertlyReporter({ ...makeConfig(), ...config });
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
-      r.onBegin({} as FullConfig, root);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
       return r;
     }
@@ -234,7 +278,7 @@ describe('AssertlyReporter', () => {
     }
 
     it('sends artifact.upload for attachment with path', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
       const content = Buffer.from('screenshot-data');
       mockReadFile.mockResolvedValue(content);
 
@@ -258,7 +302,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('sends artifact.upload for attachment with body', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
       const body = Buffer.from('inline-body');
 
       const test = makeTest('test');
@@ -276,7 +320,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('skips attachment with neither path nor body', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
 
       const test = makeTest('test');
       r.onTestEnd(
@@ -298,7 +342,7 @@ describe('AssertlyReporter', () => {
       ['text/plain', ArtifactType.Log],
       ['application/octet-stream', ArtifactType.Other],
     ] as const)('maps content type "%s" to %s', async (contentType, expected) => {
-      const r = setupReporter();
+      const r = await setupReporter();
 
       const test = makeTest('test');
       r.onTestEnd(
@@ -314,7 +358,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('skips oversized artifacts with console.error', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const oversized = Buffer.alloc(11 * 1024 * 1024);
 
@@ -332,7 +376,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('warns for large artifacts but still sends them', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const large = Buffer.alloc(6 * 1024 * 1024);
 
@@ -350,7 +394,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('does not send artifacts when captureArtifacts is false', async () => {
-      const r = setupReporter({ captureArtifacts: false });
+      const r = await setupReporter({ captureArtifacts: false });
 
       const test = makeTest('test');
       r.onTestEnd(
@@ -367,7 +411,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('sanitizes artifact names', async () => {
-      const r = setupReporter();
+      const r = await setupReporter();
 
       const test = makeTest('test');
       r.onTestEnd(
@@ -394,7 +438,8 @@ describe('AssertlyReporter', () => {
       ['interrupted', RunStatus.Cancelled],
     ] as const)('maps FullResult status "%s" to %s', async (pwStatus, expected) => {
       const root = makeSuite('', [makeSuite('project')]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
       mockSendEvent.mockClear();
 
       await reporter.onEnd({ status: pwStatus } as FullResult);
@@ -407,11 +452,12 @@ describe('AssertlyReporter', () => {
     it('waits for all pending events and logs summary', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const root = makeSuite('', [makeSuite('project')]);
-      reporter.onBegin({} as FullConfig, root);
+      await reporter.onBegin({} as FullConfig, root);
 
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[assertly] Run complete:'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('retries'));
     });
 
     it('does nothing when disabled', async () => {

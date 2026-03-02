@@ -22,29 +22,42 @@ import type {
 } from '@playwright/test/reporter';
 
 import { AssertlyClient } from './client.js';
-import type { SendEventResult } from './client.js';
 import type { AssertlyReporterConfig } from './types.js';
 
 const MAX_ERROR_MESSAGE_LENGTH = 10_000;
 const MAX_STACK_TRACE_LENGTH = 50_000;
 const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
 const ARTIFACT_SIZE_WARNING = 5 * 1024 * 1024;
+const MAX_QUEUE_SIZE = 10_000;
 
 export default class AssertlyReporter implements Reporter {
   private readonly config: AssertlyReporterConfig;
   private readonly client: AssertlyClient;
   private runId!: RunId;
   private readonly suiteMap = new Map<Suite, SuiteId>();
-  private readonly pendingEvents: Promise<SendEventResult>[] = [];
+  private readonly queue: V1Event[] = [];
+  private processing = false;
+  private drainResolve: (() => void) | null = null;
+  private readonly artifactPromises: Promise<void>[] = [];
   private eventsSent = 0;
   private eventsFailed = 0;
+  private retriesTotal = 0;
 
   constructor(config: AssertlyReporterConfig) {
-    this.config = { enabled: true, timeout: 30_000, captureArtifacts: true, ...config };
+    this.config = {
+      enabled: true,
+      timeout: 30_000,
+      captureArtifacts: true,
+      maxRetries: 3,
+      flushTimeout: 30_000,
+      failOnConnectionError: false,
+      ...config,
+    };
     this.client = new AssertlyClient(
       this.config.apiUrl,
       this.config.projectToken,
       this.config.timeout,
+      this.config.maxRetries,
     );
   }
 
@@ -52,13 +65,23 @@ export default class AssertlyReporter implements Reporter {
     return this.config.enabled ?? true;
   }
 
-  onBegin(_config: FullConfig, suite: Suite): void {
+  async onBegin(_config: FullConfig, suite: Suite): Promise<void> {
     if (!this.isEnabled) return;
+
+    const healthy = await this.client.checkHealth();
+    if (!healthy) {
+      if (this.config.failOnConnectionError) {
+        throw new Error(
+          `[assertly] Cannot reach ${this.config.apiUrl}/health — aborting because failOnConnectionError is enabled`,
+        );
+      }
+      console.warn(`[assertly] Cannot reach ${this.config.apiUrl}/health — events may be lost`);
+    }
 
     this.runId = asRunId(crypto.randomUUID());
     const runName = suite.suites[0]?.title || 'Playwright Run';
 
-    this.send({
+    this.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -80,7 +103,7 @@ export default class AssertlyReporter implements Reporter {
     const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
     const status = mapTestStatus(result.status);
 
-    this.send({
+    this.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -91,7 +114,7 @@ export default class AssertlyReporter implements Reporter {
     const errorMessage = result.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
     const stackTrace = result.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
 
-    this.send({
+    this.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -106,9 +129,7 @@ export default class AssertlyReporter implements Reporter {
       },
     });
 
-    this.pendingEvents.push(
-      this.processArtifacts(testId, result.attachments) as unknown as Promise<SendEventResult>,
-    );
+    this.artifactPromises.push(this.processArtifacts(testId, result.attachments));
   }
 
   async onEnd(result: FullResult): Promise<void> {
@@ -116,7 +137,7 @@ export default class AssertlyReporter implements Reporter {
 
     const status = mapRunStatus(result.status);
 
-    this.send({
+    this.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -124,10 +145,11 @@ export default class AssertlyReporter implements Reporter {
       payload: { status },
     });
 
-    await Promise.allSettled(this.pendingEvents);
+    await Promise.allSettled(this.artifactPromises);
+    await this.waitForDrain();
 
     console.warn(
-      `[assertly] Run complete: ${this.eventsSent} events sent, ${this.eventsFailed} failed`,
+      `[assertly] Run complete: ${this.eventsSent} sent, ${this.eventsFailed} failed, ${this.retriesTotal} retries`,
     );
   }
 
@@ -136,7 +158,7 @@ export default class AssertlyReporter implements Reporter {
       const suiteId = asSuiteId(crypto.randomUUID());
       this.suiteMap.set(child, suiteId);
 
-      this.send({
+      this.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
@@ -184,7 +206,7 @@ export default class AssertlyReporter implements Reporter {
       const artifactType = mapContentTypeToArtifactType(attachment.contentType);
       const name = sanitizeArtifactName(attachment.name);
 
-      this.send({
+      this.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
@@ -194,16 +216,62 @@ export default class AssertlyReporter implements Reporter {
     }
   }
 
-  private send(event: V1Event): void {
-    const promise = this.client.sendEvent(event).then((result) => {
+  private enqueue(event: V1Event): void {
+    if (this.queue.length >= MAX_QUEUE_SIZE) {
+      this.queue.shift();
+      console.warn('[assertly] Event queue full — dropping oldest event');
+    }
+    this.queue.push(event);
+    this.processQueue();
+  }
+
+  private processQueue(): void {
+    if (this.processing) return;
+    this.processing = true;
+    void this.drainLoop();
+  }
+
+  private async drainLoop(): Promise<void> {
+    while (this.queue.length > 0) {
+      const event = this.queue.shift()!;
+      const result = await this.client.sendEvent(event);
       if (result.ok) {
         this.eventsSent++;
       } else {
         this.eventsFailed++;
+        console.warn(`[assertly] Event ${event.eventType} failed after retries`);
       }
-      return result;
+      this.retriesTotal += result.retries ?? 0;
+    }
+    this.processing = false;
+    if (this.drainResolve) {
+      this.drainResolve();
+      this.drainResolve = null;
+    }
+  }
+
+  private waitForDrain(): Promise<void> {
+    if (this.queue.length === 0 && !this.processing) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.drainResolve = resolve;
+
+      const timeout = setTimeout(() => {
+        const remaining = this.queue.length;
+        if (remaining > 0) {
+          console.warn(`[assertly] Flush timeout — ${remaining} events unsent`);
+        }
+        this.drainResolve = null;
+        resolve();
+      }, this.config.flushTimeout);
+
+      // Avoid holding the process open
+      if (typeof timeout === 'object' && 'unref' in timeout) {
+        timeout.unref();
+      }
     });
-    this.pendingEvents.push(promise);
   }
 }
 

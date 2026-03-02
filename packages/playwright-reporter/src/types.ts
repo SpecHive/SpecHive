@@ -4,4 +4,7 @@ export interface AssertlyReporterConfig {
   timeout?: number;
   enabled?: boolean;
   captureArtifacts?: boolean;
+  maxRetries?: number;
+  flushTimeout?: number;
+  failOnConnectionError?: boolean;
 }
