@@ -50,7 +50,12 @@ function makeSuite(title: string, children: Suite[] = [], tests: TestCase[] = []
 }
 
 function makeTest(title: string, parent?: Suite): TestCase {
-  return { title, parent } as unknown as TestCase;
+  return {
+    title,
+    parent,
+    id: `test-${title}`,
+    outcome: () => 'expected',
+  } as unknown as TestCase;
 }
 
 function makeTestResult(overrides: Partial<TestResult> = {}): TestResult {
@@ -172,7 +177,7 @@ describe('AssertlyReporter', () => {
   });
 
   describe('onTestEnd', () => {
-    it('sends test.start and test.end for a passed test', async () => {
+    it('sends test.start on first attempt but defers test.end to onEnd', async () => {
       const child = makeSuite('my-suite');
       const root = makeSuite('', [child]);
       await reporter.onBegin({} as FullConfig, root);
@@ -184,12 +189,19 @@ describe('AssertlyReporter', () => {
       await flushQueue();
 
       const events = sentEvents();
-      expect(events).toHaveLength(2);
+      expect(events).toHaveLength(1);
       expect(events[0]!.eventType).toBe('test.start');
       expect(events[0]!.payload.testName).toBe('should pass');
-      expect(events[1]!.eventType).toBe('test.end');
-      expect(events[1]!.payload.status).toBe(TestStatus.Passed);
-      expect(events[1]!.payload.durationMs).toBe(200);
+
+      // test.end is sent during onEnd
+      mockSendEvent.mockClear();
+      await reporter.onEnd({ status: 'passed' } as FullResult);
+
+      const endEvents = sentEvents();
+      const testEnd = endEvents.find((e) => e.eventType === 'test.end');
+      expect(testEnd).toBeDefined();
+      expect(testEnd!.payload.status).toBe(TestStatus.Passed);
+      expect(testEnd!.payload.durationMs).toBe(200);
     });
 
     it.each([
@@ -205,11 +217,14 @@ describe('AssertlyReporter', () => {
       mockSendEvent.mockClear();
 
       const test = makeTest('test', child);
+      (test as { outcome: () => string }).outcome = () =>
+        pwStatus === 'skipped' ? 'skipped' : 'unexpected';
       reporter.onTestEnd(test, makeTestResult({ status: pwStatus }));
-      await flushQueue();
+      await reporter.onEnd({ status: 'passed' } as FullResult);
 
       const events = sentEvents();
-      expect(events[1]!.payload.status).toBe(expected);
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.status).toBe(expected);
     });
 
     it('truncates error message and stack trace', async () => {
@@ -222,6 +237,7 @@ describe('AssertlyReporter', () => {
       const longMessage = 'x'.repeat(20_000);
       const longStack = 'y'.repeat(100_000);
       const test = makeTest('test', child);
+      (test as { outcome: () => string }).outcome = () => 'unexpected';
       reporter.onTestEnd(
         test,
         makeTestResult({
@@ -229,12 +245,12 @@ describe('AssertlyReporter', () => {
           error: { message: longMessage, stack: longStack } as TestResult['error'],
         }),
       );
-      await flushQueue();
+      await reporter.onEnd({ status: 'passed' } as FullResult);
 
       const events = sentEvents();
-      const testEnd = events[1]!;
-      expect(testEnd.payload.errorMessage.length).toBe(10_000);
-      expect(testEnd.payload.stackTrace.length).toBe(50_000);
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.errorMessage.length).toBe(10_000);
+      expect(testEnd!.payload.stackTrace.length).toBe(50_000);
     });
 
     it('includes retryCount from result', async () => {
@@ -246,10 +262,11 @@ describe('AssertlyReporter', () => {
 
       const test = makeTest('test', child);
       reporter.onTestEnd(test, makeTestResult({ retry: 2 }));
-      await flushQueue();
+      await reporter.onEnd({ status: 'passed' } as FullResult);
 
       const events = sentEvents();
-      expect(events[1]!.payload.retryCount).toBe(2);
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.retryCount).toBe(2);
     });
 
     it('does nothing when disabled', async () => {
@@ -257,6 +274,131 @@ describe('AssertlyReporter', () => {
       mockSendEvent.mockClear();
       r.onTestEnd(makeTest('test'), makeTestResult());
       expect(mockSendEvent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('flaky detection', () => {
+    async function beginReporter(): Promise<{ reporter: AssertlyReporter; suite: Suite }> {
+      const r = new AssertlyReporter(makeConfig());
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+      mockSendEvent.mockClear();
+      return { reporter: r, suite: child };
+    }
+
+    it('reports passed when test passes first try', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('passes-first', undefined);
+      r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 0 }));
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.status).toBe(TestStatus.Passed);
+      expect(testEnd!.payload.retryCount).toBe(0);
+    });
+
+    it('reports failed when test fails all retries', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('fails-all', undefined);
+      (test as { outcome: () => string }).outcome = () => 'unexpected';
+
+      r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
+      r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 1 }));
+      r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 2 }));
+      await r.onEnd({ status: 'failed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.status).toBe(TestStatus.Failed);
+      expect(testEnd!.payload.retryCount).toBe(2);
+    });
+
+    it('reports flaky when test fails then passes', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('flaky-test', undefined);
+      (test as { outcome: () => string }).outcome = () => 'flaky';
+
+      const failError = { message: 'assertion failed', stack: 'at test.ts:10' };
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          retry: 0,
+          error: failError as TestResult['error'],
+        }),
+      );
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          retry: 1,
+          error: failError as TestResult['error'],
+        }),
+      );
+      r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 2, duration: 300 }));
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.status).toBe(TestStatus.Flaky);
+      expect(testEnd!.payload.retryCount).toBe(2);
+      expect(testEnd!.payload.errorMessage).toBe('assertion failed');
+      expect(testEnd!.payload.stackTrace).toBe('at test.ts:10');
+    });
+
+    it('sends test.start only once regardless of retries', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('retried-test', undefined);
+      (test as { outcome: () => string }).outcome = () => 'flaky';
+
+      r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
+      r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 1 }));
+      await flushQueue();
+
+      const events = sentEvents();
+      const testStarts = events.filter((e) => e.eventType === 'test.start');
+      expect(testStarts).toHaveLength(1);
+    });
+
+    it('sends test.end only during onEnd, not during onTestEnd', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('deferred-end', undefined);
+
+      r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 0 }));
+      await flushQueue();
+
+      const eventsBeforeOnEnd = sentEvents();
+      expect(eventsBeforeOnEnd.filter((e) => e.eventType === 'test.end')).toHaveLength(0);
+
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const eventsAfterOnEnd = sentEvents();
+      expect(eventsAfterOnEnd.filter((e) => e.eventType === 'test.end')).toHaveLength(1);
+    });
+
+    it('preserves error from failed attempt in flaky test', async () => {
+      const { reporter: r } = await beginReporter();
+      const test = makeTest('flaky-error', undefined);
+      (test as { outcome: () => string }).outcome = () => 'flaky';
+
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          retry: 0,
+          error: { message: 'first failure', stack: 'stack-1' } as TestResult['error'],
+        }),
+      );
+      r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 1 }));
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.errorMessage).toBe('first failure');
+      expect(testEnd!.payload.stackTrace).toBe('stack-1');
     });
   });
 

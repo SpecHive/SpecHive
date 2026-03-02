@@ -104,7 +104,12 @@ describe('Event queue', () => {
     const testParent = root.suites[0]!;
     for (let i = 0; i < 10_000; i++) {
       reporter.onTestEnd(
-        { title: `test-${i}`, parent: testParent } as unknown as TestCase,
+        {
+          title: `test-${i}`,
+          id: `id-${i}`,
+          parent: testParent,
+          outcome: () => 'expected',
+        } as unknown as TestCase,
         {
           status: 'passed',
           duration: 1,

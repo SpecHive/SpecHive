@@ -35,6 +35,16 @@ export default class AssertlyReporter implements Reporter {
   private readonly client: AssertlyClient;
   private runId!: RunId;
   private readonly suiteMap = new Map<Suite, SuiteId>();
+  private readonly testTracker = new Map<
+    string,
+    {
+      testId: TestId;
+      suiteId: SuiteId;
+      testName: string;
+      testCase: TestCase;
+      attempts: TestResult[];
+    }
+  >();
   private readonly queue: V1Event[] = [];
   private processing = false;
   private drainResolve: (() => void) | null = null;
@@ -99,41 +109,33 @@ export default class AssertlyReporter implements Reporter {
   onTestEnd(test: TestCase, result: TestResult): void {
     if (!this.isEnabled) return;
 
-    const testId = asTestId(crypto.randomUUID());
-    const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
-    const status = mapTestStatus(result.status);
+    const key = test.id;
+    let entry = this.testTracker.get(key);
 
-    this.enqueue({
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId: this.runId,
-      eventType: 'test.start',
-      payload: { testId, suiteId, testName: test.title },
-    });
+    if (!entry) {
+      const testId = asTestId(crypto.randomUUID());
+      const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
 
-    const errorMessage = result.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
-    const stackTrace = result.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
+      entry = { testId, suiteId, testName: test.title, testCase: test, attempts: [] };
+      this.testTracker.set(key, entry);
 
-    this.enqueue({
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId: this.runId,
-      eventType: 'test.end',
-      payload: {
-        testId,
-        status,
-        durationMs: result.duration,
-        errorMessage,
-        stackTrace,
-        retryCount: result.retry,
-      },
-    });
+      this.enqueue({
+        version: '1',
+        timestamp: new Date().toISOString(),
+        runId: this.runId,
+        eventType: 'test.start',
+        payload: { testId, suiteId, testName: test.title },
+      });
+    }
 
-    this.artifactPromises.push(this.processArtifacts(testId, result.attachments));
+    entry.attempts.push(result);
+    this.artifactPromises.push(this.processArtifacts(entry.testId, result.attachments));
   }
 
   async onEnd(result: FullResult): Promise<void> {
     if (!this.isEnabled) return;
+
+    this.flushTestResults();
 
     const status = mapRunStatus(result.status);
 
@@ -151,6 +153,59 @@ export default class AssertlyReporter implements Reporter {
     console.warn(
       `[assertly] Run complete: ${this.eventsSent} sent, ${this.eventsFailed} failed, ${this.retriesTotal} retries`,
     );
+  }
+
+  private flushTestResults(): void {
+    for (const entry of this.testTracker.values()) {
+      const finalAttempt = entry.attempts[entry.attempts.length - 1]!;
+      const status = this.resolveTestStatus(entry);
+
+      // For flaky tests, preserve the error from the last failed attempt
+      const errorAttempt =
+        status === TestStatus.Flaky
+          ? [...entry.attempts].reverse().find((a) => a.status !== 'passed')
+          : finalAttempt;
+
+      const errorMessage = errorAttempt?.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
+      const stackTrace = errorAttempt?.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
+
+      this.enqueue({
+        version: '1',
+        timestamp: new Date().toISOString(),
+        runId: this.runId,
+        eventType: 'test.end',
+        payload: {
+          testId: entry.testId,
+          status,
+          durationMs: finalAttempt.duration,
+          errorMessage,
+          stackTrace,
+          retryCount: finalAttempt.retry,
+        },
+      });
+    }
+  }
+
+  private resolveTestStatus(entry: { testCase: TestCase; attempts: TestResult[] }): TestStatus {
+    const outcome = entry.testCase.outcome();
+    switch (outcome) {
+      case 'flaky':
+        return TestStatus.Flaky;
+      case 'expected':
+        return TestStatus.Passed;
+      case 'unexpected':
+        return TestStatus.Failed;
+      case 'skipped':
+        return TestStatus.Skipped;
+      default: {
+        // Fallback: final pass + any previous failure = flaky
+        const finalAttempt = entry.attempts[entry.attempts.length - 1]!;
+        if (finalAttempt.status === 'passed' && entry.attempts.some((a) => a.status !== 'passed')) {
+          return TestStatus.Flaky;
+        }
+        return mapTestStatus(finalAttempt.status);
+      }
+    }
   }
 
   private walkSuites(suite: Suite, parentSuiteId?: SuiteId): void {
