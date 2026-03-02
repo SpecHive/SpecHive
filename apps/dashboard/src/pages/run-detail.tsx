@@ -114,16 +114,19 @@ export function RunDetailPage() {
           Runs
         </Link>
         <ChevronRight className="h-4 w-4" />
-        <span className="font-mono">{truncateId(run.id)}</span>
+        <span className={run.name ? '' : 'font-mono'}>{run.name ?? truncateId(run.id)}</span>
       </nav>
 
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Run {truncateId(run.id)}</h1>
+            <h1 className="text-2xl font-bold">{run.name ?? `Run ${truncateId(run.id)}`}</h1>
             <StatusBadge status={run.status} large />
           </div>
+          {run.name && (
+            <span className="font-mono text-sm text-muted-foreground">{truncateId(run.id)}</span>
+          )}
           <div className="mt-2 flex gap-6 text-sm text-muted-foreground">
             <span>
               {run.passedTests}/{run.totalTests} passed

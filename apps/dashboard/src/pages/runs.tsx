@@ -107,7 +107,7 @@ export function RunsPage() {
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="pb-3 pr-4">Status</th>
-                    <th className="pb-3 pr-4">Run ID</th>
+                    <th className="pb-3 pr-4">Name</th>
                     <th className="pb-3 pr-4">Tests</th>
                     <th className="pb-3 pr-4">Duration</th>
                     <th className="pb-3">Started</th>
@@ -123,7 +123,9 @@ export function RunsPage() {
                       <td className="py-3 pr-4">
                         <StatusBadge status={run.status} />
                       </td>
-                      <td className="py-3 pr-4 font-mono text-xs">{truncateId(run.id)}</td>
+                      <td className={`py-3 pr-4 ${run.name ? '' : 'font-mono text-xs'}`}>
+                        {run.name ?? truncateId(run.id)}
+                      </td>
                       <td className="py-3 pr-4">
                         {run.passedTests}/{run.totalTests}
                       </td>

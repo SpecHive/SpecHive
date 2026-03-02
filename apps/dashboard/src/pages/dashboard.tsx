@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
 import { statusColorsDot } from '@/lib/constants';
-import { computePassRate, formatDuration, formatRelativeTime } from '@/lib/formatters';
+import { computePassRate, formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
 import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
 
 function StatusDot({ status }: { status: string }) {
@@ -174,7 +174,9 @@ export function DashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <StatusDot status={run.status} />
-                      <span className="font-medium">{run.status}</span>
+                      <span className={`font-medium ${run.name ? '' : 'font-mono text-xs'}`}>
+                        {run.name ?? truncateId(run.id)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-6 text-muted-foreground">
                       <span>
