@@ -27,7 +27,7 @@ export class SuitesService {
         .where(eq(suites.runId, runId))
         .orderBy(asc(suites.createdAt));
 
-      return { data: rows };
+      return rows;
     });
   }
 }

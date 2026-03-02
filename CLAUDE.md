@@ -8,6 +8,7 @@ Assertly is a multi-tenant test reporting platform that ingests test results fro
 apps/
   ingestion-api/   NestJS API — receives reporter events (port 3000)
   worker/          NestJS worker — processes outbox events (port 3001)
+  query-api/       NestJS API — serve data to the dashboard (port 3002)
   dashboard/       React/Vite SPA (port 5173)
 
 packages/

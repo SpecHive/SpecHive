@@ -41,7 +41,7 @@ describe('SuitesService', () => {
 
       const result = await service.listSuitesByRunId('org-1' as OrganizationId, 'run-1' as RunId);
 
-      expect(result.data).toHaveLength(0);
+      expect(result).toHaveLength(0);
     });
 
     it('returns suite hierarchy ordered by createdAt', async () => {
@@ -68,11 +68,11 @@ describe('SuitesService', () => {
 
       const result = await service.listSuitesByRunId('org-1' as OrganizationId, 'run-1' as RunId);
 
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0]!.name).toBe('Auth Tests');
-      expect(result.data[0]!.parentSuiteId).toBeNull();
-      expect(result.data[1]!.name).toBe('Login Tests');
-      expect(result.data[1]!.parentSuiteId).toBe('suite-1');
+      expect(result).toHaveLength(2);
+      expect(result[0]!.name).toBe('Auth Tests');
+      expect(result[0]!.parentSuiteId).toBeNull();
+      expect(result[1]!.name).toBe('Login Tests');
+      expect(result[1]!.parentSuiteId).toBe('suite-1');
     });
 
     it('sets tenant context within the transaction', async () => {

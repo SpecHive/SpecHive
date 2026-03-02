@@ -1,7 +1,8 @@
 import { ChevronRight, Download, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
+import { SuiteTree } from '@/components/suite-tree';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
@@ -12,6 +13,7 @@ import type {
   ArtifactDownloadResponse,
   PaginatedResponse,
   RunDetail,
+  SuiteSummary,
   TestDetail,
   TestSummary,
 } from '@/types/api';
@@ -32,13 +34,17 @@ export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [testPage, setTestPage] = useState(1);
   const [testStatus, setTestStatus] = useState('');
+  const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [stackTraceOpen, setStackTraceOpen] = useState(false);
 
   const { data: run, loading: runLoading, error: runError } = useApi<RunDetail>(`/v1/runs/${id}`);
 
+  const { data: suites } = useApi<SuiteSummary[]>(id ? `/v1/runs/${id}/suites` : null);
+
   const testParams: Record<string, string> = { page: String(testPage), pageSize: '20' };
   if (testStatus) testParams.status = testStatus;
+  if (selectedSuiteId) testParams.suiteId = selectedSuiteId;
 
   const { data: testsData, loading: testsLoading } = useApi<PaginatedResponse<TestSummary>>(
     id ? `/v1/runs/${id}/tests` : null,
@@ -48,6 +54,11 @@ export function RunDetailPage() {
   const { data: testDetail } = useApi<TestDetail>(
     selectedTestId && id ? `/v1/runs/${id}/tests/${selectedTestId}` : null,
   );
+
+  const handleSuiteSelect = useCallback((suiteId: string | null) => {
+    setSelectedSuiteId(suiteId);
+    setTestPage(1);
+  }, []);
 
   const handleDownload = useCallback(async (artifactId: string) => {
     try {
@@ -59,6 +70,17 @@ export function RunDetailPage() {
       // Error handled by apiClient
     }
   }, []);
+
+  const tests = testsData?.data || [];
+  const testsMeta = testsData?.meta;
+
+  const testCountBySuiteId = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const test of tests) {
+      counts[test.suiteId] = (counts[test.suiteId] ?? 0) + 1;
+    }
+    return counts;
+  }, [tests]);
 
   if (runLoading) {
     return (
@@ -83,9 +105,6 @@ export function RunDetailPage() {
       </div>
     );
   }
-
-  const tests = testsData?.data || [];
-  const testsMeta = testsData?.meta;
 
   return (
     <div className="space-y-6">
@@ -122,95 +141,114 @@ export function RunDetailPage() {
       </div>
 
       {/* Tests table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Tests</CardTitle>
-          <select
-            value={testStatus}
-            onChange={(e) => {
-              setTestStatus(e.target.value);
-              setTestPage(1);
-            }}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-            aria-label="Filter tests by status"
-          >
-            <option value="">All statuses</option>
-            {testStatusOptions.filter(Boolean).map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </CardHeader>
-        <CardContent>
-          {testsLoading && !testsData ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }, (_, i) => (
-                <div key={i} className="h-10 animate-pulse rounded bg-muted" />
+      <div className="flex gap-6">
+        {suites && suites.length > 0 && (
+          <div className="w-64 shrink-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Suites</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SuiteTree
+                  suites={suites}
+                  selectedSuiteId={selectedSuiteId}
+                  onSuiteSelect={handleSuiteSelect}
+                  testCountBySuiteId={testCountBySuiteId}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        <Card className="min-w-0 flex-1">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Tests</CardTitle>
+            <select
+              value={testStatus}
+              onChange={(e) => {
+                setTestStatus(e.target.value);
+                setTestPage(1);
+              }}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm"
+              aria-label="Filter tests by status"
+            >
+              <option value="">All statuses</option>
+              {testStatusOptions.filter(Boolean).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
-            </div>
-          ) : tests.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">No tests found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-3 pr-4">Name</th>
-                    <th className="pb-3 pr-4">Status</th>
-                    <th className="pb-3 pr-4">Duration</th>
-                    <th className="pb-3">Error</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tests.map((test) => (
-                    <tr
-                      key={test.id}
-                      onClick={() => setSelectedTestId(test.id)}
-                      className="cursor-pointer border-b transition-colors hover:bg-accent"
-                    >
-                      <td className="max-w-xs truncate py-3 pr-4 font-medium">{test.name}</td>
-                      <td className="py-3 pr-4">
-                        <StatusBadge status={test.status} />
-                      </td>
-                      <td className="py-3 pr-4">{test.durationMs}ms</td>
-                      <td className="max-w-xs truncate py-3 text-muted-foreground">
-                        {test.errorMessage || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {testsMeta && testsMeta.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Page {testsMeta.page} of {testsMeta.totalPages}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={testsMeta.page <= 1}
-                  onClick={() => setTestPage((p) => p - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={testsMeta.page >= testsMeta.totalPages}
-                  onClick={() => setTestPage((p) => p + 1)}
-                >
-                  Next
-                </Button>
+            </select>
+          </CardHeader>
+          <CardContent>
+            {testsLoading && !testsData ? (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }, (_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded bg-muted" />
+                ))}
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ) : tests.length === 0 ? (
+              <p className="py-8 text-center text-muted-foreground">No tests found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-muted-foreground">
+                      <th className="pb-3 pr-4">Name</th>
+                      <th className="pb-3 pr-4">Status</th>
+                      <th className="pb-3 pr-4">Duration</th>
+                      <th className="pb-3">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tests.map((test) => (
+                      <tr
+                        key={test.id}
+                        onClick={() => setSelectedTestId(test.id)}
+                        className="cursor-pointer border-b transition-colors hover:bg-accent"
+                      >
+                        <td className="max-w-xs truncate py-3 pr-4 font-medium">{test.name}</td>
+                        <td className="py-3 pr-4">
+                          <StatusBadge status={test.status} />
+                        </td>
+                        <td className="py-3 pr-4">{test.durationMs}ms</td>
+                        <td className="max-w-xs truncate py-3 text-muted-foreground">
+                          {test.errorMessage || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {testsMeta && testsMeta.totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Page {testsMeta.page} of {testsMeta.totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={testsMeta.page <= 1}
+                    onClick={() => setTestPage((p) => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={testsMeta.page >= testsMeta.totalPages}
+                    onClick={() => setTestPage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Test detail drawer */}
       {selectedTestId && testDetail && (

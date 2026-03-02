@@ -3,7 +3,8 @@ import { artifacts, setTenantContext, tests } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, count, eq } from 'drizzle-orm';
+import { and, asc, count, eq, inArray } from 'drizzle-orm';
+import { sql } from 'drizzle-orm/sql';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import type { PaginationParams } from '../../common/pagination';
@@ -14,6 +15,26 @@ export class TestsService {
     @Inject(DATABASE_CONNECTION)
     private readonly db: Database,
   ) {}
+
+  /**
+   * Recursively fetches all descendant suite IDs including the given suite.
+   * Uses PostgreSQL recursive CTE for efficient traversal.
+   */
+  private async getDescendantSuiteIds(
+    tx: Parameters<Parameters<Database['transaction']>[0]>[0],
+    suiteId: SuiteId,
+  ): Promise<SuiteId[]> {
+    const result = await tx.execute(sql`
+      WITH RECURSIVE suite_tree AS (
+        SELECT id FROM suites WHERE id = ${suiteId}
+        UNION ALL
+        SELECT s.id FROM suites s
+        INNER JOIN suite_tree st ON s.parent_suite_id = st.id
+      )
+      SELECT id FROM suite_tree
+    `);
+    return result.map((row) => row.id as SuiteId);
+  }
 
   async listTests(
     organizationId: OrganizationId,
@@ -29,7 +50,10 @@ export class TestsService {
 
       const conditions = [eq(tests.runId, runId)];
       if (status) conditions.push(eq(tests.status, status));
-      if (suiteId) conditions.push(eq(tests.suiteId, suiteId));
+      if (suiteId) {
+        const suiteIds = await this.getDescendantSuiteIds(tx, suiteId);
+        conditions.push(inArray(tests.suiteId, suiteIds));
+      }
 
       const where = and(...conditions);
 
