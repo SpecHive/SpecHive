@@ -89,10 +89,10 @@ describe('RLS write-path isolation', () => {
         (${PROJECT_B_ID}, ${ORG_B_ID}, 'Write Project B', 'write-proj-b')
     `;
     await superSql`
-      INSERT INTO project_tokens (id, project_id, name, token_hash)
+      INSERT INTO project_tokens (id, project_id, organization_id, name, token_hash, token_prefix)
       VALUES
-        (${TOKEN_A_ID}, ${PROJECT_A_ID}, 'Token A', 'write-hash-a'),
-        (${TOKEN_B_ID}, ${PROJECT_B_ID}, 'Token B', 'write-hash-b')
+        (${TOKEN_A_ID}, ${PROJECT_A_ID}, ${ORG_A_ID}, 'Token A', 'write-hash-a', 'wrta_'),
+        (${TOKEN_B_ID}, ${PROJECT_B_ID}, ${ORG_B_ID}, 'Token B', 'write-hash-b', 'wrtb_')
     `;
     await superSql`
       INSERT INTO runs (id, project_id, organization_id, status, metadata, total_tests, passed_tests, failed_tests, skipped_tests)
@@ -228,8 +228,8 @@ describe('RLS write-path isolation', () => {
       await appSql.begin(async (tx) => {
         await tx`SELECT set_config('app.current_organization_id', ${ORG_A_ID}, true)`;
         await tx`
-          INSERT INTO project_tokens (id, project_id, name, token_hash)
-          VALUES (${NEW_TOKEN_ID}, ${PROJECT_A_ID}, 'New Token', 'new-hash-a')
+          INSERT INTO project_tokens (id, project_id, organization_id, name, token_hash, token_prefix)
+          VALUES (${NEW_TOKEN_ID}, ${PROJECT_A_ID}, ${ORG_A_ID}, 'New Token', 'new-hash-a', 'newa_')
         `;
       });
 
@@ -244,8 +244,8 @@ describe('RLS write-path isolation', () => {
         appSql.begin(async (tx) => {
           await tx`SELECT set_config('app.current_organization_id', ${ORG_A_ID}, true)`;
           await tx`
-            INSERT INTO project_tokens (id, project_id, name, token_hash)
-            VALUES (${NEW_TOKEN_ID}, ${PROJECT_B_ID}, 'Cross-Org Token', 'cross-hash')
+            INSERT INTO project_tokens (id, project_id, organization_id, name, token_hash, token_prefix)
+            VALUES (${NEW_TOKEN_ID}, ${PROJECT_B_ID}, ${ORG_B_ID}, 'Cross-Org Token', 'cross-hash', 'crss_')
           `;
         }),
       ).rejects.toThrow();

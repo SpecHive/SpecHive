@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { EVENT_HANDLER, type IEventHandler } from '../src/modules/result-processor/handlers';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
-import type { OutboxyEnvelope } from '../src/types/outboxy-envelope';
+import type { OutboxyEvent } from '../src/types/outboxy-envelope';
 
 const VALID_TIMESTAMP = '2025-01-01T00:00:00.000Z';
 const ORG_ID = '11111111-1111-4111-8111-111111111111';
@@ -17,10 +17,10 @@ const TEST_ID = '55555555-5555-4555-8555-555555555555';
 function makeEnvelope(
   eventType: string,
   event: Record<string, unknown>,
-  overrides?: Partial<OutboxyEnvelope>,
-): OutboxyEnvelope {
+  overrides?: Partial<OutboxyEvent>,
+): OutboxyEvent {
   return {
-    id: 'evt-1',
+    eventId: 'evt-1',
     aggregateType: 'TestRun',
     aggregateId: RUN_ID,
     eventType,
@@ -145,8 +145,8 @@ describe('ResultProcessorService', () => {
   });
 
   it('logs error and returns on invalid payload', async () => {
-    const envelope: OutboxyEnvelope = {
-      id: 'evt-bad',
+    const envelope: OutboxyEvent = {
+      eventId: 'evt-bad',
       aggregateType: 'TestRun',
       aggregateId: 'run-1',
       eventType: 'run.start',

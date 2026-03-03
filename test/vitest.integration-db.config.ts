@@ -28,7 +28,7 @@ export default defineConfig({
     pool: 'forks',
     maxWorkers: 1,
     // Only run tests that require Postgres (no live HTTP services needed).
-    include: ['test/integration/rls-*.test.ts'],
+    include: ['test/integration/rls-*.test.ts', 'test/integration/artifact-cleanup.test.ts'],
     testTimeout: 30_000,
     hookTimeout: 35_000,
     reporters: ['tree'],
