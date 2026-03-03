@@ -7,8 +7,6 @@
  *
  * Run with:
  *   pnpm test:integration test/integration/s3-minio.test.ts
- *
- * Tests can be skipped by setting the SKIP_MINIO_TESTS environment variable.
  */
 
 import {
@@ -26,17 +24,12 @@ const MINIO_ACCESS_KEY = process.env['MINIO_APP_ACCESS_KEY'] ?? 'assertly-app';
 const MINIO_SECRET_KEY = process.env['MINIO_APP_SECRET_KEY'] ?? 'assertly-app-secret-key';
 const MINIO_BUCKET = process.env['MINIO_BUCKET'] ?? 'assertly-artifacts';
 const MINIO_USE_SSL = process.env['MINIO_USE_SSL'] === 'true';
-const SKIP_MINIO_TESTS = process.env['SKIP_MINIO_TESTS'] === 'true';
 
 describe('MinIO/S3 integration tests', () => {
   let s3Client: S3Client;
   const testPrefix = `integration-test-${Date.now()}/`;
 
   beforeAll(async () => {
-    if (SKIP_MINIO_TESTS) {
-      return;
-    }
-
     const protocol = MINIO_USE_SSL ? 'https' : 'http';
     s3Client = new S3Client({
       endpoint: `${protocol}://${MINIO_ENDPOINT}`,
@@ -48,7 +41,7 @@ describe('MinIO/S3 integration tests', () => {
       forcePathStyle: true,
     });
 
-    // Verify MinIO is accessible
+    // Verify MinIO is accessible - fail fast with clear message
     try {
       await s3Client.send(
         new ListObjectsV2Command({
@@ -57,13 +50,11 @@ describe('MinIO/S3 integration tests', () => {
           MaxKeys: 1,
         }),
       );
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(
-          `MinIO is not accessible at ${protocol}://${MINIO_ENDPOINT}. Original error: ${error.message}`,
-        );
-      }
-      throw error;
+    } catch {
+      throw new Error(
+        `MinIO is not accessible at ${protocol}://${MINIO_ENDPOINT}. ` +
+          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d minio minio-init`,
+      );
     }
   }, 15_000);
 
@@ -72,8 +63,6 @@ describe('MinIO/S3 integration tests', () => {
 
   // Helper to clean up test objects
   async function cleanupTestObjects(): Promise<void> {
-    if (SKIP_MINIO_TESTS) return;
-
     try {
       const listResponse = await s3Client.send(
         new ListObjectsV2Command({
@@ -99,23 +88,15 @@ describe('MinIO/S3 integration tests', () => {
     }
   }
 
-  it('skips all tests when SKIP_MINIO_TESTS is set', () => {
-    if (SKIP_MINIO_TESTS) {
-      expect(true).toBe(true);
-    }
-  });
-
   describe('upload and download', () => {
     const key = testKey('upload-download-test.txt');
     const content = 'Hello, MinIO!';
 
     afterAll(async () => {
-      if (!SKIP_MINIO_TESTS) {
-        await cleanupTestObjects();
-      }
+      await cleanupTestObjects();
     });
 
-    it.skipIf(SKIP_MINIO_TESTS)('uploads an object', async () => {
+    it('uploads an object', async () => {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -137,7 +118,7 @@ describe('MinIO/S3 integration tests', () => {
       expect(response.ContentType).toBe('text/plain');
     });
 
-    it.skipIf(SKIP_MINIO_TESTS)('downloads an object', async () => {
+    it('downloads an object', async () => {
       const response = await s3Client.send(
         new GetObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -156,12 +137,10 @@ describe('MinIO/S3 integration tests', () => {
     const content = 'Presigned URL test content';
 
     afterAll(async () => {
-      if (!SKIP_MINIO_TESTS) {
-        await cleanupTestObjects();
-      }
+      await cleanupTestObjects();
     });
 
-    it.skipIf(SKIP_MINIO_TESTS)('generates a presigned download URL', async () => {
+    it('generates a presigned download URL', async () => {
       // First upload an object
       await s3Client.send(
         new PutObjectCommand({
@@ -194,7 +173,7 @@ describe('MinIO/S3 integration tests', () => {
     const key = testKey('delete-test.txt');
     const content = 'This will be deleted';
 
-    it.skipIf(SKIP_MINIO_TESTS)('deletes an object', async () => {
+    it('deletes an object', async () => {
       // Upload an object
       await s3Client.send(
         new PutObjectCommand({
@@ -244,12 +223,10 @@ describe('MinIO/S3 integration tests', () => {
     const otherKey = testKey('other-file.txt'); // Different prefix
 
     afterAll(async () => {
-      if (!SKIP_MINIO_TESTS) {
-        await cleanupTestObjects();
-      }
+      await cleanupTestObjects();
     });
 
-    it.skipIf(SKIP_MINIO_TESTS)('lists objects with a prefix', async () => {
+    it('lists objects with a prefix', async () => {
       // Upload test objects
       await Promise.all(
         keys.map((key) =>
@@ -291,7 +268,7 @@ describe('MinIO/S3 integration tests', () => {
       expect(response.Contents?.map((obj) => obj.Key)).not.toContain(otherKey);
     });
 
-    it.skipIf(SKIP_MINIO_TESTS)('returns empty list for non-existent prefix', async () => {
+    it('returns empty list for non-existent prefix', async () => {
       const response = await s3Client.send(
         new ListObjectsV2Command({
           Bucket: MINIO_BUCKET,

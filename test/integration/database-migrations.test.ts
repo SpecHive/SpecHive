@@ -5,15 +5,18 @@
  * database, then verify expected tables, indexes, and constraints exist.
  *
  * Requires the Docker Compose stack running:
- *   pnpm docker:up
+ *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
  *
  * Run with:
- *   pnpm --filter @assertly/database test
+ *   pnpm test:integration test/integration/database-migrations.test.ts
  */
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 // Needs the superuser role (not assertly_app) to CREATE DATABASE for temp test DBs.
@@ -28,40 +31,25 @@ const DATABASE_URL =
     return `postgres://${user}:${pass}@localhost:5432/${db}`;
   })();
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let drizzle: typeof import('drizzle-orm/postgres-js').drizzle;
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let migrate: typeof import('drizzle-orm/postgres-js/migrator').migrate;
-
 const TEST_DB_NAME = `assertly_migration_test_${Date.now()}`;
 
-// Skip the entire suite if DATABASE_URL is not reachable
-const canConnect = await (async () => {
-  try {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    const sql = postgres(DATABASE_URL, { max: 1 });
-    await sql`SELECT 1`;
-    await sql.end();
-
-    const drizzleMod = await import('drizzle-orm/postgres-js');
-    drizzle = drizzleMod.drizzle;
-    const migrateMod = await import('drizzle-orm/postgres-js/migrator');
-    migrate = migrateMod.migrate;
-
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
-describe.skipIf(!canConnect)('Migration correctness', () => {
+describe('Migration correctness', () => {
   let adminSql: ReturnType<typeof postgres>;
   let testSql: ReturnType<typeof postgres>;
 
   beforeAll(async () => {
+    // Verify database connectivity - fail fast with clear message
+    try {
+      const sql = postgres(DATABASE_URL, { max: 1 });
+      await sql`SELECT 1`;
+      await sql.end();
+    } catch {
+      throw new Error(
+        `Postgres is not accessible at ${DATABASE_URL}. ` +
+          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres`,
+      );
+    }
+
     adminSql = postgres(DATABASE_URL, { max: 1 });
 
     // Create a temporary test database
@@ -72,7 +60,10 @@ describe.skipIf(!canConnect)('Migration correctness', () => {
     testSql = postgres(testDbUrl, { max: 1 });
 
     const db = drizzle(testSql);
-    const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), '../drizzle');
+    const migrationsFolder = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../packages/database/drizzle',
+    );
     await migrate(db, { migrationsFolder });
   }, 60_000);
 

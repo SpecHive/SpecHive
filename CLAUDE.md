@@ -40,48 +40,32 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ### Unit tests (no infrastructure)
 
 ```bash
-pnpm test
+pnpm test:unit
 ```
 
 Runs each package's `test` script. No Docker services required.
 
-### DB integration tests (Postgres only)
-
-These test RLS policies against a live database. Steps:
+### Integration tests (requires Docker)
 
 ```bash
-# 1. Start Postgres (creates the assertly_app role via docker/postgres/init.sh)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
-
-# 2. Build packages that migrations depend on
-pnpm --filter @assertly/shared-types build
-pnpm --filter @assertly/database build
-
-# 3. Generate and run migrations (as superuser)
-DATABASE_URL=postgres://assertly:assertly@localhost:5432/assertly pnpm db:generate
-DATABASE_URL=postgres://assertly:assertly@localhost:5432/assertly pnpm db:migrate
-
-# 4. Run DB integration tests
-pnpm test:integration:db
-```
-
-Config: `test/vitest.integration-db.config.ts` — matches only `test/integration/rls-*.test.ts`.
-
-The tests connect as both the superuser (`assertly`) and the app role (`assertly_app`), seeding data via superuser and verifying RLS isolation via the app role.
-
-### Full integration tests (entire Docker stack)
-
-```bash
-# 1. Start all services
+# Start Docker services first
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# 2. Build, generate, migrate (same as above)
-
-# 3. Run full integration suite (token seeding is automatic via globalSetup)
+# Run integration tests
 pnpm test:integration
 ```
 
+Tests will fail with clear error messages if required services are not running.
+
 Config: `test/vitest.integration.config.ts` — matches all `test/integration/**/*.test.ts`. Tests run sequentially (`maxWorkers: 1`) with 30s timeout. The `globalSetup` hook (`test/integration-global-setup.ts`) automatically seeds a test organization, project, and project token (`test-token`) before the suite runs.
+
+### All tests
+
+```bash
+pnpm test
+```
+
+Runs unit tests first, then integration tests. If unit tests fail, the run stops. If Docker services are not running, integration tests fail with guidance on what to start.
 
 ## Database architecture
 

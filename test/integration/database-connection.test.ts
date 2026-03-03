@@ -1,12 +1,22 @@
 /**
  * Connection utility tests (getRawClient, setTenantContext).
  *
- * These require a real Postgres connection. The suite is skipped when the DB
- * is unreachable, following the same pattern as migrations.test.ts.
+ * These require a real Postgres connection. Start Docker services:
+ *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
+ *
+ * Run with:
+ *   pnpm test:integration test/integration/database-connection.test.ts
  */
 
 import { asOrganizationId } from '@assertly/shared-types';
+import postgres from 'postgres';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+
+import {
+  createDbConnection,
+  getRawClient,
+  setTenantContext,
+} from '../../packages/database/src/connection.js';
 
 const DATABASE_URL =
   process.env['ADMIN_DATABASE_URL'] ??
@@ -17,38 +27,22 @@ const DATABASE_URL =
     return `postgres://${user}:${pass}@localhost:5432/${db}`;
   })();
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let createDbConnection: typeof import('../src/connection.js').createDbConnection;
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let getRawClient: typeof import('../src/connection.js').getRawClient;
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let setTenantContext: typeof import('../src/connection.js').setTenantContext;
-
-const canConnect = await (async () => {
-  try {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    const sql = postgres(DATABASE_URL, { max: 1 });
-    await sql`SELECT 1`;
-    await sql.end();
-
-    const connMod = await import('../src/connection.js');
-    createDbConnection = connMod.createDbConnection;
-    getRawClient = connMod.getRawClient;
-    setTenantContext = connMod.setTenantContext;
-
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
-describe.skipIf(!canConnect)('getRawClient', () => {
+describe('getRawClient', () => {
   let db: ReturnType<typeof createDbConnection>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    // Verify database connectivity - fail fast with clear message
+    try {
+      const sql = postgres(DATABASE_URL, { max: 1 });
+      await sql`SELECT 1`;
+      await sql.end();
+    } catch {
+      throw new Error(
+        `Postgres is not accessible at ${DATABASE_URL}. ` +
+          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres`,
+      );
+    }
+
     db = createDbConnection(DATABASE_URL, 1);
   });
 
@@ -88,10 +82,22 @@ describe.skipIf(!canConnect)('getRawClient', () => {
   });
 });
 
-describe.skipIf(!canConnect)('setTenantContext', () => {
+describe('setTenantContext', () => {
   let db: ReturnType<typeof createDbConnection>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    // Verify database connectivity - fail fast with clear message
+    try {
+      const sql = postgres(DATABASE_URL, { max: 1 });
+      await sql`SELECT 1`;
+      await sql.end();
+    } catch {
+      throw new Error(
+        `Postgres is not accessible at ${DATABASE_URL}. ` +
+          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres`,
+      );
+    }
+
     db = createDbConnection(DATABASE_URL, 1);
   });
 

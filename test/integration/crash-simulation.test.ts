@@ -52,19 +52,21 @@ async function checkServiceHealth(url: string): Promise<boolean> {
   }
 }
 
-function restartPostgresContainer(): void {
-  execSync(`docker restart ${POSTGRES_CONTAINER}`, { timeout: 30_000 });
-}
-
-function isDockerAvailable(): boolean {
+function verifyDockerContainer(containerName: string): void {
   try {
-    execSync(`docker inspect ${POSTGRES_CONTAINER} --format '{{.State.Running}}'`, {
+    execSync(`docker inspect ${containerName} --format '{{.State.Running}}'`, {
       timeout: 5_000,
     });
-    return true;
   } catch {
-    return false;
+    throw new Error(
+      `Docker container '${containerName}' is not running. ` +
+        `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d`,
+    );
   }
+}
+
+function restartPostgresContainer(): void {
+  execSync(`docker restart ${POSTGRES_CONTAINER}`, { timeout: 30_000 });
 }
 
 async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void> {
@@ -256,68 +258,61 @@ describe('Crash simulation: worker', () => {
 });
 
 describe('Crash simulation: postgres restart', () => {
-  const hasDocker = isDockerAvailable();
-
   beforeAll(async () => {
-    if (!hasDocker) return;
+    // Verify Docker container is running - fail fast with clear message
+    verifyDockerContainer(POSTGRES_CONTAINER);
     await waitForService(WORKER_URL);
     await waitForService(INGESTION_API_URL);
   }, 30_000);
 
-  it.skipIf(!hasDocker)(
-    'worker reconnects to postgres after restart',
-    async () => {
-      // Verify worker is healthy before restart
-      const beforeHealth = await checkServiceHealth(WORKER_URL);
-      expect(beforeHealth).toBe(true);
+  it('worker reconnects to postgres after restart', async () => {
+    // Verify worker is healthy before restart
+    const beforeHealth = await checkServiceHealth(WORKER_URL);
+    expect(beforeHealth).toBe(true);
 
-      // Restart postgres
-      restartPostgresContainer();
+    // Restart postgres
+    restartPostgresContainer();
 
-      // Wait for postgres to become ready again
-      await waitForPostgres();
+    // Wait for postgres to become ready again
+    await waitForPostgres();
 
-      // Wait for worker to recover
-      await waitForService(WORKER_URL, 30, 1_000);
+    // Wait for worker to recover
+    await waitForService(WORKER_URL, 30, 1_000);
 
-      const afterHealth = await checkServiceHealth(WORKER_URL);
-      expect(afterHealth).toBe(true);
-    },
-    60_000,
-  );
+    const afterHealth = await checkServiceHealth(WORKER_URL);
+    expect(afterHealth).toBe(true);
+  }, 60_000);
 
-  it.skipIf(!hasDocker)(
-    'ingestion-api reconnects to postgres after restart',
-    async () => {
-      const beforeHealth = await checkServiceHealth(INGESTION_API_URL);
-      expect(beforeHealth).toBe(true);
+  it('ingestion-api reconnects to postgres after restart', async () => {
+    const beforeHealth = await checkServiceHealth(INGESTION_API_URL);
+    expect(beforeHealth).toBe(true);
 
-      restartPostgresContainer();
+    restartPostgresContainer();
 
-      await waitForPostgres();
+    await waitForPostgres();
 
-      await waitForService(INGESTION_API_URL, 30, 1_000);
+    await waitForService(INGESTION_API_URL, 30, 1_000);
 
-      const afterHealth = await checkServiceHealth(INGESTION_API_URL);
-      expect(afterHealth).toBe(true);
-    },
-    60_000,
-  );
+    const afterHealth = await checkServiceHealth(INGESTION_API_URL);
+    expect(afterHealth).toBe(true);
+  }, 60_000);
 });
 
 describe('Crash simulation: Outboxy retry', () => {
-  async function skipUnlessFullStack() {
-    const healthy = await checkServiceHealth(OUTBOXY_URL);
-    if (!healthy) {
-      return 'Outboxy not available — skipping retry tests';
+  beforeAll(async () => {
+    // Verify Outboxy is available - fail fast with clear message
+    try {
+      const res = await fetch(`${OUTBOXY_URL}/health`, { signal: AbortSignal.timeout(3_000) });
+      if (!res.ok) throw new Error('Unhealthy');
+    } catch {
+      throw new Error(
+        `Outboxy is not accessible at ${OUTBOXY_URL}. ` +
+          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d outboxy`,
+      );
     }
-    return false;
-  }
+  });
 
   it('event is retried when worker returns 500', async () => {
-    const skip = await skipUnlessFullStack();
-    if (skip) return;
-
     const res = await fetch(`${OUTBOXY_URL}/health`);
     expect(res.ok).toBe(true);
 
@@ -341,9 +336,6 @@ describe('Crash simulation: Outboxy retry', () => {
   }, 30_000);
 
   it('event is not duplicated when worker returns 200 after retry', async () => {
-    const skip = await skipUnlessFullStack();
-    if (skip) return;
-
     // Verify idempotent processing: sending the same event ID twice
     // should not cause errors — the worker should handle it gracefully.
     const eventPayload = {
