@@ -70,6 +70,33 @@ describe('TestEndHandler', () => {
     expect(runUpdateSet).toHaveBeenCalled();
   });
 
+  it('strips ANSI escape codes from errorMessage and stackTrace', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Failed,
+        durationMs: 100,
+        errorMessage:
+          '\x1b[2mexpect(\x1b[22m\x1b[31mreceived\x1b[39m\x1b[2m).toBeVisible()\x1b[22m',
+        stackTrace:
+          '\x1b[31mError\x1b[39m: test failed\n    at Object.<anonymous> (\x1b[2mtest.ts:10:5\x1b[22m)',
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(testUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'expect(received).toBeVisible()',
+        stackTrace: 'Error: test failed\n    at Object.<anonymous> (test.ts:10:5)',
+      }),
+    );
+  });
+
   it('sets null for optional fields when not provided', async () => {
     const event = {
       version: '1' as const,

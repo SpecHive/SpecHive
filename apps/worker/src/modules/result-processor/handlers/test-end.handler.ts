@@ -1,6 +1,6 @@
 import { runs, tests } from '@assertly/database';
 import type { TestEndEvent } from '@assertly/reporter-core-protocol';
-import { TestStatus } from '@assertly/shared-types';
+import { TestStatus, stripAnsi } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -19,8 +19,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       .set({
         status,
         durationMs: durationMs ?? null,
-        errorMessage: errorMessage ?? null,
-        stackTrace: stackTrace ?? null,
+        errorMessage: errorMessage ? stripAnsi(errorMessage) : null,
+        stackTrace: stackTrace ? stripAnsi(stackTrace) : null,
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
       })

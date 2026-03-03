@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { sanitizeArtifactName, MAX_ARTIFACT_NAME_LENGTH } from '../utils/sanitize.js';
+import { sanitizeArtifactName, MAX_ARTIFACT_NAME_LENGTH, stripAnsi } from '../utils/sanitize.js';
 
 describe('sanitizeArtifactName', () => {
   it('passes through a clean name unchanged', () => {
@@ -67,5 +67,37 @@ describe('sanitizeArtifactName', () => {
 
   it('is case-insensitive for URL-encoded sequences', () => {
     expect(sanitizeArtifactName('%2E%2E%2F%5C%00')).toBe('____');
+  });
+});
+
+describe('stripAnsi', () => {
+  it('returns plain text unchanged', () => {
+    expect(stripAnsi('hello world')).toBe('hello world');
+  });
+
+  it('strips SGR color codes', () => {
+    expect(stripAnsi('\x1b[31mError\x1b[39m')).toBe('Error');
+  });
+
+  it('strips dim and bold codes', () => {
+    expect(stripAnsi('\x1b[2mexpect(\x1b[22m \x1b[31mreceived\x1b[39m')).toBe('expect( received');
+  });
+
+  it('strips multiple codes in a Playwright-style error', () => {
+    const input =
+      '\x1b[2mexpect(\x1b[22m\x1b[31mreceived\x1b[39m\x1b[2m).\x1b[22mtoBeVisible\x1b[2m()\x1b[22m';
+    expect(stripAnsi(input)).toBe('expect(received).toBeVisible()');
+  });
+
+  it('handles empty string', () => {
+    expect(stripAnsi('')).toBe('');
+  });
+
+  it('handles string with only ANSI codes', () => {
+    expect(stripAnsi('\x1b[31m\x1b[39m')).toBe('');
+  });
+
+  it('strips 256-color and RGB sequences', () => {
+    expect(stripAnsi('\x1b[38;5;196mred text\x1b[0m')).toBe('red text');
   });
 });
