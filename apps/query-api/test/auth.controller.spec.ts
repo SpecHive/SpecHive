@@ -104,4 +104,13 @@ describe('AuthController', () => {
 
     expect(response.statusCode).toBe(401);
   });
+
+  it('login handler has stricter throttle (10 req/min)', () => {
+    const handler = AuthController.prototype.login;
+    const limit = Reflect.getMetadata('THROTTLER:LIMITdefault', handler);
+    const ttl = Reflect.getMetadata('THROTTLER:TTLdefault', handler);
+
+    expect(limit).toBe(10);
+    expect(ttl).toBe(60000);
+  });
 });

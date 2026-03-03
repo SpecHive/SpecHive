@@ -2,6 +2,7 @@ import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
 import { Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -31,6 +32,7 @@ export class AuthController {
     this.isProduction = isProductionEnv(configService);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
   @HttpCode(200)
