@@ -1,9 +1,13 @@
-import { DeleteObjectCommand, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  type S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { S3_BUCKET, S3_CLIENT } from './s3.constants';
+import { S3_BUCKET, S3_CLIENT, S3_PRESIGNER_CLIENT } from './s3.constants';
 
 const DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 
@@ -11,6 +15,7 @@ const DEFAULT_PRESIGNED_EXPIRY_SECONDS = 900;
 export class S3Service {
   constructor(
     @Inject(S3_CLIENT) private readonly client: S3Client,
+    @Inject(S3_PRESIGNER_CLIENT) private readonly presignerClient: S3Client,
     @Inject(S3_BUCKET) private readonly bucket: string,
   ) {}
 
@@ -29,7 +34,7 @@ export class S3Service {
       Bucket: this.bucket,
       Key: key,
     });
-    return getSignedUrl(this.client, command, {
+    return getSignedUrl(this.presignerClient, command, {
       expiresIn: expiresIn ?? DEFAULT_PRESIGNED_EXPIRY_SECONDS,
     });
   }

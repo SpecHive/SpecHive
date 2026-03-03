@@ -512,7 +512,7 @@ export async function seed(dbUrl: string, password?: string) {
         })
         .onConflictDoNothing();
 
-      console.log(`Created project: ${config.name}`);
+      console.log(`Created project: ${config.name} with token: ${plainToken}`);
     }
 
     // ========================================================================

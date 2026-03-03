@@ -6,7 +6,7 @@ import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
 
-import type { OutboxyEnvelope } from '../../types/outboxy-envelope';
+import type { OutboxyEvent } from '../../types/outboxy-envelope';
 
 import { EVENT_HANDLER, type EventHandlerContext, type IEventHandler } from './handlers';
 
@@ -25,11 +25,13 @@ export class ResultProcessorService implements OnModuleInit {
     this.handlerMap = new Map(this.handlers.map((h) => [h.eventType, h]));
   }
 
-  async processEvent(envelope: OutboxyEnvelope): Promise<void> {
+  async processEvent(envelope: OutboxyEvent): Promise<void> {
     const parsed = EnrichedEventEnvelopeSchema.safeParse(envelope.payload);
 
     if (!parsed.success) {
-      this.logger.error(`Invalid event envelope (id=${envelope.id}): ${parsed.error.message}`);
+      this.logger.error(
+        `Invalid event envelope (eventId=${envelope.eventId}): ${parsed.error.message}`,
+      );
       return;
     }
 
@@ -38,7 +40,7 @@ export class ResultProcessorService implements OnModuleInit {
     await this.db.transaction(async (tx) => {
       const result = await this.inbox.receive(
         {
-          idempotencyKey: envelope.id,
+          idempotencyKey: envelope.eventId,
           aggregateType: envelope.aggregateType,
           aggregateId: envelope.aggregateId,
           eventType: envelope.eventType,
@@ -48,7 +50,7 @@ export class ResultProcessorService implements OnModuleInit {
       );
 
       if (result.status === 'duplicate') {
-        this.logger.warn(`Duplicate event skipped (id=${envelope.id})`);
+        this.logger.warn(`Duplicate event skipped (eventId=${envelope.eventId})`);
         return;
       }
 

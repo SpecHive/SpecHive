@@ -10,6 +10,31 @@ import { WebhookReceiverController } from '../src/modules/webhook-receiver/webho
 
 const WEBHOOK_SECRET = 'test-secret-123';
 
+function createBatchPayload(
+  overrides: Partial<{
+    eventId: string;
+    aggregateType: string;
+    aggregateId: string;
+    eventType: string;
+    payload: Record<string, unknown>;
+  }> = {},
+) {
+  return {
+    batch: true,
+    count: 1,
+    events: [
+      {
+        eventId: 'evt-1',
+        aggregateType: 'TestRun',
+        aggregateId: 'run-1',
+        eventType: 'run.start',
+        payload: { runId: 'run-1' },
+        ...overrides,
+      },
+    ],
+  };
+}
+
 describe('WebhookReceiverController', () => {
   let app: NestFastifyApplication;
   const mockProcessEvent = vi.fn();
@@ -49,18 +74,13 @@ describe('WebhookReceiverController', () => {
       method: 'POST',
       url: '/webhooks/outboxy',
       headers: { 'x-webhook-secret': WEBHOOK_SECRET },
-      payload: {
-        id: 'evt-1',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-1',
-        eventType: 'run.start',
-        payload: { runId: 'run-1' },
-      },
+      payload: createBatchPayload(),
     });
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.payload) as Record<string, unknown>;
     expect(body.received).toBe(true);
+    expect(body.processed).toBe(1);
     expect(mockProcessEvent).toHaveBeenCalled();
   });
 
@@ -79,13 +99,7 @@ describe('WebhookReceiverController', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/webhooks/outboxy',
-      payload: {
-        id: 'evt-1',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-1',
-        eventType: 'run.start',
-        payload: {},
-      },
+      payload: createBatchPayload({ payload: {} }),
     });
 
     expect(response.statusCode).toBe(401);
@@ -96,13 +110,7 @@ describe('WebhookReceiverController', () => {
       method: 'POST',
       url: '/webhooks/outboxy',
       headers: { 'x-webhook-secret': 'wrong-secret' },
-      payload: {
-        id: 'evt-1',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-1',
-        eventType: 'run.start',
-        payload: {},
-      },
+      payload: createBatchPayload({ payload: {} }),
     });
 
     expect(response.statusCode).toBe(401);

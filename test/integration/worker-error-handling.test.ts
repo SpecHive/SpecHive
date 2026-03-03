@@ -71,8 +71,8 @@ function createWebhookPayload(
   payload: Record<string, unknown>,
   eventId?: string,
 ): string {
-  return JSON.stringify({
-    id: eventId ?? crypto.randomUUID(),
+  const event = {
+    eventId: eventId ?? crypto.randomUUID(),
     aggregateType: 'run',
     aggregateId: runId,
     eventType,
@@ -86,6 +86,12 @@ function createWebhookPayload(
       projectId: INTEGRATION_PROJECT_ID,
     },
     createdAt: new Date().toISOString(),
+  };
+
+  return JSON.stringify({
+    batch: true,
+    count: 1,
+    events: [event],
   });
 }
 
@@ -224,11 +230,17 @@ describe('Worker error handling', () => {
           'x-webhook-secret': WEBHOOK_SECRET,
         },
         body: JSON.stringify({
-          id: 123, // Should be string
-          aggregateType: 'run',
-          aggregateId: 'some-id',
-          eventType: 'run.start',
-          payload: {}, // Should be record
+          batch: true,
+          count: 1,
+          events: [
+            {
+              eventId: 123, // Should be string
+              aggregateType: 'run',
+              aggregateId: 'some-id',
+              eventType: 'run.start',
+              payload: {},
+            },
+          ],
         }),
       });
 
@@ -335,14 +347,20 @@ describe('Worker error handling', () => {
         {},
         {
           rawBody: JSON.stringify({
-            id: eventId,
-            aggregateType: 'run',
-            aggregateId: 'some-run-id',
-            eventType: 'run.start',
-            payload: {
-              // Invalid event envelope - missing required fields
-              version: '1',
-            },
+            batch: true,
+            count: 1,
+            events: [
+              {
+                eventId,
+                aggregateType: 'run',
+                aggregateId: 'some-run-id',
+                eventType: 'run.start',
+                payload: {
+                  // Invalid event envelope - missing required fields
+                  version: '1',
+                },
+              },
+            ],
           }),
         },
       );

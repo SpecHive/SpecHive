@@ -23,6 +23,7 @@ import { IngestionService } from './ingestion.service';
         },
         defaultDestinationUrl: config.getOrThrow<string>('WORKER_WEBHOOK_URL'),
         defaultDestinationType: 'http' as const,
+        defaultHeaders: { 'x-webhook-secret': config.getOrThrow<string>('WEBHOOK_SECRET') },
       }),
       isGlobal: false,
     }),

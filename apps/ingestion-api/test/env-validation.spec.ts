@@ -2,8 +2,11 @@ import { describe, it, expect } from 'vitest';
 
 import { envSchema } from '../src/modules/config/env.validation';
 
+const VALID_SECRET = 'test-webhook-secret-at-least-32ch';
+
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+  WEBHOOK_SECRET: VALID_SECRET,
 };
 
 const VALID_PRODUCTION_ENV = {
@@ -189,6 +192,40 @@ describe('ingestion-api envSchema', () => {
     it('allows TOKEN_HASH_KEY of 32+ chars in production', () => {
       const result = envSchema.parse(VALID_PRODUCTION_ENV);
       expect(result.TOKEN_HASH_KEY).toBe('a'.repeat(32));
+    });
+  });
+
+  describe('WEBHOOK_SECRET validation', () => {
+    it('requires WEBHOOK_SECRET', () => {
+      const envWithout = { DATABASE_URL: VALID_ENV.DATABASE_URL };
+      expect(() => envSchema.parse(envWithout)).toThrow();
+    });
+
+    it('rejects WEBHOOK_SECRET shorter than 32 characters', () => {
+      expect(() => envSchema.parse({ ...VALID_ENV, WEBHOOK_SECRET: 'too-short' })).toThrow();
+    });
+
+    it('accepts WEBHOOK_SECRET of 32+ characters', () => {
+      const result = envSchema.parse(VALID_ENV);
+      expect(result.WEBHOOK_SECRET).toBe(VALID_SECRET);
+    });
+
+    it('rejects WEBHOOK_SECRET placeholder in production', () => {
+      expect(() =>
+        envSchema.parse({
+          ...VALID_PRODUCTION_ENV,
+          WEBHOOK_SECRET: 'change-me-in-production-min-32ch',
+        }),
+      ).toThrow('WEBHOOK_SECRET must not use a placeholder value in production');
+    });
+
+    it('allows WEBHOOK_SECRET placeholder in development', () => {
+      const result = envSchema.parse({
+        ...VALID_ENV,
+        NODE_ENV: 'development',
+        WEBHOOK_SECRET: 'change-me-in-production-min-32ch',
+      });
+      expect(result.WEBHOOK_SECRET).toBe('change-me-in-production-min-32ch');
     });
   });
 

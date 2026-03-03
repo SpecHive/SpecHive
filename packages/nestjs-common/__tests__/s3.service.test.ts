@@ -4,8 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { S3Service } from '../src/s3/s3.service';
 
-const { mockSend, mockGetSignedUrl } = vi.hoisted(() => ({
+const { mockSend, mockPresignerSend, mockGetSignedUrl } = vi.hoisted(() => ({
   mockSend: vi.fn().mockResolvedValue({}),
+  mockPresignerSend: vi.fn().mockResolvedValue({}),
   mockGetSignedUrl: vi.fn().mockResolvedValue('https://signed-url.example.com/file'),
 }));
 
@@ -38,11 +39,14 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 describe('S3Service', () => {
   let service: S3Service;
   const TEST_BUCKET = 'test-bucket';
+  let mockClient: S3Client;
+  let mockPresignerClient: S3Client;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const mockClient = { send: mockSend } as unknown as S3Client;
-    service = new S3Service(mockClient, TEST_BUCKET);
+    mockClient = { send: mockSend } as unknown as S3Client;
+    mockPresignerClient = { send: mockPresignerSend } as unknown as S3Client;
+    service = new S3Service(mockClient, mockPresignerClient, TEST_BUCKET);
   });
 
   describe('upload', () => {
@@ -87,7 +91,7 @@ describe('S3Service', () => {
         Bucket: TEST_BUCKET,
         Key: 'artifacts/file.txt',
       });
-      expect(mockGetSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      expect(mockGetSignedUrl).toHaveBeenCalledWith(mockPresignerClient, expect.anything(), {
         expiresIn: 900,
       });
       expect(url).toBe('https://signed-url.example.com/file');
@@ -96,9 +100,19 @@ describe('S3Service', () => {
     it('uses custom expiry when provided', async () => {
       await service.getPresignedDownloadUrl('artifacts/file.txt', 3600);
 
-      expect(mockGetSignedUrl).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      expect(mockGetSignedUrl).toHaveBeenCalledWith(mockPresignerClient, expect.anything(), {
         expiresIn: 3600,
       });
+    });
+
+    it('does not use the main client for signing', async () => {
+      await service.getPresignedDownloadUrl('artifacts/file.txt');
+
+      expect(mockGetSignedUrl).not.toHaveBeenCalledWith(
+        mockClient,
+        expect.anything(),
+        expect.anything(),
+      );
     });
   });
 

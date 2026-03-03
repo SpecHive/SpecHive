@@ -21,13 +21,20 @@ export class IngestionService {
     organizationId: OrganizationId,
   ): Promise<{ eventId: string }> {
     return this.db.transaction(async (tx) => {
+      const idempotencyParts = [
+        event.runId,
+        event.eventType.replace(/\./g, '_'),
+        this.getEventEntityId(event),
+        new Date(event.timestamp).getTime(),
+      ];
+      const idempotencyKey = idempotencyParts.join('-');
       const eventId = await this.outboxy.publish(
         {
           aggregateType: 'TestRun',
           aggregateId: event.runId,
           eventType: event.eventType,
           payload: { event, organizationId, projectId } as unknown as Record<string, unknown>,
-          idempotencyKey: `${event.runId}:${event.eventType}:${this.getEventEntityId(event)}:${event.timestamp}`,
+          idempotencyKey,
         },
         tx,
       );
