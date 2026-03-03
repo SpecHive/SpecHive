@@ -1,5 +1,5 @@
 import { Controller, Get, SetMetadata } from '@nestjs/common';
-import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
+import { HealthCheck, HealthCheckService, type HealthIndicatorFunction } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
 
 import { IS_PUBLIC_KEY } from '../constants';
@@ -28,7 +28,11 @@ export class HealthController {
   @Get('ready')
   @HealthCheck()
   async ready() {
-    const checks = [() => this.dbHealth.isHealthy('database')];
+    const checks: HealthIndicatorFunction[] = [];
+
+    if (this.dbHealth.isAvailable()) {
+      checks.push(() => this.dbHealth.isHealthy('database'));
+    }
 
     if (this.s3Health.isAvailable()) {
       checks.push(() => this.s3Health.isHealthy('storage'));

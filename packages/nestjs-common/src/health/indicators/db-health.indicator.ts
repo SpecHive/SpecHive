@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { HealthCheckError, HealthIndicator, type HealthIndicatorResult } from '@nestjs/terminus';
 import { sql } from 'drizzle-orm';
 
@@ -10,11 +10,19 @@ interface DrizzleDatabase {
 
 @Injectable()
 export class DbHealthIndicator extends HealthIndicator {
-  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DrizzleDatabase) {
+  constructor(@Optional() @Inject(DATABASE_CONNECTION) private readonly db?: DrizzleDatabase) {
     super();
   }
 
+  isAvailable(): boolean {
+    return this.db != null;
+  }
+
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
+    if (!this.db) {
+      return this.getStatus(key, true, { message: 'Database not configured' });
+    }
+
     const start = performance.now();
     try {
       await this.db.execute(sql`SELECT 1`);

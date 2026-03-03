@@ -20,6 +20,7 @@ describe('HealthController', () => {
     } as unknown as HealthCheckService;
 
     mockDbHealth = {
+      isAvailable: vi.fn().mockReturnValue(true),
       isHealthy: vi.fn().mockResolvedValue({ database: { status: 'up', responseTimeMs: 1 } }),
     } as unknown as DbHealthIndicator;
 
