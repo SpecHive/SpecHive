@@ -25,6 +25,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  switchOrganization: (organizationId: string) => Promise<void>;
 }
 
 const STORAGE_KEYS = {
@@ -100,6 +101,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [navigate],
   );
 
+  const switchOrganization = useCallback(
+    async (organizationId: string) => {
+      const response = await apiClient.post<LoginResponse>('/v1/auth/switch-organization', {
+        organizationId,
+      });
+      setUser(response.user);
+      setOrganization(response.organization);
+      setToken(response.token);
+      apiClient.setToken(response.token);
+      persistSession(response.token, response.user, response.organization);
+      navigate('/');
+    },
+    [navigate],
+  );
+
   const logout = useCallback(() => {
     setUser(null);
     setOrganization(null);
@@ -117,8 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: token !== null,
       login,
       logout,
+      switchOrganization,
     }),
-    [user, organization, token, login, logout],
+    [user, organization, token, login, logout, switchOrganization],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

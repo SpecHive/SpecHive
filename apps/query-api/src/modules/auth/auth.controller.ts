@@ -1,4 +1,5 @@
 import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import type { OrganizationId } from '@assertly/shared-types';
 import { Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
@@ -13,6 +14,10 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
   organizationId: z.string().uuid().optional(),
+});
+
+const switchOrgSchema = z.object({
+  organizationId: z.string().uuid(),
 });
 
 @Controller('v1/auth')
@@ -55,5 +60,18 @@ export class AuthController {
   async organizations(@CurrentUser() user: UserContext) {
     const orgs = await this.authService.getOrganizations(user.userId);
     return { data: orgs };
+  }
+
+  @Post('switch-organization')
+  @HttpCode(200)
+  async switchOrganization(@CurrentUser() user: UserContext, @Req() req: { body: unknown }) {
+    const result = switchOrgSchema.safeParse(req.body);
+    if (!result.success)
+      throwZodBadRequest(result.error, 'Invalid switch-organization payload', this.isProduction);
+
+    return this.authService.switchOrganization(
+      user.userId,
+      result.data.organizationId as OrganizationId,
+    );
   }
 }

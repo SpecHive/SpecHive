@@ -104,6 +104,35 @@ export class AuthService {
     return users[0]!;
   }
 
+  async switchOrganization(userId: UserId, targetOrgId: OrganizationId) {
+    const orgs = await this.db.execute<UserOrganization>(
+      sql`SELECT * FROM get_user_organizations(${userId}::uuid)`,
+    );
+
+    const targetOrg = orgs.find((o) => o.organization_id === targetOrgId);
+    if (!targetOrg) {
+      throw new ForbiddenException('User is not a member of the requested organization');
+    }
+
+    const profile = await this.getProfile(userId);
+
+    const token = await this.signToken({
+      sub: userId,
+      organizationId: targetOrg.organization_id,
+      role: targetOrg.role,
+    });
+
+    return {
+      token,
+      user: { id: profile.id, email: profile.email, name: profile.name },
+      organization: {
+        id: targetOrg.organization_id,
+        name: targetOrg.organization_name,
+        slug: targetOrg.organization_slug,
+      },
+    };
+  }
+
   async getOrganizations(userId: UserId) {
     const orgs = await this.db.execute<UserOrganization>(
       sql`SELECT * FROM get_user_organizations(${userId}::uuid)`,
