@@ -29,9 +29,9 @@ FROM deps AS development
 COPY . .
 WORKDIR /app/apps/dashboard
 
-EXPOSE 5173
+EXPOSE 8080
 
-CMD ["node_modules/.bin/vite", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["node_modules/.bin/vite", "--host", "0.0.0.0", "--port", "8080"]
 
 # ============================================================
 # Build: compile static assets

@@ -5,16 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildTree, SuiteTree } from '@/components/suite-tree';
 import type { SuiteSummary } from '@/types/api';
 
-const makeSuite = (
-  id: string,
-  name: string,
-  parentSuiteId: string | null = null,
-): SuiteSummary => ({
-  id,
-  name,
-  parentSuiteId,
-  createdAt: '2026-01-01T00:00:00Z',
-});
+const makeSuite = (id: string, name: string, parentSuiteId: string | null = null) =>
+  ({ id, name, parentSuiteId, createdAt: '2026-01-01T00:00:00Z' }) as SuiteSummary;
 
 const flatSuites: SuiteSummary[] = [
   makeSuite('s1', 'Unit Tests'),

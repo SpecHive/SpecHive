@@ -17,7 +17,7 @@ else
   echo "Bucket '${BUCKET}' already exists."
 fi
 
-# Create a scoped service account for application access (PutObject, GetObject, ListBucket only)
+# Create a scoped service account for application access (PutObject, GetObject, ListBucket, DeleteObject)
 MINIO_APP_ACCESS_KEY="${MINIO_APP_ACCESS_KEY:-assertly-app}"
 MINIO_APP_SECRET_KEY="${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}"
 

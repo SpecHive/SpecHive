@@ -1,5 +1,4 @@
-import { createDbConnection } from '@assertly/database';
-import { createOutboxyAdapter, DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import { createOutboxyAdapter } from '@assertly/nestjs-common';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
@@ -25,16 +24,6 @@ import { IngestionService } from './ingestion.service';
     }),
   ],
   controllers: [IngestionController],
-  providers: [
-    {
-      provide: DATABASE_CONNECTION,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig>) => {
-        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
-      },
-    },
-    IngestionService,
-  ],
+  providers: [IngestionService],
 })
 export class IngestionModule {}

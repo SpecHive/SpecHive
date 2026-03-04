@@ -13,15 +13,18 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
   private readonly logger = new Logger(TestStartHandler.name);
 
   async handle(event: TestStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx.insert(tests).values({
-      id: event.payload.testId,
-      suiteId: event.payload.suiteId,
-      runId: event.runId,
-      organizationId: ctx.organizationId,
-      name: event.payload.testName,
-      status: TestStatus.Pending,
-      startedAt: new Date(event.timestamp),
-    });
+    await ctx.tx
+      .insert(tests)
+      .values({
+        id: event.payload.testId,
+        suiteId: event.payload.suiteId,
+        runId: event.runId,
+        organizationId: ctx.organizationId,
+        name: event.payload.testName,
+        status: TestStatus.Pending,
+        startedAt: new Date(event.timestamp),
+      })
+      .onConflictDoNothing({ target: tests.id });
 
     this.logger.log(`Created test ${event.payload.testId} in run ${event.runId}`);
   }

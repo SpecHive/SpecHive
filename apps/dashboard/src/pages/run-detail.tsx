@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { SuiteTree } from '@/components/suite-tree';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
 import { SortableHeader } from '@/components/ui/sortable-header';
 import type { SortDirection } from '@/components/ui/sortable-header';
 import { useApi } from '@/hooks/use-api';
@@ -239,31 +240,7 @@ export function RunDetailPage() {
               </div>
             )}
 
-            {testsMeta && testsMeta.totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Page {testsMeta.page} of {testsMeta.totalPages}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={testsMeta.page <= 1}
-                    onClick={() => setTestPage((p) => p - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={testsMeta.page >= testsMeta.totalPages}
-                    onClick={() => setTestPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
+            {testsMeta && <Pagination meta={testsMeta} onPageChange={setTestPage} />}
           </CardContent>
         </Card>
       </div>

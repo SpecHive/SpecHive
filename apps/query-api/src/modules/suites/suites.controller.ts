@@ -1,7 +1,6 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { RunId } from '@assertly/shared-types';
-import { Controller, Get, Param } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Controller, Get, Inject, Param } from '@nestjs/common';
 
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -11,14 +10,10 @@ import { SuitesService } from './suites.service';
 
 @Controller('v1/runs')
 export class SuitesController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly suitesService: SuitesService,
-    configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Get(':runId/suites')
   async listByRunId(@CurrentUser() user: UserContext, @Param('runId') runId: string) {

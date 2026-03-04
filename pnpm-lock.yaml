@@ -68,6 +68,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@assertly/api-types':
+        specifier: workspace:*
+        version: link:../../packages/api-types
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -214,6 +217,9 @@ importers:
 
   apps/query-api:
     dependencies:
+      '@assertly/api-types':
+        specifier: workspace:*
+        version: link:../../packages/api-types
       '@assertly/database':
         specifier: workspace:*
         version: link:../../packages/database

@@ -1,8 +1,7 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import { RunStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';
@@ -23,14 +22,10 @@ const listRunsSchema = paginationSchema.extend({
 
 @Controller('v1/runs')
 export class RunsController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly runsService: RunsService,
-    configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Get()
   async list(@CurrentUser() user: UserContext, @Query() query: Record<string, string>) {

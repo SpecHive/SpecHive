@@ -1,3 +1,4 @@
+import { IS_PRODUCTION } from '@assertly/nestjs-common';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
@@ -50,6 +51,7 @@ describe('WebhookReceiverController', () => {
             sortEventsByPriority: vi.fn().mockImplementation((events: unknown[]) => [...events]),
           },
         },
+        { provide: IS_PRODUCTION, useValue: false },
         {
           provide: ConfigService,
           useValue: {

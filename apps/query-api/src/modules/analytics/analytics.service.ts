@@ -1,3 +1,9 @@
+import type {
+  DurationTrendPoint,
+  FlakyTestSummary,
+  PassRateTrendPoint,
+  ProjectAnalyticsSummary,
+} from '@assertly/api-types';
 import type { Database } from '@assertly/database';
 import { runs, tests, setTenantContext } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
@@ -19,7 +25,11 @@ export class AnalyticsService {
     private readonly db: Database,
   ) {}
 
-  async getProjectSummary(organizationId: OrganizationId, projectId: ProjectId, days = 30) {
+  async getProjectSummary(
+    organizationId: OrganizationId,
+    projectId: ProjectId,
+    days = 30,
+  ): Promise<ProjectAnalyticsSummary> {
     const clampedDays = clampDays(days);
 
     return this.db.transaction(async (tx) => {
@@ -60,7 +70,7 @@ export class AnalyticsService {
         };
       }
 
-      return result[0];
+      return result[0] as unknown as ProjectAnalyticsSummary;
     });
   }
 
@@ -68,7 +78,7 @@ export class AnalyticsService {
     organizationId: OrganizationId,
     projectId: ProjectId,
     days = 30,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<PassRateTrendPoint[]> {
     const clampedDays = clampDays(days);
 
     return this.db.transaction(async (tx) => {
@@ -93,7 +103,7 @@ export class AnalyticsService {
         ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
       `);
 
-      return result as Record<string, unknown>[];
+      return result as unknown as PassRateTrendPoint[];
     });
   }
 
@@ -101,7 +111,7 @@ export class AnalyticsService {
     organizationId: OrganizationId,
     projectId: ProjectId,
     days = 30,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<DurationTrendPoint[]> {
     const clampedDays = clampDays(days);
 
     return this.db.transaction(async (tx) => {
@@ -122,7 +132,7 @@ export class AnalyticsService {
         ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
       `);
 
-      return result as Record<string, unknown>[];
+      return result as unknown as DurationTrendPoint[];
     });
   }
 
@@ -131,7 +141,7 @@ export class AnalyticsService {
     projectId: ProjectId,
     days = 30,
     limit = 10,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<FlakyTestSummary[]> {
     const clampedDays = clampDays(days);
     const clampedLimit = Math.min(Math.max(limit, 1), MAX_FLAKY_LIMIT);
 
@@ -154,7 +164,7 @@ export class AnalyticsService {
         LIMIT ${clampedLimit}
       `);
 
-      return result as Record<string, unknown>[];
+      return result as unknown as FlakyTestSummary[];
     });
   }
 }

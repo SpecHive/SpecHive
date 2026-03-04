@@ -1,7 +1,6 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { ArtifactId } from '@assertly/shared-types';
-import { Controller, Get, Param } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Controller, Get, Inject, Param } from '@nestjs/common';
 
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -11,14 +10,10 @@ import { ArtifactsService } from './artifacts.service';
 
 @Controller('v1/artifacts')
 export class ArtifactsController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly artifactsService: ArtifactsService,
-    configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Get(':id/download')
   async download(@CurrentUser() user: UserContext, @Param('id') id: string) {

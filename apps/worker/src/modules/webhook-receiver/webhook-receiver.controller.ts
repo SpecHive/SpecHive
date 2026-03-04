@@ -1,11 +1,19 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
-import { Body, Controller, HttpCode, HttpStatus, Logger, Post, UseGuards } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  InternalServerErrorException,
+  Logger,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
 import { OutboxyBatchSchema } from '../../types/outboxy-envelope';
-import type { EnvConfig } from '../config/env.validation';
 import { ResultProcessorService } from '../result-processor/result-processor.service';
 
 const WEBHOOK_RATE_LIMIT_TTL_MS = 60_000;
@@ -15,14 +23,11 @@ const WEBHOOK_RATE_LIMIT_MAX = 1_000;
 @UseGuards(WebhookAuthGuard)
 export class WebhookReceiverController {
   private readonly logger = new Logger(WebhookReceiverController.name);
-  private readonly isProduction: boolean;
 
   constructor(
     private readonly resultProcessor: ResultProcessorService,
-    configService: ConfigService<EnvConfig>,
-  ) {
-    this.isProduction = isProductionEnv(configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Post('outboxy')
   @HttpCode(HttpStatus.OK)
@@ -42,15 +47,29 @@ export class WebhookReceiverController {
 
     this.logger.log(`Received Outboxy batch: ${sortedEvents.length} events`);
 
+    const failedEventIds: string[] = [];
+
     for (const event of sortedEvents) {
       this.logger.log(`Processing event: ${event.eventType}`);
       try {
         await this.resultProcessor.processEvent(event);
       } catch (error) {
+        failedEventIds.push(event.eventId);
         this.logger.error(
           `Failed to process event ${event.eventId} (${event.eventType}): ${error instanceof Error ? error.message : error}`,
         );
       }
+    }
+
+    if (failedEventIds.length > 0) {
+      this.logger.error(
+        `Batch had ${failedEventIds.length} failures: ${failedEventIds.join(', ')}`,
+      );
+      throw new InternalServerErrorException({
+        message: `Failed to process ${failedEventIds.length} of ${sortedEvents.length} events`,
+        code: 'PARTIAL_BATCH_FAILURE',
+        failedEventIds,
+      });
     }
 
     return { received: true, processed: events.length };

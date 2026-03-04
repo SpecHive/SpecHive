@@ -173,6 +173,7 @@ describe('Artifact download', () => {
     }
 
     // Wait for tests to be processed (async via Outboxy)
+    let foundTestId: string | undefined;
     for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
       const testsResponse = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests`, {
         headers: { Authorization: `Bearer ${jwtToken}` },
@@ -180,11 +181,33 @@ describe('Artifact download', () => {
 
       if (testsResponse.ok) {
         const testsBody = (await testsResponse.json()) as { data: { id: string }[] };
-        if (testsBody.data?.length > 0) break;
+        if (testsBody.data?.length > 0) {
+          foundTestId = testsBody.data[0]!.id;
+          break;
+        }
       }
 
       if (attempt === maxPollAttempts) {
         throw new Error(`Tests for run ${runId} did not appear within ${maxPollAttempts}s`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollDelayMs));
+    }
+
+    // Wait for artifact to be processed (artifact.upload is a separate async event)
+    for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
+      const detailRes = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests/${foundTestId}`, {
+        headers: { Authorization: `Bearer ${jwtToken}` },
+      });
+
+      if (detailRes.ok) {
+        const detail = (await detailRes.json()) as { artifacts: { id: string }[] };
+        if (detail.artifacts?.length > 0) break;
+      }
+
+      if (attempt === maxPollAttempts) {
+        throw new Error(
+          `Artifact for test ${foundTestId} did not appear within ${maxPollAttempts}s`,
+        );
       }
       await new Promise((resolve) => setTimeout(resolve, pollDelayMs));
     }

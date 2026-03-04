@@ -12,13 +12,16 @@ export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
   private readonly logger = new Logger(SuiteStartHandler.name);
 
   async handle(event: SuiteStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx.insert(suites).values({
-      id: event.payload.suiteId,
-      runId: event.runId,
-      organizationId: ctx.organizationId,
-      name: event.payload.suiteName,
-      parentSuiteId: event.payload.parentSuiteId ?? null,
-    });
+    await ctx.tx
+      .insert(suites)
+      .values({
+        id: event.payload.suiteId,
+        runId: event.runId,
+        organizationId: ctx.organizationId,
+        name: event.payload.suiteName,
+        parentSuiteId: event.payload.parentSuiteId ?? null,
+      })
+      .onConflictDoNothing({ target: suites.id });
 
     this.logger.log(`Created suite ${event.payload.suiteId} in run ${event.runId}`);
   }

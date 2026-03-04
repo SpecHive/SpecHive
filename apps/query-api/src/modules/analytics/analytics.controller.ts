@@ -1,7 +1,6 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { ProjectId } from '@assertly/shared-types';
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { z } from 'zod';
 
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -21,13 +20,25 @@ const flakyQuerySchema = trendQuerySchema.extend({
 
 @Controller('v1/projects/:projectId/analytics')
 export class AnalyticsController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly analyticsService: AnalyticsService,
-    configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(configService);
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
+
+  private validateParams<T extends z.ZodType>(
+    projectId: string,
+    query: Record<string, string>,
+    querySchema: T,
+  ): { projectId: ProjectId; query: z.infer<T> } {
+    const paramResult = projectIdParamSchema.safeParse(projectId);
+    if (!paramResult.success)
+      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
+
+    const queryResult = querySchema.safeParse(query);
+    if (!queryResult.success)
+      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
+
+    return { projectId: paramResult.data as ProjectId, query: queryResult.data as z.infer<T> };
   }
 
   @Get('summary')
@@ -36,18 +47,11 @@ export class AnalyticsController {
     @Param('projectId') projectId: string,
     @Query() query: Record<string, string>,
   ) {
-    const paramResult = projectIdParamSchema.safeParse(projectId);
-    if (!paramResult.success)
-      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
-
-    const queryResult = trendQuerySchema.safeParse(query);
-    if (!queryResult.success)
-      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
-
+    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getProjectSummary(
       user.organizationId,
-      paramResult.data as ProjectId,
-      queryResult.data.days,
+      params.projectId,
+      params.query.days,
     );
   }
 
@@ -57,18 +61,11 @@ export class AnalyticsController {
     @Param('projectId') projectId: string,
     @Query() query: Record<string, string>,
   ) {
-    const paramResult = projectIdParamSchema.safeParse(projectId);
-    if (!paramResult.success)
-      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
-
-    const queryResult = trendQuerySchema.safeParse(query);
-    if (!queryResult.success)
-      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
-
+    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getPassRateTrend(
       user.organizationId,
-      paramResult.data as ProjectId,
-      queryResult.data.days,
+      params.projectId,
+      params.query.days,
     );
   }
 
@@ -78,18 +75,11 @@ export class AnalyticsController {
     @Param('projectId') projectId: string,
     @Query() query: Record<string, string>,
   ) {
-    const paramResult = projectIdParamSchema.safeParse(projectId);
-    if (!paramResult.success)
-      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
-
-    const queryResult = trendQuerySchema.safeParse(query);
-    if (!queryResult.success)
-      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
-
+    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getDurationTrend(
       user.organizationId,
-      paramResult.data as ProjectId,
-      queryResult.data.days,
+      params.projectId,
+      params.query.days,
     );
   }
 
@@ -99,19 +89,12 @@ export class AnalyticsController {
     @Param('projectId') projectId: string,
     @Query() query: Record<string, string>,
   ) {
-    const paramResult = projectIdParamSchema.safeParse(projectId);
-    if (!paramResult.success)
-      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
-
-    const queryResult = flakyQuerySchema.safeParse(query);
-    if (!queryResult.success)
-      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
-
+    const params = this.validateParams(projectId, query, flakyQuerySchema);
     return this.analyticsService.getFlakyTests(
       user.organizationId,
-      paramResult.data as ProjectId,
-      queryResult.data.days,
-      queryResult.data.limit,
+      params.projectId,
+      params.query.days,
+      params.query.limit,
     );
   }
 }

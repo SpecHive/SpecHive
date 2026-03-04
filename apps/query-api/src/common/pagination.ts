@@ -1,4 +1,7 @@
+import type { PaginatedResponse } from '@assertly/api-types';
 import { z } from 'zod';
+
+export type { PaginatedResponse, PaginationMeta } from '@assertly/api-types';
 
 export const uuidSchema = z.string().uuid();
 
@@ -8,16 +11,6 @@ export const paginationSchema = z.object({
 });
 
 export type PaginationParams = z.infer<typeof paginationSchema>;
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-}
 
 export function getOffset(page: number, pageSize: number): number {
   return (page - 1) * pageSize;

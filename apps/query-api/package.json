@@ -12,6 +12,7 @@
     "test:e2e": "vitest run test/"
   },
   "dependencies": {
+    "@assertly/api-types": "workspace:*",
     "@assertly/database": "workspace:*",
     "@assertly/nestjs-common": "workspace:*",
     "@assertly/shared-types": "workspace:*",

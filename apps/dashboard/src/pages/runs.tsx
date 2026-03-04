@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
 import { SortableHeader } from '@/components/ui/sortable-header';
 import type { SortDirection } from '@/components/ui/sortable-header';
 import { useApi } from '@/hooks/use-api';
@@ -209,42 +209,13 @@ export function RunsPage() {
             </div>
           )}
 
-          {meta && meta.totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Page {meta.page} of {meta.totalPages}
-                </span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => updateParam('pageSize', e.target.value)}
-                  className="rounded-md border bg-background px-2 py-1 text-sm"
-                  aria-label="Page size"
-                >
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={meta.page <= 1}
-                  onClick={() => updateParam('page', String(meta.page - 1))}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={meta.page >= meta.totalPages}
-                  onClick={() => updateParam('page', String(meta.page + 1))}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {meta && (
+            <Pagination
+              meta={meta}
+              onPageChange={(p) => updateParam('page', String(p))}
+              pageSize={Number(pageSize)}
+              onPageSizeChange={(s) => updateParam('pageSize', String(s))}
+            />
           )}
         </CardContent>
       </Card>

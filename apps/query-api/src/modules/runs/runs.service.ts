@@ -1,6 +1,6 @@
 import type { Database } from '@assertly/database';
 import { runs, setTenantContext, suites } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import { DATABASE_CONNECTION, escapeLikePattern } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
@@ -43,7 +43,7 @@ export class RunsService {
         conditions.push(eq(runs.status, status));
       }
       if (search) {
-        conditions.push(ilike(runs.name, `%${search}%`));
+        conditions.push(ilike(runs.name, `%${escapeLikePattern(search)}%`));
       }
 
       const where = and(...conditions);

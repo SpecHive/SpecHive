@@ -1,4 +1,4 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import { DATABASE_CONNECTION, IS_PRODUCTION } from '@assertly/nestjs-common';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
@@ -41,6 +41,7 @@ describe('AuthController', () => {
       providers: [
         AuthService,
         { provide: DATABASE_CONNECTION, useValue: { execute: mockExecute } },
+        { provide: IS_PRODUCTION, useValue: false },
         {
           provide: ConfigService,
           useValue: {

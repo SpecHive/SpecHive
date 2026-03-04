@@ -1,6 +1,5 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
-import { Controller, Get, Query, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 
 import { paginationSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -10,14 +9,10 @@ import { ProjectsService } from './projects.service';
 
 @Controller('v1/projects')
 export class ProjectsController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly projectsService: ProjectsService,
-    @Inject(ConfigService) private readonly configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(this.configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Get()
   async list(@CurrentUser() user: UserContext, @Query() query: Record<string, string>) {

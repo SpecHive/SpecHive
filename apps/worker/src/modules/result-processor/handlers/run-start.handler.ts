@@ -13,15 +13,18 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
   private readonly logger = new Logger(RunStartHandler.name);
 
   async handle(event: RunStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx.insert(runs).values({
-      id: event.runId,
-      projectId: ctx.projectId,
-      organizationId: ctx.organizationId,
-      name: event.payload.runName ?? null,
-      status: RunStatus.Pending,
-      startedAt: new Date(event.timestamp),
-      metadata: (event.payload.metadata ?? {}) as Record<string, unknown>,
-    });
+    await ctx.tx
+      .insert(runs)
+      .values({
+        id: event.runId,
+        projectId: ctx.projectId,
+        organizationId: ctx.organizationId,
+        name: event.payload.runName ?? null,
+        status: RunStatus.Pending,
+        startedAt: new Date(event.timestamp),
+        metadata: (event.payload.metadata ?? {}) as Record<string, unknown>,
+      })
+      .onConflictDoNothing({ target: runs.id });
 
     this.logger.log(`Created run ${event.runId}`);
   }

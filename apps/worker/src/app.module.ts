@@ -5,6 +5,7 @@ import {
   DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
+  isProductionProvider,
   S3Module,
   ThrottlerBehindProxyGuard,
 } from '@assertly/nestjs-common';
@@ -60,6 +61,6 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     ResultProcessorModule,
     ArtifactCleanupModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }, isProductionProvider],
 })
 export class AppModule {}

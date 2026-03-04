@@ -1,4 +1,4 @@
-import { AllExceptionsFilter } from '@assertly/nestjs-common';
+import { AllExceptionsFilter, IS_PRODUCTION } from '@assertly/nestjs-common';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { ExecutionContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -64,6 +64,7 @@ function buildModule(nodeEnv: string) {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        { provide: IS_PRODUCTION, useValue: nodeEnv === 'production' },
         {
           provide: DATABASE_CONNECTION,
           useValue: {},

@@ -31,6 +31,7 @@ export interface RunSummary {
   passedTests: number;
   failedTests: number;
   skippedTests: number;
+  flakyTests: number;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string | null;
@@ -97,4 +98,36 @@ export interface UserProfile {
   id: UserId;
   email: string;
   name: string;
+}
+
+export interface ProjectAnalyticsSummary {
+  totalRuns: number;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  skippedTests: number;
+  flakyTests: number;
+  passRate: number;
+  avgDurationMs: number;
+}
+
+export interface PassRateTrendPoint {
+  date: string;
+  passRate: number;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+}
+
+export interface DurationTrendPoint {
+  date: string;
+  avgDurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+}
+
+export interface FlakyTestSummary {
+  testName: string;
+  flakyCount: number;
+  totalRuns: number;
 }

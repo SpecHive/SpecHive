@@ -12,7 +12,9 @@ describe('TestStartHandler', () => {
   let ctx: EventHandlerContext;
 
   beforeEach(async () => {
-    mockInsert = vi.fn().mockReturnValue({ values: vi.fn() });
+    mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn() }),
+    });
     ctx = {
       tx: { insert: mockInsert } as unknown as EventHandlerContext['tx'],
       organizationId: 'org-1' as OrganizationId,

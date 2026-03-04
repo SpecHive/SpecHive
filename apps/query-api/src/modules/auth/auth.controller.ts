@@ -1,7 +1,6 @@
-import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
-import { Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Controller, Get, HttpCode, Inject, Post, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 
@@ -23,14 +22,10 @@ const switchOrgSchema = z.object({
 
 @Controller('v1/auth')
 export class AuthController {
-  private readonly isProduction: boolean;
-
   constructor(
     private readonly authService: AuthService,
-    configService: ConfigService,
-  ) {
-    this.isProduction = isProductionEnv(configService);
-  }
+    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
+  ) {}
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()

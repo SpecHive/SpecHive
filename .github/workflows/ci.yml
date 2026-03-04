@@ -156,7 +156,7 @@ jobs:
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
       - name: Run DB integration tests
-        run: pnpm test:integration:db
+        run: pnpm test:integration
         env:
           DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
