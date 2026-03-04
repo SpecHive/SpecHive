@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
 import {
-  computePassRate,
+  formatDateLabel,
   formatDateTime,
   formatDuration,
+  formatDurationMs,
   formatRelativeTime,
   truncateId,
 } from '@/lib/formatters';
@@ -74,16 +75,40 @@ describe('truncateId', () => {
   });
 });
 
-describe('computePassRate', () => {
-  it('returns 0 when total is 0', () => {
-    expect(computePassRate(0, 0)).toBe(0);
+describe('formatDurationMs', () => {
+  it('returns 0s for zero', () => {
+    expect(formatDurationMs(0)).toBe('0s');
   });
 
-  it('computes correct percentage', () => {
-    expect(computePassRate(90, 100)).toBe(90);
+  it('returns dash for negative', () => {
+    expect(formatDurationMs(-100)).toBe('—');
   });
 
-  it('rounds to one decimal', () => {
-    expect(computePassRate(1, 3)).toBeCloseTo(33.3, 0);
+  it('formats milliseconds', () => {
+    expect(formatDurationMs(456)).toBe('456ms');
+  });
+
+  it('formats seconds only', () => {
+    expect(formatDurationMs(5000)).toBe('5s');
+  });
+
+  it('formats minutes and seconds', () => {
+    expect(formatDurationMs(125_000)).toBe('2m 5s');
+  });
+
+  it('formats hours', () => {
+    expect(formatDurationMs(7_200_000)).toBe('2h 0m');
+  });
+
+  it('formats hours with seconds', () => {
+    expect(formatDurationMs(3_661_000)).toBe('1h 1m 1s');
+  });
+});
+
+describe('formatDateLabel', () => {
+  it('formats ISO date to short label', () => {
+    const result = formatDateLabel('2026-03-01');
+    expect(result).toContain('Mar');
+    expect(result).toContain('1');
   });
 });

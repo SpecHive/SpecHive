@@ -99,3 +99,35 @@ export interface ArtifactDownloadResponse {
   url: string;
   expiresIn: number;
 }
+
+export interface ProjectAnalyticsSummary {
+  totalRuns: number;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  skippedTests: number;
+  flakyTests: number;
+  passRate: number;
+  avgDurationMs: number;
+}
+
+export interface PassRateTrendPoint {
+  date: string;
+  passRate: number;
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+}
+
+export interface DurationTrendPoint {
+  date: string;
+  avgDurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+}
+
+export interface FlakyTestSummary {
+  testName: string;
+  flakyCount: number;
+  totalRuns: number;
+}
