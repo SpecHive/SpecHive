@@ -4,8 +4,10 @@ import { TestStatus, stripAnsi } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 
+import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+@EventHandler()
 @Injectable()
 export class TestEndHandler implements IEventHandler<TestEndEvent> {
   readonly eventType = 'test.end' as const;

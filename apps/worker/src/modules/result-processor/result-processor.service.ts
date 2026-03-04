@@ -4,15 +4,15 @@ import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { EnrichedEventEnvelopeSchema, type V1Event } from '@assertly/reporter-core-protocol';
 import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { DiscoveryService, Reflector } from '@nestjs/core';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
 
 import type { OutboxyEvent } from '../../types/outboxy-envelope';
 
-import { EVENT_HANDLER, type EventHandlerContext, type IEventHandler } from './handlers';
+import { EVENT_HANDLER_KEY, type EventHandlerContext, type IEventHandler } from './handlers';
 
 const DEFAULT_EVENT_PRIORITY = 99;
 
-// Event processing order (parents before children)
 const EVENT_PRIORITY: Record<string, number> = {
   'run.start': 1,
   'suite.start': 2,
@@ -31,11 +31,21 @@ export class ResultProcessorService implements OnModuleInit {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     @Inject(INBOXY_CLIENT) private readonly inbox: InboxyClient<Transaction>,
-    @Inject(EVENT_HANDLER) private readonly handlers: IEventHandler[],
+    private readonly discovery: DiscoveryService,
+    private readonly reflector: Reflector,
   ) {}
 
   onModuleInit(): void {
-    this.handlerMap = new Map(this.handlers.map((h) => [h.eventType, h]));
+    const handlers = this.discovery
+      .getProviders()
+      .filter((wrapper) => {
+        if (!wrapper.metatype || !wrapper.isDependencyTreeStatic()) return false;
+        return this.reflector.get(EVENT_HANDLER_KEY, wrapper.metatype) === true;
+      })
+      .map((wrapper) => wrapper.instance as IEventHandler);
+
+    this.handlerMap = new Map(handlers.map((h) => [h.eventType, h]));
+    this.logger.log(`Discovered ${this.handlerMap.size} event handlers`);
   }
 
   async processEvent(envelope: OutboxyEvent): Promise<void> {

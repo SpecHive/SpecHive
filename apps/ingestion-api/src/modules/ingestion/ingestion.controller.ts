@@ -1,6 +1,6 @@
 import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
 import { V1EventSchema } from '@assertly/reporter-core-protocol';
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 
@@ -24,6 +24,23 @@ export class IngestionController {
     configService: ConfigService<EnvConfig>,
   ) {
     this.isProduction = isProductionEnv(configService);
+  }
+
+  @Get('capabilities')
+  capabilities() {
+    return {
+      supportedVersions: ['1'],
+      currentVersion: '1',
+      eventTypes: [
+        'run.start',
+        'run.end',
+        'suite.start',
+        'suite.end',
+        'test.start',
+        'test.end',
+        'artifact.upload',
+      ],
+    };
   }
 
   @Post('events')

@@ -1,20 +1,30 @@
-export interface Organization {
-  id: string;
+import type {
+  ArtifactId,
+  OrganizationId,
+  ProjectId,
+  RunId,
+  SuiteId,
+  TestId,
+  UserId,
+} from '@assertly/shared-types';
+
+export interface OrganizationSummary {
+  id: OrganizationId;
   name: string;
   slug: string;
   role: string;
 }
 
-export interface Project {
-  id: string;
+export interface ProjectSummary {
+  id: ProjectId;
   name: string;
   slug: string;
   createdAt: string | null;
 }
 
 export interface RunSummary {
-  id: string;
-  projectId: string;
+  id: RunId;
+  projectId: ProjectId;
   name: string | null;
   status: string;
   totalTests: number;
@@ -33,16 +43,16 @@ export interface RunDetail extends RunSummary {
 }
 
 export interface SuiteSummary {
-  id: string;
+  id: SuiteId;
   name: string;
-  parentSuiteId: string | null;
+  parentSuiteId: SuiteId | null;
   createdAt: string | null;
 }
 
 export interface TestSummary {
-  id: string;
-  suiteId: string;
-  runId: string;
+  id: TestId;
+  suiteId: SuiteId;
+  runId: RunId;
   name: string;
   status: string;
   durationMs: number | null;
@@ -60,7 +70,7 @@ export interface TestDetail extends TestSummary {
 }
 
 export interface ArtifactSummary {
-  id: string;
+  id: ArtifactId;
   type: string;
   name: string;
   sizeBytes: number;
@@ -68,33 +78,23 @@ export interface ArtifactSummary {
   createdAt: string | null;
 }
 
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginationMeta;
+export interface ArtifactDownloadResponse {
+  url: string;
+  expiresIn: number;
 }
 
 export interface LoginResponse {
   token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
+  user: UserProfile;
   organization: {
-    id: string;
+    id: OrganizationId;
     name: string;
     slug: string;
   };
 }
 
-export interface ArtifactDownloadResponse {
-  url: string;
-  expiresIn: number;
+export interface UserProfile {
+  id: UserId;
+  email: string;
+  name: string;
 }

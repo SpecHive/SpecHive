@@ -1,20 +1,12 @@
 import { useNavigate, useSearchParams } from 'react-router';
 
+import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
-import { runStatusOptions, statusColorsDot } from '@/lib/constants';
+import { runStatusOptions } from '@/lib/constants';
 import { formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
 import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-sm">
-      <span className={`h-2 w-2 rounded-full ${statusColorsDot[status] || 'bg-gray-400'}`} />
-      {status}
-    </span>
-  );
-}
 
 export function RunsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -121,7 +113,7 @@ export function RunsPage() {
                       className="cursor-pointer border-b transition-colors hover:bg-accent"
                     >
                       <td className="py-3 pr-4">
-                        <StatusBadge status={run.status} />
+                        <StatusBadge status={run.status} variant="dot" />
                       </td>
                       <td className={`py-3 pr-4 ${run.name ? '' : 'font-mono text-xs'}`}>
                         {run.name ?? truncateId(run.id)}

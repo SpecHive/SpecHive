@@ -2,8 +2,10 @@ import { suites } from '@assertly/database';
 import type { SuiteStartEvent } from '@assertly/reporter-core-protocol';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+@EventHandler()
 @Injectable()
 export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
   readonly eventType = 'suite.start' as const;

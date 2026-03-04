@@ -37,7 +37,7 @@ interface SuiteTreeProps {
   suites: SuiteSummary[];
   selectedSuiteId: string | null;
   onSuiteSelect: (suiteId: string | null) => void;
-  testCountBySuiteId: Record<string, number>;
+  testCountBySuiteId?: Record<string, number> | undefined;
 }
 
 const MAX_INDENT_DEPTH = 5;
@@ -56,14 +56,14 @@ function SuiteNode({
   depth: number;
   selectedSuiteId: string | null;
   onSuiteSelect: (suiteId: string | null) => void;
-  testCountBySuiteId: Record<string, number>;
+  testCountBySuiteId?: Record<string, number> | undefined;
   expanded: Record<string, boolean>;
   onToggle: (suiteId: string) => void;
 }) {
   const isExpanded = expanded[node.suite.id] ?? false;
   const hasChildren = node.children.length > 0;
   const isSelected = selectedSuiteId === node.suite.id;
-  const count = testCountBySuiteId[node.suite.id] ?? 0;
+  const count = testCountBySuiteId?.[node.suite.id] ?? 0;
   const indent = Math.min(depth, MAX_INDENT_DEPTH) * INDENT_PX;
 
   return (

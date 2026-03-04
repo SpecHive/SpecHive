@@ -1,9 +1,11 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import { Reflector } from '@nestjs/core';
+import { DiscoveryService } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { INBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { EVENT_HANDLER, type IEventHandler } from '../src/modules/result-processor/handlers';
+import { EVENT_HANDLER_KEY, type IEventHandler } from '../src/modules/result-processor/handlers';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
 import type { OutboxyEvent } from '../src/types/outboxy-envelope';
 
@@ -46,6 +48,25 @@ function createMockHandler(eventType: string): IEventHandler {
   };
 }
 
+// Unique class identities for reflector matching
+class MockRunStartHandler {}
+class MockRunEndHandler {}
+class MockSuiteStartHandler {}
+class MockSuiteEndHandler {}
+class MockTestStartHandler {}
+class MockTestEndHandler {}
+class MockArtifactUploadHandler {}
+
+const HANDLER_METATYPES = [
+  MockRunStartHandler,
+  MockRunEndHandler,
+  MockSuiteStartHandler,
+  MockSuiteEndHandler,
+  MockTestStartHandler,
+  MockTestEndHandler,
+  MockArtifactUploadHandler,
+];
+
 describe('ResultProcessorService', () => {
   let service: ResultProcessorService;
   let mockTx: Record<string, unknown>;
@@ -62,7 +83,6 @@ describe('ResultProcessorService', () => {
       receive: vi.fn().mockResolvedValue({ eventId: 'inbox-1', status: 'processed' }),
     };
 
-    // Create mock handlers with proper eventType
     handlers = [
       createMockHandler('run.start'),
       createMockHandler('run.end'),
@@ -73,17 +93,36 @@ describe('ResultProcessorService', () => {
       createMockHandler('artifact.upload'),
     ];
 
+    const wrappers = handlers.map((handler, i) => ({
+      metatype: HANDLER_METATYPES[i],
+      instance: handler,
+      isDependencyTreeStatic: () => true,
+    }));
+
+    const mockDiscovery = { getProviders: vi.fn().mockReturnValue(wrappers) };
+    const mockReflector = {
+      get: vi.fn().mockImplementation((key: symbol, metatype: unknown) => {
+        if (
+          key === EVENT_HANDLER_KEY &&
+          HANDLER_METATYPES.includes(metatype as typeof MockRunStartHandler)
+        ) {
+          return true;
+        }
+        return undefined;
+      }),
+    };
+
     const module = await Test.createTestingModule({
       providers: [
         ResultProcessorService,
         { provide: DATABASE_CONNECTION, useValue: mockDb },
         { provide: INBOXY_CLIENT, useValue: mockInbox },
-        { provide: EVENT_HANDLER, useValue: handlers },
+        { provide: DiscoveryService, useValue: mockDiscovery },
+        { provide: Reflector, useValue: mockReflector },
       ],
     }).compile();
 
     service = module.get(ResultProcessorService);
-    // Manually call onModuleInit to build handlerMap
     service.onModuleInit();
   });
 
@@ -166,8 +205,6 @@ describe('ResultProcessorService', () => {
   it('sets RLS context before routing to handler', async () => {
     const envelope = makeEnvelope('run.start', {});
     await service.processEvent(envelope);
-
-    // setTenantContext calls tx.execute with SET config
     expect(mockTx.execute).toHaveBeenCalled();
   });
 

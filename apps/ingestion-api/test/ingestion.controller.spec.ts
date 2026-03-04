@@ -291,6 +291,29 @@ describe('IngestionController', () => {
       // Zod flatten output includes fieldErrors or formErrors keys
       expect(message.length).toBeGreaterThan('Invalid event payload:'.length);
     });
+
+    it('GET /v1/capabilities returns supported versions and event types', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/capabilities',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload);
+      expect(body).toEqual({
+        supportedVersions: ['1'],
+        currentVersion: '1',
+        eventTypes: [
+          'run.start',
+          'run.end',
+          'suite.start',
+          'suite.end',
+          'test.start',
+          'test.end',
+          'artifact.upload',
+        ],
+      });
+    });
   });
 
   describe('production mode', () => {

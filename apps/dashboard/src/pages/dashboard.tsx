@@ -8,6 +8,9 @@ import { statusColorsDot } from '@/lib/constants';
 import { computePassRate, formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
 import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
 
+const MS_PER_SECOND = 1000;
+const MS_PER_MINUTE = 60_000;
+
 function StatusDot({ status }: { status: string }) {
   return (
     <div
@@ -64,8 +67,8 @@ export function DashboardPage() {
       .map((r) => new Date(r.finishedAt!).getTime() - new Date(r.startedAt!).getTime());
     const avgMs =
       durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
-    const avgMin = Math.floor(avgMs / 60000);
-    const avgSec = Math.floor((avgMs % 60000) / 1000);
+    const avgMin = Math.floor(avgMs / MS_PER_MINUTE);
+    const avgSec = Math.floor((avgMs % MS_PER_MINUTE) / MS_PER_SECOND);
     const avgDuration = avgMs > 0 ? `${avgMin}m ${avgSec}s` : '—';
 
     return { totalRuns, passRate, failedTests, avgDuration };

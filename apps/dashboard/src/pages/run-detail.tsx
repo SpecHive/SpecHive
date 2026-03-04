@@ -1,13 +1,14 @@
 import { ChevronRight, Download, X } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
+import { StatusBadge } from '@/components/status-badge';
 import { SuiteTree } from '@/components/suite-tree';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApi } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
-import { statusColorsBadge, testStatusOptions } from '@/lib/constants';
+import { testStatusOptions } from '@/lib/constants';
 import { formatDateTime, formatDuration, truncateId } from '@/lib/formatters';
 import type {
   ArtifactDownloadResponse,
@@ -17,18 +18,6 @@ import type {
   TestDetail,
   TestSummary,
 } from '@/types/api';
-
-function StatusBadge({ status, large }: { status: string; large?: boolean }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium ${
-        statusColorsBadge[status] || 'bg-gray-400 text-white'
-      } ${large ? 'text-sm' : 'text-xs'}`}
-    >
-      {status}
-    </span>
-  );
-}
 
 export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -73,14 +62,6 @@ export function RunDetailPage() {
 
   const tests = testsData?.data || [];
   const testsMeta = testsData?.meta;
-
-  const testCountBySuiteId = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const test of tests) {
-      counts[test.suiteId] = (counts[test.suiteId] ?? 0) + 1;
-    }
-    return counts;
-  }, [tests]);
 
   if (runLoading) {
     return (
@@ -156,7 +137,6 @@ export function RunDetailPage() {
                   suites={suites}
                   selectedSuiteId={selectedSuiteId}
                   onSuiteSelect={handleSuiteSelect}
-                  testCountBySuiteId={testCountBySuiteId}
                 />
               </CardContent>
             </Card>
@@ -213,7 +193,9 @@ export function RunDetailPage() {
                         <td className="py-3 pr-4">
                           <StatusBadge status={test.status} />
                         </td>
-                        <td className="py-3 pr-4">{test.durationMs}ms</td>
+                        <td className="py-3 pr-4">
+                          {test.durationMs != null ? `${test.durationMs}ms` : '—'}
+                        </td>
                         <td className="max-w-xs truncate py-3 text-muted-foreground">
                           {test.errorMessage || '—'}
                         </td>
@@ -277,7 +259,9 @@ export function RunDetailPage() {
                   <h3 className="font-medium">{testDetail.name}</h3>
                   <div className="mt-2 flex items-center gap-4 text-sm">
                     <StatusBadge status={testDetail.status} />
-                    <span>{testDetail.durationMs}ms</span>
+                    <span>
+                      {testDetail.durationMs != null ? `${testDetail.durationMs}ms` : '—'}
+                    </span>
                     {testDetail.retryCount > 0 && (
                       <span className="text-muted-foreground">{testDetail.retryCount} retries</span>
                     )}

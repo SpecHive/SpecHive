@@ -3,8 +3,10 @@ import type { RunStartEvent } from '@assertly/reporter-core-protocol';
 import { RunStatus } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+@EventHandler()
 @Injectable()
 export class RunStartHandler implements IEventHandler<RunStartEvent> {
   readonly eventType = 'run.start' as const;

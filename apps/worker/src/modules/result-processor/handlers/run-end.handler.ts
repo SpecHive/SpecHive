@@ -3,8 +3,10 @@ import type { RunEndEvent } from '@assertly/reporter-core-protocol';
 import { Injectable, Logger } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
+import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+@EventHandler()
 @Injectable()
 export class RunEndHandler implements IEventHandler<RunEndEvent> {
   readonly eventType = 'run.end' as const;

@@ -3,8 +3,10 @@ import type { TestStartEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+@EventHandler()
 @Injectable()
 export class TestStartHandler implements IEventHandler<TestStartEvent> {
   readonly eventType = 'test.start' as const;
