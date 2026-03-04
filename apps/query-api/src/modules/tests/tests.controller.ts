@@ -14,6 +14,8 @@ import { TestsService } from './tests.service';
 const listTestsSchema = paginationSchema.extend({
   status: z.nativeEnum(TestStatus).optional(),
   suiteId: z.string().uuid().optional(),
+  sortBy: z.enum(['name', 'status', 'durationMs', 'createdAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
 });
 
 @Controller('v1/runs/:runId/tests')
@@ -46,6 +48,8 @@ export class TestsController {
       { page: result.data.page, pageSize: result.data.pageSize },
       result.data.status,
       result.data.suiteId as SuiteId | undefined,
+      result.data.sortBy,
+      result.data.sortOrder,
     );
   }
 

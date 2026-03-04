@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
 
 import { apiClient } from './api-client';
 
@@ -73,6 +74,17 @@ function clearSessionStorage(): void {
   sessionStorage.removeItem(STORAGE_KEYS.org);
 }
 
+const EXPIRY_WARNING_MS = 5 * 60 * 1000;
+
+function getTokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]!)) as { exp?: number };
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -124,6 +136,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSessionStorage();
     navigate('/login');
   }, [navigate]);
+
+  useEffect(() => {
+    if (!token) return;
+    const expiresAt = getTokenExpiry(token);
+    if (!expiresAt) return;
+
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+
+    if (timeUntilExpiry <= 0) {
+      logout();
+      return;
+    }
+
+    const warningTime = timeUntilExpiry - EXPIRY_WARNING_MS;
+    if (warningTime <= 0) {
+      toast.warning('Your session expires in 5 minutes. Please save your work.', {
+        id: 'session-expiry-warning',
+      });
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      toast.warning('Your session expires in 5 minutes. Please save your work.', {
+        id: 'session-expiry-warning',
+      });
+    }, warningTime);
+    return () => clearTimeout(timer);
+  }, [token, logout]);
+
+  useEffect(() => {
+    apiClient.setOnUnauthorized(() => {
+      toast.error('Session expired. Please log in again.');
+      logout();
+    });
+    return () => apiClient.setOnUnauthorized(null);
+  }, [logout]);
 
   const value = useMemo(
     () => ({

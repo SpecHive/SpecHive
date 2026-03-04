@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 import { apiClient } from '@/lib/api-client';
 
@@ -29,7 +30,9 @@ export function useApi<T>(path: string | null, params?: Record<string, string>):
       );
       setData(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const message = err instanceof Error ? err.message : 'An error occurred';
+      setError(message);
+      if (message !== 'Unauthorized') toast.error(message, { id: `api-error:${path}` });
     } finally {
       setLoading(false);
     }

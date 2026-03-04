@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { apiClient } from '@/lib/api-client';
 import { AuthProvider } from '@/lib/auth-context';
 import { RunDetailPage } from '@/pages/run-detail';
 
@@ -17,6 +19,14 @@ vi.mock('@/lib/api-client', () => ({
     get: vi.fn(),
     post: vi.fn(),
     setToken: vi.fn(),
+    setOnUnauthorized: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -202,6 +212,53 @@ describe('RunDetailPage', () => {
       expect(pre?.textContent).toContain('Error: boom');
       expect(pre?.textContent).toContain('at foo.ts:1:1');
       expect(screen.getByText('Hide stack trace')).toBeInTheDocument();
+    });
+
+    it('shows toast on download failure', async () => {
+      const user = userEvent.setup();
+      const artifact = {
+        id: 'art-1',
+        type: 'screenshot',
+        name: 'fail.png',
+        sizeBytes: 1024,
+        mimeType: 'image/png',
+        createdAt: '2026-01-01',
+      };
+
+      mockUseApi.mockImplementation((path: string) => {
+        if (path && path.match(/\/tests\/test-1$/)) {
+          return {
+            data: { ...mockTest, updatedAt: null, artifacts: [artifact] },
+            loading: false,
+            error: null,
+            refetch: vi.fn(),
+          };
+        }
+        if (path && path.includes('/tests')) {
+          return {
+            data: { data: [mockTest], meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 } },
+            loading: false,
+            error: null,
+            refetch: vi.fn(),
+          };
+        }
+        return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
+      });
+
+      vi.mocked(apiClient.get).mockRejectedValueOnce(new Error('Network error'));
+
+      renderRunDetail();
+      await user.click(screen.getByText('should pass'));
+
+      // Find the download button in the artifacts section (it contains an SVG icon)
+      const artifactName = screen.getByText('fail.png');
+      const artifactRow = artifactName.closest('div[class*="flex"]')!;
+      const downloadBtn = artifactRow.querySelector('button')!;
+      await user.click(downloadBtn);
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Download failed');
+      });
     });
   });
 });

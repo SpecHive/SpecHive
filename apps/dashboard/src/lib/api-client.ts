@@ -2,9 +2,14 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 class ApiClient {
   private token: string | null = null;
+  private onUnauthorized: (() => void) | null = null;
 
   setToken(token: string | null): void {
     this.token = token;
+  }
+
+  setOnUnauthorized(callback: (() => void) | null): void {
+    this.onUnauthorized = callback;
   }
 
   async get<T>(path: string, params?: Record<string, string>): Promise<T> {
@@ -37,7 +42,11 @@ class ApiClient {
 
     if (response.status === 401) {
       this.token = null;
-      window.location.href = '/login';
+      if (this.onUnauthorized) {
+        this.onUnauthorized();
+      } else {
+        window.location.href = '/login';
+      }
       throw new Error('Unauthorized');
     }
 

@@ -1,11 +1,14 @@
 import { ChevronRight, Download, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { toast } from 'sonner';
 
 import { StatusBadge } from '@/components/status-badge';
 import { SuiteTree } from '@/components/suite-tree';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SortableHeader } from '@/components/ui/sortable-header';
+import type { SortDirection } from '@/components/ui/sortable-header';
 import { useApi } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { testStatusOptions } from '@/lib/constants';
@@ -26,6 +29,8 @@ export function RunDetailPage() {
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
   const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [stackTraceOpen, setStackTraceOpen] = useState(false);
+  const [testSortBy, setTestSortBy] = useState<string | null>(null);
+  const [testSortOrder, setTestSortOrder] = useState<SortDirection>(null);
 
   const { data: run, loading: runLoading, error: runError } = useApi<RunDetail>(`/v1/runs/${id}`);
 
@@ -34,6 +39,10 @@ export function RunDetailPage() {
   const testParams: Record<string, string> = { page: String(testPage), pageSize: '20' };
   if (testStatus) testParams.status = testStatus;
   if (selectedSuiteId) testParams.suiteId = selectedSuiteId;
+  if (testSortBy && testSortOrder) {
+    testParams.sortBy = testSortBy;
+    testParams.sortOrder = testSortOrder;
+  }
 
   const { data: testsData, loading: testsLoading } = useApi<PaginatedResponse<TestSummary>>(
     id ? `/v1/runs/${id}/tests` : null,
@@ -49,6 +58,12 @@ export function RunDetailPage() {
     setTestPage(1);
   }, []);
 
+  const handleTestSort = useCallback((column: string, direction: SortDirection) => {
+    setTestSortBy(direction ? column : null);
+    setTestSortOrder(direction);
+    setTestPage(1);
+  }, []);
+
   const handleDownload = useCallback(async (artifactId: string) => {
     try {
       const response = await apiClient.get<ArtifactDownloadResponse>(
@@ -56,7 +71,7 @@ export function RunDetailPage() {
       );
       window.open(response.url, '_blank');
     } catch {
-      // Error handled by apiClient
+      toast.error('Download failed');
     }
   }, []);
 
@@ -176,9 +191,27 @@ export function RunDetailPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="pb-3 pr-4">Name</th>
-                      <th className="pb-3 pr-4">Status</th>
-                      <th className="pb-3 pr-4">Duration</th>
+                      <SortableHeader
+                        label="Name"
+                        column="name"
+                        currentSort={testSortBy}
+                        currentDirection={testSortOrder}
+                        onSort={handleTestSort}
+                      />
+                      <SortableHeader
+                        label="Status"
+                        column="status"
+                        currentSort={testSortBy}
+                        currentDirection={testSortOrder}
+                        onSort={handleTestSort}
+                      />
+                      <SortableHeader
+                        label="Duration"
+                        column="durationMs"
+                        currentSort={testSortBy}
+                        currentDirection={testSortOrder}
+                        onSort={handleTestSort}
+                      />
                       <th className="pb-3">Error</th>
                     </tr>
                   </thead>

@@ -14,6 +14,11 @@ import { RunsService } from './runs.service';
 const listRunsSchema = paginationSchema.extend({
   projectId: z.string().uuid(),
   status: z.nativeEnum(RunStatus).optional(),
+  search: z.string().max(200).optional(),
+  sortBy: z
+    .enum(['status', 'name', 'totalTests', 'startedAt', 'finishedAt', 'createdAt'])
+    .default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
 @Controller('v1/runs')
@@ -37,6 +42,9 @@ export class RunsController {
       result.data.projectId as ProjectId,
       { page: result.data.page, pageSize: result.data.pageSize },
       result.data.status,
+      result.data.search,
+      result.data.sortBy,
+      result.data.sortOrder,
     );
   }
 

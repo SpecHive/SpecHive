@@ -3,7 +3,7 @@ import { artifacts, setTenantContext, tests } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, count, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm/sql';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
@@ -36,12 +36,21 @@ export class TestsService {
     return result.map((row) => row.id as SuiteId);
   }
 
+  private static readonly testsSortColumns = {
+    name: tests.name,
+    status: tests.status,
+    durationMs: tests.durationMs,
+    createdAt: tests.createdAt,
+  } as const;
+
   async listTests(
     organizationId: OrganizationId,
     runId: RunId,
     pagination: PaginationParams,
     status?: string,
     suiteId?: SuiteId,
+    sortBy: keyof typeof TestsService.testsSortColumns = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'asc',
   ) {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -56,6 +65,8 @@ export class TestsService {
       }
 
       const where = and(...conditions);
+      const sortColumn = TestsService.testsSortColumns[sortBy];
+      const orderFn = sortOrder === 'asc' ? asc : desc;
 
       const [rows, totalResult] = await Promise.all([
         tx
@@ -74,7 +85,7 @@ export class TestsService {
           })
           .from(tests)
           .where(where)
-          .orderBy(asc(tests.createdAt))
+          .orderBy(orderFn(sortColumn))
           .limit(pagination.pageSize)
           .offset(offset),
         tx.select({ count: count() }).from(tests).where(where),

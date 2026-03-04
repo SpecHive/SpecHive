@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { apiClient } from '@/lib/api-client';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -10,6 +11,14 @@ vi.mock('@/lib/api-client', () => ({
   apiClient: {
     post: vi.fn(),
     setToken: vi.fn(),
+    setOnUnauthorized: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -151,6 +160,45 @@ describe('AuthContext', () => {
 
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
       expect(sessionStorage.getItem('assertly_token')).toBeNull();
+    });
+  });
+
+  describe('session expiry warning', () => {
+    function makeJwt(expUnix: number): string {
+      const header = btoa(JSON.stringify({ alg: 'HS256' }));
+      const payload = btoa(JSON.stringify({ exp: expUnix }));
+      return `${header}.${payload}.sig`;
+    }
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows warning toast 5 minutes before expiry', () => {
+      vi.useFakeTimers();
+      const now = Date.now();
+      const expiry = Math.floor((now + 10 * 60 * 1000) / 1000);
+      const jwt = makeJwt(expiry);
+
+      sessionStorage.setItem('assertly_token', jwt);
+      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
+      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+
+      renderWithAuth();
+
+      expect(toast.warning).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(5 * 60 * 1000);
+
+      expect(toast.warning).toHaveBeenCalledWith(
+        'Your session expires in 5 minutes. Please save your work.',
+        { id: 'session-expiry-warning' },
+      );
+    });
+
+    it('registers onUnauthorized callback', () => {
+      renderWithAuth();
+      expect(apiClient.setOnUnauthorized).toHaveBeenCalledWith(expect.any(Function));
     });
   });
 });

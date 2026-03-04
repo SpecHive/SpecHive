@@ -1,8 +1,12 @@
+import { Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SortableHeader } from '@/components/ui/sortable-header';
+import type { SortDirection } from '@/components/ui/sortable-header';
 import { useApi } from '@/hooks/use-api';
 import { runStatusOptions } from '@/lib/constants';
 import { formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
@@ -14,14 +18,41 @@ export function RunsPage() {
 
   const projectId = searchParams.get('projectId') || '';
   const status = searchParams.get('status') || '';
+  const search = searchParams.get('search') || '';
+  const sortBy = searchParams.get('sortBy') || '';
+  const sortOrder = (searchParams.get('sortOrder') as SortDirection) || null;
   const page = searchParams.get('page') || '1';
   const pageSize = searchParams.get('pageSize') || '20';
+
+  const [searchInput, setSearchInput] = useState(search);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    if (searchInput === search) return;
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (searchInput) {
+          next.set('search', searchInput);
+        } else {
+          next.delete('search');
+        }
+        next.delete('page');
+        return next;
+      });
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput, search, setSearchParams]);
 
   const { data: projectsData } = useApi<PaginatedResponse<Project>>('/v1/projects');
 
   const params: Record<string, string> = { page, pageSize };
   if (projectId) params.projectId = projectId;
   if (status) params.status = status;
+  if (search) params.search = search;
+  if (sortBy) params.sortBy = sortBy;
+  if (sortOrder) params.sortOrder = sortOrder;
 
   const effectiveProjectId = projectId || projectsData?.data[0]?.id || '';
 
@@ -41,6 +72,19 @@ export function RunsPage() {
     setSearchParams(next);
   };
 
+  const handleSort = (column: string, direction: SortDirection) => {
+    const next = new URLSearchParams(searchParams);
+    if (direction) {
+      next.set('sortBy', column);
+      next.set('sortOrder', direction);
+    } else {
+      next.delete('sortBy');
+      next.delete('sortOrder');
+    }
+    next.delete('page');
+    setSearchParams(next);
+  };
+
   const projects = projectsData?.data || [];
   const runs = runsData?.data || [];
   const meta = runsData?.meta;
@@ -53,6 +97,17 @@ export function RunsPage() {
       </div>
 
       <div className="flex gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search runs…"
+            className="rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+            aria-label="Search runs"
+          />
+        </div>
         <select
           value={effectiveProjectId}
           onChange={(e) => updateParam('projectId', e.target.value)}
@@ -98,11 +153,35 @@ export function RunsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
-                    <th className="pb-3 pr-4">Status</th>
-                    <th className="pb-3 pr-4">Name</th>
-                    <th className="pb-3 pr-4">Tests</th>
+                    <SortableHeader
+                      label="Status"
+                      column="status"
+                      currentSort={sortBy || null}
+                      currentDirection={sortOrder}
+                      onSort={handleSort}
+                    />
+                    <SortableHeader
+                      label="Name"
+                      column="name"
+                      currentSort={sortBy || null}
+                      currentDirection={sortOrder}
+                      onSort={handleSort}
+                    />
+                    <SortableHeader
+                      label="Tests"
+                      column="totalTests"
+                      currentSort={sortBy || null}
+                      currentDirection={sortOrder}
+                      onSort={handleSort}
+                    />
                     <th className="pb-3 pr-4">Duration</th>
-                    <th className="pb-3">Started</th>
+                    <SortableHeader
+                      label="Started"
+                      column="startedAt"
+                      currentSort={sortBy || null}
+                      currentDirection={sortOrder}
+                      onSort={handleSort}
+                    />
                   </tr>
                 </thead>
                 <tbody>

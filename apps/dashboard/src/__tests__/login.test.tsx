@@ -11,6 +11,14 @@ vi.mock('@/lib/api-client', () => ({
   apiClient: {
     post: vi.fn(),
     setToken: vi.fn(),
+    setOnUnauthorized: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 

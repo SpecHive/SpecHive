@@ -8,6 +8,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   vi.stubGlobal('fetch', mockFetch);
   apiClient.setToken(null);
+  apiClient.setOnUnauthorized(null);
 });
 
 afterEach(() => {
@@ -83,6 +84,20 @@ describe('apiClient', () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain('projectId=abc');
     expect(url).toContain('page=2');
+  });
+
+  it('calls onUnauthorized callback on 401 when registered', async () => {
+    const callback = vi.fn();
+    apiClient.setOnUnauthorized(callback);
+
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ message: 'Unauthorized' }),
+    });
+
+    await expect(apiClient.get('/v1/projects')).rejects.toThrow('Unauthorized');
+    expect(callback).toHaveBeenCalledOnce();
   });
 
   it('sends JSON body for POST requests', async () => {

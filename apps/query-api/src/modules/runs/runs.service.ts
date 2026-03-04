@@ -3,7 +3,7 @@ import { runs, setTenantContext, suites } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import type { PaginationParams } from '../../common/pagination';
@@ -15,11 +15,23 @@ export class RunsService {
     private readonly db: Database,
   ) {}
 
+  private static readonly runsSortColumns = {
+    status: runs.status,
+    name: runs.name,
+    totalTests: runs.totalTests,
+    startedAt: runs.startedAt,
+    finishedAt: runs.finishedAt,
+    createdAt: runs.createdAt,
+  } as const;
+
   async listRuns(
     organizationId: OrganizationId,
     projectId: ProjectId,
     pagination: PaginationParams,
     status?: string,
+    search?: string,
+    sortBy: keyof typeof RunsService.runsSortColumns = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
   ) {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -30,8 +42,13 @@ export class RunsService {
       if (status) {
         conditions.push(eq(runs.status, status));
       }
+      if (search) {
+        conditions.push(ilike(runs.name, `%${search}%`));
+      }
 
       const where = and(...conditions);
+      const sortColumn = RunsService.runsSortColumns[sortBy];
+      const orderFn = sortOrder === 'asc' ? asc : desc;
 
       const [rows, totalResult] = await Promise.all([
         tx
@@ -51,7 +68,7 @@ export class RunsService {
           })
           .from(runs)
           .where(where)
-          .orderBy(desc(runs.createdAt))
+          .orderBy(orderFn(sortColumn))
           .limit(pagination.pageSize)
           .offset(offset),
         tx.select({ count: count() }).from(runs).where(where),
