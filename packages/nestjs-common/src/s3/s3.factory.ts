@@ -10,6 +10,7 @@ export interface S3FactoryEnvConfig {
   MINIO_USE_SSL: string;
   MINIO_PUBLIC_USE_SSL?: string | undefined;
   MINIO_BUCKET: string;
+  S3_REGION: string;
 }
 
 export function createS3ModuleOptions<T extends S3FactoryEnvConfig>(
@@ -18,7 +19,7 @@ export function createS3ModuleOptions<T extends S3FactoryEnvConfig>(
   return {
     endpoint: config.getOrThrow<string>('MINIO_ENDPOINT'),
     publicEndpoint: config.getOrThrow<string>('MINIO_PUBLIC_ENDPOINT'),
-    region: 'us-east-1',
+    region: config.getOrThrow<string>('S3_REGION'),
     accessKeyId: config.getOrThrow<string>('MINIO_APP_ACCESS_KEY'),
     secretAccessKey: config.getOrThrow<string>('MINIO_APP_SECRET_KEY'),
     useSSL: config.getOrThrow<string>('MINIO_USE_SSL') === 'true',

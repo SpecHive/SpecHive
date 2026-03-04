@@ -1,4 +1,5 @@
 import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { TestStatus } from '@assertly/shared-types';
 import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,7 +12,7 @@ import type { UserContext } from '../auth/types';
 import { TestsService } from './tests.service';
 
 const listTestsSchema = paginationSchema.extend({
-  status: z.string().optional(),
+  status: z.nativeEnum(TestStatus).optional(),
   suiteId: z.string().uuid().optional(),
 });
 

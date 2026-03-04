@@ -85,6 +85,26 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void>
   throw new Error(`Postgres did not become ready within ${maxAttempts * delayMs}ms`);
 }
 
+function createBatchPayload(
+  eventType: string,
+  aggregateId: string,
+  payload: Record<string, unknown>,
+): string {
+  return JSON.stringify({
+    batch: true,
+    count: 1,
+    events: [
+      {
+        eventId: crypto.randomUUID(),
+        aggregateType: 'TestRun',
+        aggregateId,
+        eventType,
+        payload,
+      },
+    ],
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Test suites
 // ---------------------------------------------------------------------------
@@ -191,13 +211,7 @@ describe('Crash simulation: worker', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: JSON.stringify({
-        id: 'evt-1',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-1',
-        eventType: 'run.start',
-        payload: { runId: 'run-1' },
-      }),
+      body: createBatchPayload('run.start', 'run-1', { runId: 'run-1' }),
     });
 
     expect(res.status).toBe(200);
@@ -242,13 +256,7 @@ describe('Crash simulation: worker', () => {
           'Content-Type': 'application/json',
           'x-webhook-secret': WEBHOOK_SECRET,
         },
-        body: JSON.stringify({
-          id: `evt-${i}`,
-          aggregateType: 'TestRun',
-          aggregateId: `run-${i}`,
-          eventType: 'test.end',
-          payload: { status: 'passed' },
-        }),
+        body: createBatchPayload('test.end', `run-${i}`, { status: 'passed' }),
       });
     }
 
@@ -323,13 +331,7 @@ describe('Crash simulation: Outboxy retry', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: JSON.stringify({
-        id: 'evt-retry-test',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-retry',
-        eventType: 'run.start',
-        payload: { runId: 'run-retry' },
-      }),
+      body: createBatchPayload('run.start', 'run-retry', { runId: 'run-retry' }),
     });
 
     expect(workerRes.status).toBe(200);
@@ -338,13 +340,20 @@ describe('Crash simulation: Outboxy retry', () => {
   it('event is not duplicated when worker returns 200 after retry', async () => {
     // Verify idempotent processing: sending the same event ID twice
     // should not cause errors — the worker should handle it gracefully.
-    const eventPayload = {
-      id: 'evt-dedup-test',
-      aggregateType: 'TestRun',
-      aggregateId: 'run-dedup',
-      eventType: 'run.start',
-      payload: { runId: 'run-dedup' },
-    };
+    const dedupEventId = crypto.randomUUID();
+    const batchBody = JSON.stringify({
+      batch: true,
+      count: 1,
+      events: [
+        {
+          eventId: dedupEventId,
+          aggregateType: 'TestRun',
+          aggregateId: 'run-dedup',
+          eventType: 'run.start',
+          payload: { runId: 'run-dedup' },
+        },
+      ],
+    });
 
     const first = await fetch(`${WORKER_URL}/webhooks/outboxy`, {
       method: 'POST',
@@ -352,7 +361,7 @@ describe('Crash simulation: Outboxy retry', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: JSON.stringify(eventPayload),
+      body: batchBody,
     });
     expect(first.status).toBe(200);
 
@@ -363,7 +372,7 @@ describe('Crash simulation: Outboxy retry', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: JSON.stringify(eventPayload),
+      body: batchBody,
     });
     expect(second.status).toBe(200);
 

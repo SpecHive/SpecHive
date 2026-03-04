@@ -26,20 +26,22 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       })
       .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
 
-    const counterField =
+    const counterUpdates =
       status === TestStatus.Passed
-        ? runs.passedTests
+        ? { passedTests: sql`${runs.passedTests} + 1` }
         : status === TestStatus.Failed
-          ? runs.failedTests
+          ? { failedTests: sql`${runs.failedTests} + 1` }
           : status === TestStatus.Skipped
-            ? runs.skippedTests
-            : null;
+            ? { skippedTests: sql`${runs.skippedTests} + 1` }
+            : status === TestStatus.Flaky
+              ? { flakyTests: sql`${runs.flakyTests} + 1` }
+              : {};
 
     await ctx.tx
       .update(runs)
       .set({
         totalTests: sql`${runs.totalTests} + 1`,
-        ...(counterField ? { [counterField.name]: sql`${counterField} + 1` } : {}),
+        ...counterUpdates,
       })
       .where(eq(runs.id, event.runId));
 

@@ -31,7 +31,8 @@ cat > /tmp/app-policy.json <<POLICY
       "Action": [
         "s3:PutObject",
         "s3:GetObject",
-        "s3:ListBucket"
+        "s3:ListBucket",
+        "s3:DeleteObject"
       ],
       "Resource": [
         "arn:aws:s3:::${BUCKET}",

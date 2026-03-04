@@ -46,7 +46,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level=critical
+        run: pnpm audit --audit-level=high
 
       - name: Lint
         run: pnpm lint
@@ -231,8 +231,8 @@ jobs:
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
           MINIO_ENDPOINT: localhost:9000
-          MINIO_ACCESS_KEY: assertly-app
-          MINIO_SECRET_KEY: assertly-app-secret-key
+          MINIO_APP_ACCESS_KEY: assertly-app
+          MINIO_APP_SECRET_KEY: assertly-app-secret-key
           MINIO_BUCKET: assertly-artifacts
           MINIO_USE_SSL: 'false'
           OUTBOXY_API_URL: http://localhost:3100

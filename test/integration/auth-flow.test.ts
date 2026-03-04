@@ -69,11 +69,11 @@ describe('Auth flow', () => {
       }),
     });
 
-    expect(response.status).toBe(201);
-    const body = (await response.json()) as { accessToken?: string };
-    expect(body).toHaveProperty('accessToken');
-    expect(typeof body.accessToken).toBe('string');
-    expect(body.accessToken!.length).toBeGreaterThan(0);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { token?: string };
+    expect(body).toHaveProperty('token');
+    expect(typeof body.token).toBe('string');
+    expect(body.token!.length).toBeGreaterThan(0);
   });
 
   it('login fails with invalid credentials (401)', async () => {
@@ -102,9 +102,9 @@ describe('Auth flow', () => {
       }),
     });
 
-    expect(loginResponse.status).toBe(201);
-    const loginBody = (await loginResponse.json()) as { accessToken: string };
-    const token = loginBody.accessToken;
+    expect(loginResponse.status).toBe(200);
+    const loginBody = (await loginResponse.json()) as { token: string };
+    const token = loginBody.token;
 
     // Now access a protected endpoint
     const meResponse = await fetch(`${QUERY_API_URL}/v1/auth/me`, {

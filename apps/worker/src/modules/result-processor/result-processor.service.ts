@@ -10,6 +10,19 @@ import type { OutboxyEvent } from '../../types/outboxy-envelope';
 
 import { EVENT_HANDLER, type EventHandlerContext, type IEventHandler } from './handlers';
 
+const DEFAULT_EVENT_PRIORITY = 99;
+
+// Event processing order (parents before children)
+const EVENT_PRIORITY: Record<string, number> = {
+  'run.start': 1,
+  'suite.start': 2,
+  'test.start': 3,
+  'test.end': 4,
+  'artifact.upload': 5,
+  'suite.end': 6,
+  'run.end': 7,
+};
+
 @Injectable()
 export class ResultProcessorService implements OnModuleInit {
   private readonly logger = new Logger(ResultProcessorService.name);
@@ -64,6 +77,14 @@ export class ResultProcessorService implements OnModuleInit {
 
       await this.routeEvent(event, ctx);
     });
+  }
+
+  sortEventsByPriority(events: OutboxyEvent[]): OutboxyEvent[] {
+    return [...events].sort(
+      (a, b) =>
+        (EVENT_PRIORITY[a.eventType] ?? DEFAULT_EVENT_PRIORITY) -
+        (EVENT_PRIORITY[b.eventType] ?? DEFAULT_EVENT_PRIORITY),
+    );
   }
 
   private async routeEvent(event: V1Event, ctx: EventHandlerContext): Promise<void> {

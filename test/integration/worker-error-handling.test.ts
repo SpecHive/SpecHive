@@ -73,15 +73,17 @@ function createWebhookPayload(
 ): string {
   const event = {
     eventId: eventId ?? crypto.randomUUID(),
-    aggregateType: 'run',
+    aggregateType: 'TestRun',
     aggregateId: runId,
     eventType,
     payload: {
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId,
-      eventType,
-      payload,
+      event: {
+        version: '1',
+        timestamp: new Date().toISOString(),
+        runId,
+        eventType,
+        payload,
+      },
       organizationId: INTEGRATION_ORG_ID,
       projectId: INTEGRATION_PROJECT_ID,
     },

@@ -45,7 +45,10 @@ describe('WebhookReceiverController', () => {
       providers: [
         {
           provide: ResultProcessorService,
-          useValue: { processEvent: mockProcessEvent },
+          useValue: {
+            processEvent: mockProcessEvent,
+            sortEventsByPriority: vi.fn().mockImplementation((events: unknown[]) => [...events]),
+          },
         },
         {
           provide: ConfigService,

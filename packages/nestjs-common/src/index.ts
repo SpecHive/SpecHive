@@ -22,3 +22,5 @@ export { S3_CLIENT, S3_BUCKET } from './s3/s3.constants';
 export type { S3ModuleConfig } from './s3/s3.constants';
 export { createS3ModuleOptions } from './s3/s3.factory';
 export type { S3FactoryEnvConfig } from './s3/s3.factory';
+
+export { createOutboxyAdapter } from './outboxy/index';

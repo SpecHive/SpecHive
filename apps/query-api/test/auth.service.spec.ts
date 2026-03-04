@@ -1,5 +1,5 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { UserId } from '@assertly/shared-types';
+import type { OrganizationId, UserId } from '@assertly/shared-types';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -12,6 +12,11 @@ import { AuthService } from '../src/modules/auth/auth.service';
 vi.mock('argon2', () => ({
   verify: vi.fn(),
 }));
+
+vi.mock('@assertly/database', async (importOriginal) => {
+  const original = await importOriginal();
+  return { ...original, setTenantContext: vi.fn() };
+});
 
 const mockVerify = vi.mocked(verify);
 
@@ -35,6 +40,11 @@ const MOCK_ORG = {
 describe('AuthService', () => {
   let service: AuthService;
   const mockExecute = vi.fn();
+  const mockTransaction = vi.fn(
+    async (fn: (tx: { execute: typeof mockExecute }) => Promise<unknown>) => {
+      return fn({ execute: mockExecute });
+    },
+  );
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -42,7 +52,10 @@ describe('AuthService', () => {
     const module = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: DATABASE_CONNECTION, useValue: { execute: mockExecute } },
+        {
+          provide: DATABASE_CONNECTION,
+          useValue: { execute: mockExecute, transaction: mockTransaction },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -129,16 +142,19 @@ describe('AuthService', () => {
         { id: MOCK_USER.id, email: MOCK_USER.email, name: MOCK_USER.name },
       ]);
 
-      const result = await service.getProfile(MOCK_USER.id as UserId);
+      const result = await service.getProfile(
+        MOCK_USER.id as UserId,
+        MOCK_ORG.organization_id as OrganizationId,
+      );
       expect(result.email).toBe('test@assertly.dev');
     });
 
     it('throws 401 when user not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await expect(service.getProfile('non-existent' as UserId)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.getProfile('non-existent' as UserId, MOCK_ORG.organization_id as OrganizationId),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 

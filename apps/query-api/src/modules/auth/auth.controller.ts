@@ -50,7 +50,7 @@ export class AuthController {
 
   @Get('me')
   async me(@CurrentUser() user: UserContext) {
-    const profile = await this.authService.getProfile(user.userId);
+    const profile = await this.authService.getProfile(user.userId, user.organizationId);
     return {
       ...profile,
       organizationId: user.organizationId,

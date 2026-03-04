@@ -11,19 +11,6 @@ import { ResultProcessorService } from '../result-processor/result-processor.ser
 const WEBHOOK_RATE_LIMIT_TTL_MS = 60_000;
 const WEBHOOK_RATE_LIMIT_MAX = 1_000;
 
-const DEFAULT_EVENT_PRIORITY = 99;
-
-// Event processing order (parents before children)
-const EVENT_PRIORITY: Record<string, number> = {
-  'run.start': 1,
-  'suite.start': 2,
-  'test.start': 3,
-  'test.end': 4,
-  'artifact.upload': 5,
-  'suite.end': 6,
-  'run.end': 7,
-};
-
 @Controller('webhooks')
 @UseGuards(WebhookAuthGuard)
 export class WebhookReceiverController {
@@ -51,18 +38,19 @@ export class WebhookReceiverController {
 
     const { events } = result.data;
 
-    // Sort events by dependency order (parents before children)
-    const sortedEvents = [...events].sort(
-      (a, b) =>
-        (EVENT_PRIORITY[a.eventType] ?? DEFAULT_EVENT_PRIORITY) -
-        (EVENT_PRIORITY[b.eventType] ?? DEFAULT_EVENT_PRIORITY),
-    );
+    const sortedEvents = this.resultProcessor.sortEventsByPriority(events);
 
     this.logger.log(`Received Outboxy batch: ${sortedEvents.length} events`);
 
     for (const event of sortedEvents) {
       this.logger.log(`Processing event: ${event.eventType}`);
-      await this.resultProcessor.processEvent(event);
+      try {
+        await this.resultProcessor.processEvent(event);
+      } catch (error) {
+        this.logger.error(
+          `Failed to process event ${event.eventId} (${event.eventType}): ${error instanceof Error ? error.message : error}`,
+        );
+      }
     }
 
     return { received: true, processed: events.length };

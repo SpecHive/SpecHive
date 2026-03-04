@@ -332,7 +332,7 @@ services:
       - /var/cache/nginx
       - /var/run
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3002}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
       interval: 10s

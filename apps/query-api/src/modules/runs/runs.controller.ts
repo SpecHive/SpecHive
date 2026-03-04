@@ -1,4 +1,5 @@
 import { isProductionEnv, throwZodBadRequest } from '@assertly/nestjs-common';
+import { RunStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -12,7 +13,7 @@ import { RunsService } from './runs.service';
 
 const listRunsSchema = paginationSchema.extend({
   projectId: z.string().uuid(),
-  status: z.string().optional(),
+  status: z.nativeEnum(RunStatus).optional(),
 });
 
 @Controller('v1/runs')

@@ -1,11 +1,14 @@
 import type { Database } from '@assertly/database';
+import { setTenantContext } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { MembershipRole, OrganizationId, UserId } from '@assertly/shared-types';
+import { MembershipRole } from '@assertly/shared-types';
+import type { OrganizationId, UserId } from '@assertly/shared-types';
 import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { SignJWT } from 'jose';
+import { z } from 'zod';
 
 import type { EnvConfig } from '../config/env.validation';
 
@@ -22,7 +25,7 @@ type UserOrganization = {
   organization_id: string;
   organization_name: string;
   organization_slug: string;
-  role: string;
+  role: MembershipRole;
 };
 
 @Injectable()
@@ -92,16 +95,22 @@ export class AuthService {
     };
   }
 
-  async getProfile(userId: UserId) {
-    const users = (await this.db.execute(
-      sql`SELECT id, email, name FROM public.users WHERE id = ${userId}::uuid`,
-    )) as { id: string; email: string; name: string }[];
+  async getProfile(userId: UserId, organizationId: OrganizationId) {
+    const userProfileSchema = z.object({ id: z.string(), email: z.string(), name: z.string() });
 
-    if (users.length === 0) {
-      throw new UnauthorizedException('User not found');
-    }
+    return this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+      const result = await tx.execute(
+        sql`SELECT id, email, name FROM public.users WHERE id = ${userId}::uuid`,
+      );
+      const users = userProfileSchema.array().parse([...result]);
 
-    return users[0]!;
+      if (users.length === 0) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return users[0]!;
+    });
   }
 
   async switchOrganization(userId: UserId, targetOrgId: OrganizationId) {
@@ -114,7 +123,7 @@ export class AuthService {
       throw new ForbiddenException('User is not a member of the requested organization');
     }
 
-    const profile = await this.getProfile(userId);
+    const profile = await this.getProfile(userId, targetOrgId);
 
     const token = await this.signToken({
       sub: userId,

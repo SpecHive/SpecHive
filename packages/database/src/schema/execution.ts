@@ -61,6 +61,7 @@ export const runs = pgTable(
     passedTests: integer('passed_tests').notNull().default(0),
     failedTests: integer('failed_tests').notNull().default(0),
     skippedTests: integer('skipped_tests').notNull().default(0),
+    flakyTests: integer('flaky_tests').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     metadata: jsonb('metadata')
@@ -136,6 +137,7 @@ export const tests = pgTable(
     index('tests_suite_idx').on(table.suiteId),
     index('tests_run_status_idx').on(table.runId, table.status),
     index('tests_organization_id_idx').on(table.organizationId),
+    index('tests_run_created_idx').on(table.runId, table.createdAt),
   ],
 );
 
@@ -161,5 +163,8 @@ export const artifacts = pgTable(
   (table) => [
     index('artifacts_test_idx').on(table.testId),
     index('artifacts_organization_id_idx').on(table.organizationId),
+    index('artifacts_pending_cleanup_idx')
+      .on(table.createdAt)
+      .where(sql`storage_path LIKE 'pending://%'`),
   ],
 );

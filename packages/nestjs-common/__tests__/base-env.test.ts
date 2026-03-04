@@ -12,6 +12,7 @@ describe('baseEnvSchema', () => {
     expect(result).toEqual({
       NODE_ENV: 'production',
       PORT: 8080,
+      S3_REGION: 'us-east-1',
     });
   });
 
@@ -33,6 +34,7 @@ describe('baseEnvSchema', () => {
     expect(result).toEqual({
       NODE_ENV: 'development',
       PORT: 3000,
+      S3_REGION: 'us-east-1',
     });
   });
 
