@@ -25,16 +25,38 @@ import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
 // ============================================================================
-// Helper Functions
+// Deterministic PRNG (seeded Linear Congruential Generator)
 // ============================================================================
 
-function randomElement<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]!;
+function createPRNG(seed: number) {
+  let state = seed;
+  return {
+    next(): number {
+      state = (state * 1103515245 + 12345) & 0x7fffffff;
+      return state / 0x7fffffff;
+    },
+    nextInt(min: number, max: number): number {
+      return Math.floor(this.next() * (max - min + 1)) + min;
+    },
+    pick<T>(arr: T[]): T {
+      return arr[Math.floor(this.next() * arr.length)]!;
+    },
+    shuffle<T>(arr: T[]): T[] {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(this.next() * (i + 1));
+        [copy[i], copy[j]] = [copy[j]!, copy[i]!];
+      }
+      return copy;
+    },
+  };
 }
 
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+const rng = createPRNG(42);
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 function generateTimestamp(daysAgo: number, hourOffset = 0): Date {
   const date = new Date();
@@ -45,6 +67,14 @@ function generateTimestamp(daysAgo: number, hourOffset = 0): Date {
 
 function generateCommitSha(): string {
   return randomBytes(20).toString('hex').slice(0, 7);
+}
+
+/** Returns a daily pass rate with deliberate variation to simulate regressions */
+function getDailyPassRate(baseRate: number, dayIndex: number): number {
+  const regressionDays = [5, 12, 20, 27];
+  const isRegressionDay = regressionDays.includes(dayIndex);
+  const modifier = isRegressionDay ? -0.25 : rng.next() * 0.1 - 0.05;
+  return Math.max(0.3, Math.min(1.0, baseRate + modifier));
 }
 
 const RUN_NAMES: (string | null)[] = [
@@ -268,35 +298,35 @@ const PROJECTS: ProjectConfig[] = [
   {
     name: 'Frontend E2E',
     slug: 'frontend-e2e',
-    runCount: 8,
+    runCount: 18,
     testsPerRun: { min: 15, max: 30 },
     suiteConfig: { depth: 3, suitesPerLevel: 3 },
     artifactTypes: [ArtifactType.Screenshot, ArtifactType.Trace, ArtifactType.Video],
     passRate: 0.7,
     testNames: FRONTEND_E2E_TESTS,
-    durationRange: { min: 100, max: 5000 },
+    durationRange: { min: 50, max: 8000 },
   },
   {
     name: 'Backend API',
     slug: 'backend-api',
-    runCount: 7,
+    runCount: 16,
     testsPerRun: { min: 20, max: 40 },
     suiteConfig: { depth: 2, suitesPerLevel: 4 },
     artifactTypes: [ArtifactType.Log],
     passRate: 0.85,
     testNames: BACKEND_API_TESTS,
-    durationRange: { min: 10, max: 500 },
+    durationRange: { min: 5, max: 1000 },
   },
   {
     name: 'Unit Tests',
     slug: 'unit-tests',
-    runCount: 6,
+    runCount: 15,
     testsPerRun: { min: 50, max: 100 },
     suiteConfig: { depth: 2, suitesPerLevel: 5 },
     artifactTypes: [],
     passRate: 0.95,
     testNames: UNIT_TESTS,
-    durationRange: { min: 1, max: 50 },
+    durationRange: { min: 1, max: 100 },
   },
 ];
 
@@ -334,10 +364,10 @@ const STACK_TRACE_FRAGMENTS = [
 ];
 
 function generateStackTrace(): string {
-  const depth = randomInt(3, 6);
+  const depth = rng.nextInt(3, 6);
   const frames = [];
   for (let i = 0; i < depth; i++) {
-    frames.push(randomElement(STACK_TRACE_FRAGMENTS));
+    frames.push(rng.pick(STACK_TRACE_FRAGMENTS));
   }
   return frames.join('\n    ');
 }
@@ -522,41 +552,43 @@ export async function seed(dbUrl: string, password?: string) {
     for (const { id: projectId, config } of createdProjects) {
       console.log(`\nGenerating data for ${config.name}...`);
 
-      // Distribute runs across last 14 days
+      // Distribute runs across last 30 days
       const runDates: number[] = [];
       for (let i = 0; i < config.runCount; i++) {
-        runDates.push(Math.floor((i / config.runCount) * 14));
+        runDates.push(Math.floor((i / config.runCount) * 30));
       }
-      // Shuffle the dates
-      for (let i = runDates.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [runDates[i], runDates[j]] = [runDates[j]!, runDates[i]!];
-      }
+      const shuffledDates = rng.shuffle(runDates);
+      runDates.length = 0;
+      runDates.push(...shuffledDates);
 
       for (let runIndex = 0; runIndex < config.runCount; runIndex++) {
         const daysAgo = runDates[runIndex]!;
-        const startedAt = generateTimestamp(daysAgo, randomInt(0, 23));
-        const testCount = randomInt(config.testsPerRun.min, config.testsPerRun.max);
+        const startedAt = generateTimestamp(daysAgo, rng.nextInt(0, 23));
+        const testCount = rng.nextInt(config.testsPerRun.min, config.testsPerRun.max);
+        const dailyPassRate = getDailyPassRate(config.passRate, daysAgo);
 
-        // Determine run status based on pass rate (most recent runs may be running)
+        // Per-run speed factor: some runs 0.5x-2x speed
+        const runSpeedFactor = 0.5 + rng.next() * 1.5;
+
+        // Determine run status based on daily pass rate (most recent runs may be running)
         let runStatus: RunStatus;
-        if (runIndex < 2 && Math.random() < 0.3) {
+        if (runIndex < 2 && rng.next() < 0.3) {
           runStatus = RunStatus.Running;
         } else {
-          const statusRoll = Math.random();
+          const statusRoll = rng.next();
           if (statusRoll < 0.02) {
             runStatus = RunStatus.Cancelled;
-          } else if (statusRoll < 0.02 + (1 - config.passRate)) {
+          } else if (statusRoll < 0.02 + (1 - dailyPassRate)) {
             runStatus = RunStatus.Failed;
           } else {
             runStatus = RunStatus.Passed;
           }
         }
 
+        // Vary run durations: 30s to 15min, scaled by speed factor
+        const runDurationMs = Math.round(rng.nextInt(30_000, 900_000) * runSpeedFactor);
         const finishedAt =
-          runStatus === RunStatus.Running
-            ? null
-            : new Date(startedAt.getTime() + randomInt(60_000, 600_000));
+          runStatus === RunStatus.Running ? null : new Date(startedAt.getTime() + runDurationMs);
 
         const runName = RUN_NAMES[runIndex % RUN_NAMES.length] ?? null;
 
@@ -574,16 +606,10 @@ export async function seed(dbUrl: string, password?: string) {
             startedAt,
             finishedAt,
             metadata: {
-              branch: randomElement([
-                'main',
-                'develop',
-                'feature/auth',
-                'fix/login',
-                'release/v1.0',
-              ]),
+              branch: rng.pick(['main', 'develop', 'feature/auth', 'fix/login', 'release/v1.0']),
               commitSha: generateCommitSha(),
               buildNumber: 1000 + runIndex,
-              triggeredBy: randomElement(['push', 'schedule', 'manual', 'webhook']),
+              triggeredBy: rng.pick(['push', 'schedule', 'manual', 'webhook']),
             },
           })
           .onConflictDoNothing()
@@ -658,7 +684,7 @@ export async function seed(dbUrl: string, password?: string) {
         const testStatusCounts = { passed: 0, failed: 0, skipped: 0, flaky: 0 };
 
         // Shuffle and select test names
-        const shuffledNames = [...config.testNames].sort(() => Math.random() - 0.5);
+        const shuffledNames = rng.shuffle(config.testNames);
         let testNameIndex = 0;
 
         for (const suiteId of leafSuiteIds) {
@@ -668,21 +694,13 @@ export async function seed(dbUrl: string, password?: string) {
             const testName = shuffledNames[testNameIndex]!;
             testNameIndex++;
 
-            // Determine test status based on run status and pass rate
+            // Determine test status based on run status and daily pass rate
             let testStatus: TestStatus;
             if (runStatus === RunStatus.Running) {
-              testStatus = randomElement([
-                TestStatus.Passed,
-                TestStatus.Running,
-                TestStatus.Pending,
-              ]);
+              testStatus = rng.pick([TestStatus.Passed, TestStatus.Running, TestStatus.Pending]);
               if (testStatus === TestStatus.Passed) testStatusCounts.passed++;
             } else if (runStatus === RunStatus.Cancelled) {
-              testStatus = randomElement([
-                TestStatus.Passed,
-                TestStatus.Skipped,
-                TestStatus.Failed,
-              ]);
+              testStatus = rng.pick([TestStatus.Passed, TestStatus.Skipped, TestStatus.Failed]);
               testStatusCounts[
                 testStatus === TestStatus.Passed
                   ? 'passed'
@@ -691,14 +709,14 @@ export async function seed(dbUrl: string, password?: string) {
                     : 'failed'
               ]++;
             } else {
-              const statusRoll = Math.random();
-              if (statusRoll < 0.03) {
+              const statusRoll = rng.next();
+              if (statusRoll < 0.05) {
                 testStatus = TestStatus.Flaky;
                 testStatusCounts.flaky++;
-              } else if (statusRoll < 0.03 + 0.05) {
+              } else if (statusRoll < 0.05 + 0.05) {
                 testStatus = TestStatus.Skipped;
                 testStatusCounts.skipped++;
-              } else if (statusRoll < 0.08 + (1 - config.passRate)) {
+              } else if (statusRoll < 0.1 + (1 - dailyPassRate)) {
                 testStatus = TestStatus.Failed;
                 testStatusCounts.failed++;
               } else {
@@ -707,8 +725,10 @@ export async function seed(dbUrl: string, password?: string) {
               }
             }
 
-            const duration = randomInt(config.durationRange.min, config.durationRange.max);
-            const testStartedAt = new Date(startedAt.getTime() + randomInt(0, 60_000));
+            const duration = Math.round(
+              rng.nextInt(config.durationRange.min, config.durationRange.max) * runSpeedFactor,
+            );
+            const testStartedAt = new Date(startedAt.getTime() + rng.nextInt(0, 60_000));
             const testFinishedAt = new Date(testStartedAt.getTime() + duration);
 
             testsToCreate.push({
@@ -718,9 +738,9 @@ export async function seed(dbUrl: string, password?: string) {
               name: testName,
               status: testStatus,
               durationMs: duration,
-              errorMessage: testStatus === TestStatus.Failed ? randomElement(ERROR_MESSAGES) : null,
+              errorMessage: testStatus === TestStatus.Failed ? rng.pick(ERROR_MESSAGES) : null,
               stackTrace: testStatus === TestStatus.Failed ? generateStackTrace() : null,
-              retryCount: testStatus === TestStatus.Flaky ? randomInt(1, 3) : 0,
+              retryCount: testStatus === TestStatus.Flaky ? rng.nextInt(1, 3) : 0,
               startedAt: testStartedAt,
               finishedAt: testFinishedAt,
             });
@@ -742,6 +762,7 @@ export async function seed(dbUrl: string, password?: string) {
             passedTests: testStatusCounts.passed,
             failedTests: testStatusCounts.failed,
             skippedTests: testStatusCounts.skipped,
+            flakyTests: testStatusCounts.flaky,
           })
           .where(eq(runs.id, asRunId(run.id)));
 
@@ -757,7 +778,7 @@ export async function seed(dbUrl: string, password?: string) {
               type: ArtifactType.Video,
               name: `${test.name}.webm`,
               storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/video.webm`,
-              sizeBytes: randomInt(500_000, 5_000_000),
+              sizeBytes: rng.nextInt(500_000, 5_000_000),
               mimeType: 'video/webm',
             });
           }
@@ -773,7 +794,7 @@ export async function seed(dbUrl: string, password?: string) {
               type: ArtifactType.Screenshot,
               name: `${test.name}.png`,
               storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/screenshot.png`,
-              sizeBytes: randomInt(50_000, 500_000),
+              sizeBytes: rng.nextInt(50_000, 500_000),
               mimeType: 'image/png',
             });
           }
@@ -789,7 +810,7 @@ export async function seed(dbUrl: string, password?: string) {
               type: ArtifactType.Trace,
               name: `${test.name}.trace`,
               storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/trace.json`,
-              sizeBytes: randomInt(100_000, 2_000_000),
+              sizeBytes: rng.nextInt(100_000, 2_000_000),
               mimeType: 'application/json',
             });
           }
@@ -802,7 +823,7 @@ export async function seed(dbUrl: string, password?: string) {
               type: ArtifactType.Log,
               name: `${test.name}.log`,
               storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/test.log`,
-              sizeBytes: randomInt(1_000, 50_000),
+              sizeBytes: rng.nextInt(1_000, 50_000),
               mimeType: 'text/plain',
             });
           }

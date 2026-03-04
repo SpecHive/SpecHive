@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from './modules/config/config.module';
@@ -46,6 +47,7 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
       useFactory: (config: ConfigService<EnvConfig>) => createS3ModuleOptions(config),
       isGlobal: true,
     }),
+    AnalyticsModule,
     AuthModule,
     ProjectsModule,
     RunsModule,

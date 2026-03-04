@@ -21,6 +21,7 @@ export interface RunSummary {
   passedTests: number;
   failedTests: number;
   skippedTests: number;
+  flakyTests: number;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string | null;
