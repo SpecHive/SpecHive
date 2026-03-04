@@ -90,27 +90,29 @@ export class TestsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const [row] = await tx
-        .select()
-        .from(tests)
-        .where(and(eq(tests.id, testId), eq(tests.runId, runId)))
-        .limit(1);
+      const [rowResult, testArtifacts] = await Promise.all([
+        tx
+          .select()
+          .from(tests)
+          .where(and(eq(tests.id, testId), eq(tests.runId, runId)))
+          .limit(1),
+        tx
+          .select({
+            id: artifacts.id,
+            type: artifacts.type,
+            name: artifacts.name,
+            sizeBytes: artifacts.sizeBytes,
+            mimeType: artifacts.mimeType,
+            createdAt: artifacts.createdAt,
+          })
+          .from(artifacts)
+          .where(eq(artifacts.testId, testId)),
+      ]);
 
+      const row = rowResult[0];
       if (!row) {
         throw new NotFoundException(`Test ${testId} not found`);
       }
-
-      const testArtifacts = await tx
-        .select({
-          id: artifacts.id,
-          type: artifacts.type,
-          name: artifacts.name,
-          sizeBytes: artifacts.sizeBytes,
-          mimeType: artifacts.mimeType,
-          createdAt: artifacts.createdAt,
-        })
-        .from(artifacts)
-        .where(eq(artifacts.testId, testId));
 
       return {
         ...row,

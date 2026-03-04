@@ -77,11 +77,19 @@ describe('RunsService', () => {
 
   describe('getRunById', () => {
     it('throws 404 when run not found', async () => {
+      // Run detail query (returns empty)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([]),
           }),
+        }),
+      });
+
+      // Suite count query (runs in parallel via Promise.all)
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 0 }]),
         }),
       });
 

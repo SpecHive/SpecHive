@@ -67,39 +67,38 @@ export class RunsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const [row] = await tx
-        .select({
-          id: runs.id,
-          projectId: runs.projectId,
-          name: runs.name,
-          status: runs.status,
-          totalTests: runs.totalTests,
-          passedTests: runs.passedTests,
-          failedTests: runs.failedTests,
-          skippedTests: runs.skippedTests,
-          flakyTests: runs.flakyTests,
-          startedAt: runs.startedAt,
-          finishedAt: runs.finishedAt,
-          metadata: runs.metadata,
-          createdAt: runs.createdAt,
-          updatedAt: runs.updatedAt,
-        })
-        .from(runs)
-        .where(eq(runs.id, runId))
-        .limit(1);
+      const [rowResult, suiteCountResult] = await Promise.all([
+        tx
+          .select({
+            id: runs.id,
+            projectId: runs.projectId,
+            name: runs.name,
+            status: runs.status,
+            totalTests: runs.totalTests,
+            passedTests: runs.passedTests,
+            failedTests: runs.failedTests,
+            skippedTests: runs.skippedTests,
+            flakyTests: runs.flakyTests,
+            startedAt: runs.startedAt,
+            finishedAt: runs.finishedAt,
+            metadata: runs.metadata,
+            createdAt: runs.createdAt,
+            updatedAt: runs.updatedAt,
+          })
+          .from(runs)
+          .where(eq(runs.id, runId))
+          .limit(1),
+        tx.select({ count: count() }).from(suites).where(eq(suites.runId, runId)),
+      ]);
 
+      const row = rowResult[0];
       if (!row) {
         throw new NotFoundException(`Run ${runId} not found`);
       }
 
-      const [suiteCountResult] = await tx
-        .select({ count: count() })
-        .from(suites)
-        .where(eq(suites.runId, runId));
-
       return {
         ...row,
-        suiteCount: suiteCountResult?.count ?? 0,
+        suiteCount: suiteCountResult[0]?.count ?? 0,
       };
     });
   }

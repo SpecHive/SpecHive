@@ -76,11 +76,19 @@ describe('TestsService', () => {
 
   describe('getTestById', () => {
     it('throws 404 when test not found', async () => {
+      // Test detail query (returns empty)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([]),
           }),
+        }),
+      });
+
+      // Artifacts query (runs in parallel via Promise.all)
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([]),
         }),
       });
 

@@ -8,6 +8,8 @@ import {
 
 import { DATABASE_CONNECTION } from '../constants';
 
+import { DatabaseShutdownService } from './database-shutdown.service';
+
 @Global()
 @Module({})
 export class DatabaseModule {
@@ -23,6 +25,7 @@ export class DatabaseModule {
           inject: options.inject,
           useFactory: options.useFactory,
         },
+        DatabaseShutdownService,
       ],
       exports: [DATABASE_CONNECTION],
     };

@@ -1,6 +1,7 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import { DynamicModule, type InjectionToken, Module } from '@nestjs/common';
 
+import { S3ShutdownService } from './s3-shutdown.service';
 import {
   S3_BUCKET,
   S3_CLIENT,
@@ -66,6 +67,7 @@ export class S3Module {
           useFactory: (config: S3ModuleConfig) => config.publicEndpoint,
         },
         S3Service,
+        S3ShutdownService,
       ],
       exports: [S3Service, S3_CLIENT, S3_BUCKET, S3_PRESIGNER_CLIENT, S3_PUBLIC_ENDPOINT],
     };
