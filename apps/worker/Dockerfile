@@ -72,8 +72,7 @@ COPY packages/nestjs-common/package.json ./packages/nestjs-common/
 # --ignore-scripts avoids the root prepare hook calling husky
 RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) \
-    pnpm install --frozen-lockfile --prod --ignore-scripts && \
-    pnpm rebuild argon2
+    pnpm install --frozen-lockfile --prod --ignore-scripts
 
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
 COPY --from=build /app/packages/database/dist ./packages/database/dist

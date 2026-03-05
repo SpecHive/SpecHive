@@ -15,6 +15,8 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/api-types/package.json ./packages/api-types/
 
 RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) \
@@ -44,6 +46,8 @@ COPY . .
 ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=${VITE_API_URL}
 
+RUN pnpm --filter @assertly/shared-types run build
+RUN pnpm --filter @assertly/api-types run build
 RUN pnpm --filter @assertly/dashboard run build
 
 # ============================================================

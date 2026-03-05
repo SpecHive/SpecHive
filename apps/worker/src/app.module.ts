@@ -16,7 +16,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PostgreSqlDialect, PostgreSqlInboxDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 
-import { ArtifactCleanupModule } from './modules/artifact-cleanup/artifact-cleanup.module';
 import { ConfigModule } from './modules/config/config.module';
 import type { EnvConfig } from './modules/config/env.validation';
 import { ResultProcessorModule } from './modules/result-processor/result-processor.module';
@@ -59,7 +58,6 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     }),
     WebhookReceiverModule,
     ResultProcessorModule,
-    ArtifactCleanupModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }, isProductionProvider],
 })

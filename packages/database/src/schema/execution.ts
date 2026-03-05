@@ -163,8 +163,5 @@ export const artifacts = pgTable(
   (table) => [
     index('artifacts_test_idx').on(table.testId),
     index('artifacts_organization_id_idx').on(table.organizationId),
-    index('artifacts_pending_cleanup_idx')
-      .on(table.createdAt)
-      .where(sql`storage_path LIKE 'pending://%'`),
   ],
 );

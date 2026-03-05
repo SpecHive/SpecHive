@@ -36,7 +36,7 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
       await this.s3.upload(storagePath, buffer, event.payload.mimeType);
     } catch (error) {
       this.logger.error(`S3 upload failed for artifact ${artifactId}: ${error}`);
-      finalStoragePath = `pending://${storagePath}`;
+      finalStoragePath = `failed://${storagePath}`;
     }
 
     await ctx.tx.insert(artifacts).values({

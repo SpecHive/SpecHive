@@ -73,7 +73,7 @@ describe('ArtifactUploadHandler', () => {
     );
   });
 
-  it('inserts artifact with pending:// path on S3 failure', async () => {
+  it('inserts artifact with failed:// path on S3 failure', async () => {
     mockS3Upload.mockRejectedValue(new Error('S3 unavailable'));
     const data = Buffer.from('test').toString('base64');
     const event = {
@@ -94,7 +94,7 @@ describe('ArtifactUploadHandler', () => {
     expect(mockInsert).toHaveBeenCalled();
     const valuesCall = mockInsert.mock.results[0].value.values;
     const insertedValues = valuesCall.mock.calls[0][0];
-    expect(insertedValues.storagePath).toMatch(/^pending:\/\//);
+    expect(insertedValues.storagePath).toMatch(/^failed:\/\//);
     expect(insertedValues.mimeType).toBeNull();
   });
 

@@ -48,6 +48,11 @@ export class AuthService {
     );
 
     if (users.length === 0) {
+      // Dummy verify to prevent timing oracle on user enumeration
+      await verify(
+        '$argon2id$v=19$m=65536,t=3,p=4$dGltaW5nLXNhZmU$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        password,
+      ).catch(() => {});
       throw new UnauthorizedException('Invalid email or password');
     }
 

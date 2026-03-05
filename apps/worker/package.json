@@ -21,7 +21,6 @@
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
-    "@nestjs/schedule": "^6.1.1",
     "@nestjs/throttler": "^6.0.0",
     "@outboxy/dialect-postgres": "^1.1.2",
     "@outboxy/sdk-nestjs": "^2.1.3",

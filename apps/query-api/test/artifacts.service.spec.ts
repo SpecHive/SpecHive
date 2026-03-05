@@ -52,24 +52,6 @@ describe('ArtifactsService', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('throws BadRequest for pending artifact', async () => {
-    mockSelect.mockReturnValueOnce({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockResolvedValue([
-              { id: 'art-1', storagePath: 'pending://upload', name: 'file.png' },
-            ]),
-        }),
-      }),
-    });
-
-    await expect(
-      service.getDownloadUrl('org-1' as OrganizationId, 'art-1' as ArtifactId),
-    ).rejects.toThrow(BadRequestException);
-  });
-
   it('throws BadRequest for failed artifact', async () => {
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({

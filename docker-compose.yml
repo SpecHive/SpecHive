@@ -210,7 +210,7 @@ services:
       MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
-      MINIO_USE_SSL: 'false'
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
       interval: 10s
@@ -253,7 +253,7 @@ services:
       MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
-      MINIO_USE_SSL: 'false'
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
       interval: 10s
@@ -298,7 +298,7 @@ services:
       MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-assertly-app}
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
-      MINIO_USE_SSL: 'false'
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
       interval: 10s
@@ -340,7 +340,5 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      ingestion-api:
-        condition: service_healthy
       query-api:
         condition: service_healthy

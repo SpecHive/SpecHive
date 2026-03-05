@@ -33,10 +33,6 @@ export class ArtifactsService {
         throw new NotFoundException(`Artifact ${artifactId} not found`);
       }
 
-      if (artifact.storagePath.startsWith('pending://')) {
-        throw new BadRequestException('Artifact upload is still pending');
-      }
-
       if (artifact.storagePath.startsWith('failed://')) {
         throw new BadRequestException('Artifact upload failed');
       }
