@@ -7,6 +7,7 @@ import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
 import { RunDetailPage } from '@/pages/run-detail';
 import { RunsPage } from '@/pages/runs';
+import { TokensPage } from '@/pages/tokens';
 
 export function AppRoutes() {
   return (
@@ -17,6 +18,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/runs" element={<RunsPage />} />
           <Route path="/runs/:id" element={<RunDetailPage />} />
+          <Route path="/tokens" element={<TokensPage />} />
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

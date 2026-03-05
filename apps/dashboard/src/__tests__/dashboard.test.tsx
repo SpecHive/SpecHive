@@ -38,10 +38,15 @@ vi.mock('recharts', async () => {
   };
 });
 
-const mockProjects = {
-  data: [{ id: 'proj-1', name: 'Project', createdAt: null }],
-  meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
-};
+vi.mock('@/lib/project-context', () => ({
+  useProject: () => ({
+    projects: [{ id: 'proj-1', name: 'Project', createdAt: null }],
+    selectedProjectId: 'proj-1',
+    setSelectedProjectId: vi.fn(),
+    loading: false,
+    refetchProjects: vi.fn(),
+  }),
+}));
 
 const mockSummary = {
   totalRuns: 42,
@@ -93,7 +98,6 @@ const defaultApiResult = { data: null, loading: false, error: null, refetch: vi.
 
 function setupFullMocks() {
   mockUseApi.mockImplementation((path: string) => {
-    if (path === '/v1/projects') return { ...defaultApiResult, data: mockProjects };
     if (path?.includes('/analytics/summary')) return { ...defaultApiResult, data: mockSummary };
     if (path?.includes('/analytics/pass-rate-trend'))
       return { ...defaultApiResult, data: mockTrend };
@@ -129,7 +133,6 @@ describe('DashboardPage', () => {
 
   it('shows empty state when no runs', () => {
     mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') return { ...defaultApiResult, data: mockProjects };
       if (path?.includes('/analytics/')) return defaultApiResult;
       return {
         ...defaultApiResult,
@@ -220,7 +223,6 @@ describe('DashboardPage', () => {
 
   it('shows empty state for charts when no trend data', () => {
     mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') return { ...defaultApiResult, data: mockProjects };
       if (path?.includes('/analytics/summary')) return { ...defaultApiResult, data: mockSummary };
       if (path?.includes('/analytics/pass-rate-trend')) return { ...defaultApiResult, data: [] };
       if (path?.includes('/analytics/duration-trend')) return { ...defaultApiResult, data: [] };
@@ -236,7 +238,6 @@ describe('DashboardPage', () => {
 
   it('shows empty state for flaky tests', () => {
     mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') return { ...defaultApiResult, data: mockProjects };
       if (path?.includes('/analytics/summary')) return { ...defaultApiResult, data: mockSummary };
       if (path?.includes('/analytics/pass-rate-trend'))
         return { ...defaultApiResult, data: mockTrend };
@@ -253,7 +254,6 @@ describe('DashboardPage', () => {
 
   it('shows error message when analytics fails', () => {
     mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') return { ...defaultApiResult, data: mockProjects };
       if (path?.includes('/analytics/summary'))
         return { ...defaultApiResult, error: 'Server error' };
       if (path === '/v1/runs') return { ...defaultApiResult, data: mockRuns };

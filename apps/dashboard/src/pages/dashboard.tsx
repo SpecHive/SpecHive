@@ -1,9 +1,11 @@
-import { AlertTriangle, CheckCircle, Clock, PlayCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, PlayCircle, Plus, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
 
 import { LineChart, type LineChartLine } from '@/components/charts';
+import { CreateProjectDialog } from '@/components/create-project-dialog';
+import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,12 +19,12 @@ import {
   formatRelativeTime,
   truncateId,
 } from '@/lib/formatters';
+import { useProject } from '@/lib/project-context';
 import type {
   DurationTrendPoint,
   FlakyTestSummary,
   PaginatedResponse,
   PassRateTrendPoint,
-  Project,
   ProjectAnalyticsSummary,
   RunSummary,
 } from '@/types/api';
@@ -82,13 +84,17 @@ function LoadingSkeleton() {
 }
 
 export function DashboardPage() {
-  const { data: projectsData, loading: projectsLoading } =
-    useApi<PaginatedResponse<Project>>('/v1/projects');
+  const {
+    selectedProjectId,
+    loading: projectsLoading,
+    refetchProjects,
+    setSelectedProjectId,
+  } = useProject();
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [trendDays, setTrendDays] = useState<number>(30);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
 
-  const projectId = selectedProjectId || projectsData?.data[0]?.id || null;
+  const projectId = selectedProjectId;
 
   const { data: runsData, loading: runsLoading } = useApi<PaginatedResponse<RunSummary>>(
     projectId ? '/v1/runs' : null,
@@ -129,33 +135,19 @@ export function DashboardPage() {
     return <LoadingSkeleton />;
   }
 
-  const projects = projectsData?.data || [];
   const runs = runsData?.data || [];
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-muted-foreground">
-            Overview of your test suite health and recent activity.
-          </p>
-        </div>
-        {projects.length > 1 && (
-          <select
-            value={projectId || ''}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-            aria-label="Select project"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your test suite health and recent activity."
+        actions={
+          <Button size="sm" onClick={() => setCreateProjectOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" /> New Project
+          </Button>
+        }
+      />
 
       {summaryError && <p className="text-sm text-destructive">Failed to load analytics data</p>}
 
@@ -427,6 +419,15 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </section>
+
+      <CreateProjectDialog
+        open={createProjectOpen}
+        onClose={() => setCreateProjectOpen(false)}
+        onCreated={(project) => {
+          refetchProjects();
+          setSelectedProjectId(project.id);
+        }}
+      />
     </div>
   );
 }

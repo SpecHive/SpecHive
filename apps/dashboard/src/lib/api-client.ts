@@ -45,6 +45,10 @@ class ApiClient {
     });
   }
 
+  async delete<T>(path: string): Promise<T> {
+    return this.request<T>(`${API_BASE_URL}${path}`, { method: 'DELETE' });
+  }
+
   private async request<T>(url: string, init: RequestInit, isRetry = false): Promise<T> {
     const headers = new Headers(init.headers);
     if (this.token) {

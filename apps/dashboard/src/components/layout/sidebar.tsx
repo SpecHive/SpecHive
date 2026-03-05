@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronsUpDown,
+  Key,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -26,6 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Runs', href: '/runs', icon: PlayCircle },
+  { label: 'Tokens', href: '/tokens', icon: Key },
 ];
 
 export function Sidebar() {

@@ -29,6 +29,16 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/lib/project-context', () => ({
+  useProject: () => ({
+    projects: [{ id: '1', name: 'Project', createdAt: null }],
+    selectedProjectId: '1',
+    setSelectedProjectId: vi.fn(),
+    loading: false,
+    refetchProjects: vi.fn(),
+  }),
+}));
+
 function renderRuns() {
   return render(
     <MemoryRouter initialEntries={['/runs']}>
@@ -51,24 +61,11 @@ describe('RunsPage', () => {
   });
 
   it('shows empty state', () => {
-    mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') {
-        return {
-          data: {
-            data: [{ id: '1', name: 'Project', createdAt: null }],
-            meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
-          },
-          loading: false,
-          error: null,
-          refetch: vi.fn(),
-        };
-      }
-      return {
-        data: { data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } },
-        loading: false,
-        error: null,
-        refetch: vi.fn(),
-      };
+    mockUseApi.mockReturnValue({
+      data: { data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
     });
 
     renderRuns();
@@ -76,40 +73,27 @@ describe('RunsPage', () => {
   });
 
   it('renders runs table', () => {
-    mockUseApi.mockImplementation((path: string) => {
-      if (path === '/v1/projects') {
-        return {
-          data: {
-            data: [{ id: '1', name: 'Project', createdAt: null }],
-            meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    mockUseApi.mockReturnValue({
+      data: {
+        data: [
+          {
+            id: 'abcdefgh-1234-5678-9abc-def012345678',
+            projectId: '1',
+            status: 'passed',
+            totalTests: 50,
+            passedTests: 48,
+            failedTests: 2,
+            skippedTests: 0,
+            startedAt: '2026-01-01T00:00:00Z',
+            finishedAt: '2026-01-01T00:02:00Z',
+            createdAt: '2026-01-01T00:00:00Z',
           },
-          loading: false,
-          error: null,
-          refetch: vi.fn(),
-        };
-      }
-      return {
-        data: {
-          data: [
-            {
-              id: 'abcdefgh-1234-5678-9abc-def012345678',
-              projectId: '1',
-              status: 'passed',
-              totalTests: 50,
-              passedTests: 48,
-              failedTests: 2,
-              skippedTests: 0,
-              startedAt: '2026-01-01T00:00:00Z',
-              finishedAt: '2026-01-01T00:02:00Z',
-              createdAt: '2026-01-01T00:00:00Z',
-            },
-          ],
-          meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
-        },
-        loading: false,
-        error: null,
-        refetch: vi.fn(),
-      };
+        ],
+        meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+      },
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
     });
 
     renderRuns();

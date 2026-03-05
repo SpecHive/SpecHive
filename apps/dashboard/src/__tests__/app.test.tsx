@@ -32,6 +32,16 @@ vi.mock('sonner', () => ({
   },
 }));
 
+vi.mock('@/lib/project-context', () => ({
+  useProject: () => ({
+    projects: [{ id: 'proj-1', name: 'Project', createdAt: null }],
+    selectedProjectId: 'proj-1',
+    setSelectedProjectId: vi.fn(),
+    loading: false,
+    refetchProjects: vi.fn(),
+  }),
+}));
+
 function renderDashboard() {
   return render(
     <MemoryRouter>

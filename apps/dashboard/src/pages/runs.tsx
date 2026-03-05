@@ -2,6 +2,7 @@ import { Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
+import { PageHeader } from '@/components/layout/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pagination } from '@/components/ui/pagination';
@@ -10,13 +11,14 @@ import type { SortDirection } from '@/components/ui/sortable-header';
 import { useApi } from '@/hooks/use-api';
 import { runStatusOptions } from '@/lib/constants';
 import { formatDuration, formatRelativeTime, truncateId } from '@/lib/formatters';
-import type { PaginatedResponse, Project, RunSummary } from '@/types/api';
+import { useProject } from '@/lib/project-context';
+import type { PaginatedResponse, RunSummary } from '@/types/api';
 
 export function RunsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { selectedProjectId } = useProject();
 
-  const projectId = searchParams.get('projectId') || '';
   const status = searchParams.get('status') || '';
   const search = searchParams.get('search') || '';
   const sortBy = searchParams.get('sortBy') || '';
@@ -45,20 +47,16 @@ export function RunsPage() {
     return () => clearTimeout(debounceRef.current);
   }, [searchInput, search, setSearchParams]);
 
-  const { data: projectsData } = useApi<PaginatedResponse<Project>>('/v1/projects');
-
   const params: Record<string, string> = { page, pageSize };
-  if (projectId) params.projectId = projectId;
+  if (selectedProjectId) params.projectId = selectedProjectId;
   if (status) params.status = status;
   if (search) params.search = search;
   if (sortBy) params.sortBy = sortBy;
   if (sortOrder) params.sortOrder = sortOrder;
 
-  const effectiveProjectId = projectId || projectsData?.data[0]?.id || '';
-
   const { data: runsData, loading } = useApi<PaginatedResponse<RunSummary>>(
-    effectiveProjectId ? '/v1/runs' : null,
-    effectiveProjectId ? { ...params, projectId: effectiveProjectId } : undefined,
+    selectedProjectId ? '/v1/runs' : null,
+    selectedProjectId ? params : undefined,
   );
 
   const updateParam = (key: string, value: string) => {
@@ -85,16 +83,12 @@ export function RunsPage() {
     setSearchParams(next);
   };
 
-  const projects = projectsData?.data || [];
   const runs = runsData?.data || [];
   const meta = runsData?.meta;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Test Runs</h1>
-        <p className="mt-1 text-muted-foreground">Browse and filter test run results.</p>
-      </div>
+      <PageHeader title="Test Runs" description="Browse and filter test run results." />
 
       <div className="flex gap-4">
         <div className="relative">
@@ -108,18 +102,6 @@ export function RunsPage() {
             aria-label="Search runs"
           />
         </div>
-        <select
-          value={effectiveProjectId}
-          onChange={(e) => updateParam('projectId', e.target.value)}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
-          aria-label="Filter by project"
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
         <select
           value={status}
           onChange={(e) => updateParam('status', e.target.value)}
