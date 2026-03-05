@@ -15,6 +15,7 @@ const VALID_PRODUCTION_ENV = {
   CORS_ORIGIN: 'https://app.assertly.dev',
   MINIO_USE_SSL: 'true',
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
+  MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
   TOKEN_HASH_KEY: 'a'.repeat(32),
 };
 

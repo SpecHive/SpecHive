@@ -16,6 +16,7 @@ export const envSchema = baseEnvSchema
     path: ['CORS_ORIGIN'],
   })
   .refine(minioProductionRefinement.ssl.check, minioProductionRefinement.ssl)
+  .refine(minioProductionRefinement.publicEndpoint.check, minioProductionRefinement.publicEndpoint)
   .refine((env) => env.NODE_ENV !== 'production' || env.JWT_SECRET.length >= 64, {
     message: 'JWT_SECRET must be at least 64 characters in production',
     path: ['JWT_SECRET'],

@@ -468,6 +468,11 @@ export async function seed(dbUrl: string, password?: string) {
     if (!seedOrg) throw new Error('Failed to seed organization');
 
     const seedPassword = password ?? 'changeme';
+    if (!password) {
+      console.warn(
+        '[seed] Using default password "changeme" — set SEED_USER_PASSWORD for a custom password',
+      );
+    }
     const passwordHash = await hash(seedPassword, { type: 2 });
     const [user] = await db
       .insert(users)

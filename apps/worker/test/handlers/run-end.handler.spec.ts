@@ -8,17 +8,23 @@ import { RunEndHandler } from '../../src/modules/result-processor/handlers/run-e
 
 describe('RunEndHandler', () => {
   let handler: RunEndHandler;
-  let mockWhere: ReturnType<typeof vi.fn>;
+  let mockUpdateWhere: ReturnType<typeof vi.fn>;
   let mockSet: ReturnType<typeof vi.fn>;
   let mockUpdate: ReturnType<typeof vi.fn>;
+  let mockSelectWhere: ReturnType<typeof vi.fn>;
+  let mockFrom: ReturnType<typeof vi.fn>;
+  let mockSelect: ReturnType<typeof vi.fn>;
   let ctx: EventHandlerContext;
 
   beforeEach(async () => {
-    mockWhere = vi.fn();
-    mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    mockSelectWhere = vi.fn().mockResolvedValue([{ status: RunStatus.Running }]);
+    mockFrom = vi.fn().mockReturnValue({ where: mockSelectWhere });
+    mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
+    mockUpdateWhere = vi.fn();
+    mockSet = vi.fn().mockReturnValue({ where: mockUpdateWhere });
     mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
     ctx = {
-      tx: { update: mockUpdate } as unknown as EventHandlerContext['tx'],
+      tx: { update: mockUpdate, select: mockSelect } as unknown as EventHandlerContext['tx'],
       organizationId: 'org-1' as OrganizationId,
       projectId: 'proj-1' as ProjectId,
     };
@@ -41,11 +47,12 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
+    expect(mockSelect).toHaveBeenCalled();
     expect(mockUpdate).toHaveBeenCalled();
     expect(mockSet).toHaveBeenCalledWith({
       status: RunStatus.Passed,
       finishedAt: new Date('2025-01-01T01:00:00.000Z'),
     });
-    expect(mockWhere).toHaveBeenCalled();
+    expect(mockUpdateWhere).toHaveBeenCalled();
   });
 });

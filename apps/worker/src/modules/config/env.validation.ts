@@ -12,6 +12,7 @@ export const envSchema = baseEnvSchema
     message: 'WEBHOOK_SECRET must not use a placeholder value in production',
     path: ['WEBHOOK_SECRET'],
   })
-  .refine(minioProductionRefinement.ssl.check, minioProductionRefinement.ssl);
+  .refine(minioProductionRefinement.ssl.check, minioProductionRefinement.ssl)
+  .refine(minioProductionRefinement.publicEndpoint.check, minioProductionRefinement.publicEndpoint);
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -18,6 +18,7 @@ import { OutboxyModule } from '@outboxy/sdk-nestjs';
 import { ConfigModule } from './modules/config/config.module';
 import type { EnvConfig } from './modules/config/env.validation';
 import { ResultProcessorModule } from './modules/result-processor/result-processor.module';
+import { RunCleanupModule } from './modules/run-cleanup/run-cleanup.module';
 import { WebhookReceiverModule } from './modules/webhook-receiver/webhook-receiver.module';
 
 const GLOBAL_RATE_LIMIT_MAX = 200;
@@ -52,6 +53,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     }),
     WebhookReceiverModule,
     ResultProcessorModule,
+    RunCleanupModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })

@@ -117,6 +117,7 @@ describe('worker envSchema', () => {
         ...VALID_WORKER_ENV,
         NODE_ENV: 'production',
         MINIO_ENDPOINT: 'localhost:9000',
+        MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
         MINIO_USE_SSL: 'false',
       });
       expect(result.MINIO_USE_SSL).toBe('false');

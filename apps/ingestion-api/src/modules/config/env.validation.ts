@@ -20,6 +20,7 @@ export const envSchema = baseEnvSchema
     path: ['WEBHOOK_SECRET'],
   })
   .refine(minioProductionRefinement.ssl.check, minioProductionRefinement.ssl)
+  .refine(minioProductionRefinement.publicEndpoint.check, minioProductionRefinement.publicEndpoint)
   .refine(
     (env) =>
       env.NODE_ENV !== 'production' || (!!env.TOKEN_HASH_KEY && env.TOKEN_HASH_KEY.length >= 32),

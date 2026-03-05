@@ -20,6 +20,14 @@ export const minioProductionRefinement = {
     message: 'MINIO_USE_SSL must be true in production for non-localhost endpoints',
     path: ['MINIO_USE_SSL'],
   },
+  publicEndpoint: {
+    check: (env: { NODE_ENV: string; MINIO_PUBLIC_ENDPOINT: string }) => {
+      if (env.NODE_ENV !== 'production') return true;
+      return !/(localhost|minio|127\.0\.0\.1|\[::1\])/.test(env.MINIO_PUBLIC_ENDPOINT);
+    },
+    message: 'MINIO_PUBLIC_ENDPOINT must be a public URL in production',
+    path: ['MINIO_PUBLIC_ENDPOINT'],
+  },
 };
 
 export type MinioEnvConfig = z.infer<typeof minioEnvSchema>;
