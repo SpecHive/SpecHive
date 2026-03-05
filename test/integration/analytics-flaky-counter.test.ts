@@ -8,10 +8,13 @@
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
 const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
+const TEST_IP = `10.flaky.${randomBytes(4).toString('hex')}`;
 const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
 
 const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
@@ -68,7 +71,7 @@ async function sendEvent(
 async function login(): Promise<string> {
   const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
     body: JSON.stringify({
       email: 'test-user@assertly.dev',
       password: 'test-password',
@@ -179,7 +182,7 @@ describe('Flaky tests counter', () => {
 
     // 6. Verify the query API exposes flakyTests
     const listRes = await fetch(`${QUERY_API_URL}/v1/runs?projectId=${INTEGRATION_PROJECT_ID}`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(listRes.status).toBe(200);
     const listBody = (await listRes.json()) as { data: Array<Record<string, unknown>> };
@@ -190,7 +193,7 @@ describe('Flaky tests counter', () => {
 
     // 7. Verify run detail also includes flakyTests
     const detailRes = await fetch(`${QUERY_API_URL}/v1/runs/${RUN_ID}`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(detailRes.status).toBe(200);
     const detailBody = (await detailRes.json()) as Record<string, unknown>;

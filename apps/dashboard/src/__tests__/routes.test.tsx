@@ -12,7 +12,9 @@ vi.mock('@/lib/api-client', () => ({
       .mockResolvedValue({ data: [], meta: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }),
     post: vi.fn(),
     setToken: vi.fn(),
+    setRefreshToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
+    setOnTokenRefresh: vi.fn(),
   },
 }));
 

@@ -19,7 +19,9 @@ vi.mock('@/lib/api-client', () => ({
     get: vi.fn(),
     post: vi.fn(),
     setToken: vi.fn(),
+    setRefreshToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
+    setOnTokenRefresh: vi.fn(),
   },
 }));
 

@@ -8,7 +8,9 @@ beforeEach(() => {
   mockFetch.mockReset();
   vi.stubGlobal('fetch', mockFetch);
   apiClient.setToken(null);
+  apiClient.setRefreshToken(null);
   apiClient.setOnUnauthorized(null);
+  apiClient.setOnTokenRefresh(null);
 });
 
 afterEach(() => {
@@ -45,7 +47,7 @@ describe('apiClient', () => {
     expect(headers.get('Authorization')).toBeNull();
   });
 
-  it('redirects to /login on 401', async () => {
+  it('redirects to /login on 401 when no refresh token', async () => {
     const originalHref = window.location.href;
     Object.defineProperty(window, 'location', {
       writable: true,
@@ -111,5 +113,142 @@ describe('apiClient', () => {
 
     const [, init] = mockFetch.mock.calls[0];
     expect(JSON.parse(init.body)).toEqual({ email: 'a@b.com', password: 'pass' });
+  });
+
+  describe('refresh token', () => {
+    it('retries request after successful refresh on 401', async () => {
+      apiClient.setToken('expired-token');
+      apiClient.setRefreshToken('valid-refresh');
+
+      // First call: 401
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Unauthorized' }),
+      });
+
+      // Refresh call: success
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ token: 'new-token', refreshToken: 'new-refresh' }),
+      });
+
+      // Retry call: success
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: 'result' }),
+      });
+
+      const result = await apiClient.get('/v1/projects');
+      expect(result).toEqual({ data: 'result' });
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('calls onUnauthorized when refresh fails', async () => {
+      const callback = vi.fn();
+      apiClient.setToken('expired-token');
+      apiClient.setRefreshToken('invalid-refresh');
+      apiClient.setOnUnauthorized(callback);
+
+      // First call: 401
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Unauthorized' }),
+      });
+
+      // Refresh call: fails
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Invalid refresh token' }),
+      });
+
+      await expect(apiClient.get('/v1/projects')).rejects.toThrow('Unauthorized');
+      expect(callback).toHaveBeenCalledOnce();
+    });
+
+    it('calls onTokenRefresh callback on successful refresh', async () => {
+      const onRefresh = vi.fn();
+      apiClient.setToken('expired-token');
+      apiClient.setRefreshToken('valid-refresh');
+      apiClient.setOnTokenRefresh(onRefresh);
+
+      // First call: 401
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Unauthorized' }),
+      });
+
+      // Refresh call: success
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ token: 'new-token', refreshToken: 'new-refresh' }),
+      });
+
+      // Retry call: success
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: 'ok' }),
+      });
+
+      await apiClient.get('/v1/projects');
+      expect(onRefresh).toHaveBeenCalledWith('new-token', 'new-refresh');
+    });
+
+    it('deduplicates concurrent refresh attempts', async () => {
+      apiClient.setToken('expired-token');
+      apiClient.setRefreshToken('valid-refresh');
+
+      // Both initial requests: 401
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Unauthorized' }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: () => Promise.resolve({ message: 'Unauthorized' }),
+      });
+
+      // Single refresh call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ token: 'new-token', refreshToken: 'new-refresh' }),
+      });
+
+      // Retry calls
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: 'a' }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: 'b' }),
+      });
+
+      const [resultA, resultB] = await Promise.all([
+        apiClient.get('/v1/a'),
+        apiClient.get('/v1/b'),
+      ]);
+
+      expect(resultA).toEqual({ data: 'a' });
+      expect(resultB).toEqual({ data: 'b' });
+
+      // Count refresh calls (POST to /v1/auth/refresh)
+      const refreshCalls = mockFetch.mock.calls.filter((call) =>
+        (call[0] as string).includes('/v1/auth/refresh'),
+      );
+      expect(refreshCalls).toHaveLength(1);
+    });
   });
 });

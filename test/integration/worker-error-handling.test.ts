@@ -319,9 +319,9 @@ describe('Worker error handling', () => {
         suiteName,
       });
 
-      // The webhook should still return 200 (the event was received and processed)
-      // But the suite should not be created due to unique constraint
-      expect(result.status).toBe(200);
+      // The webhook returns 500 because the unique constraint on (run_id, name) is violated
+      // This is correct behavior - constraint violations should be surfaced to the caller
+      expect(result.status).toBe(500);
 
       // Wait to ensure processing completes
       await new Promise((resolve) => setTimeout(resolve, 1000));

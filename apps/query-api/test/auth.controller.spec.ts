@@ -8,6 +8,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { LoginRateLimitService } from '../src/modules/auth/login-rate-limit.service';
 
 vi.mock('argon2', () => ({
   verify: vi.fn(),
@@ -40,6 +41,7 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         AuthService,
+        LoginRateLimitService,
         { provide: DATABASE_CONNECTION, useValue: { execute: mockExecute } },
         { provide: IS_PRODUCTION, useValue: false },
         {
@@ -47,6 +49,8 @@ describe('AuthController', () => {
           useValue: {
             get: vi.fn((key: string) => {
               if (key === 'NODE_ENV') return 'test';
+              if (key === 'JWT_ACCESS_EXPIRES_IN') return '15m';
+              if (key === 'JWT_REFRESH_EXPIRES_IN') return '7d';
               return undefined;
             }),
             getOrThrow: vi.fn((key: string) => {
@@ -69,7 +73,10 @@ describe('AuthController', () => {
   });
 
   it('POST /v1/auth/login returns 200 with token on success', async () => {
-    mockExecute.mockResolvedValueOnce([MOCK_USER]).mockResolvedValueOnce([MOCK_ORG]);
+    mockExecute
+      .mockResolvedValueOnce([MOCK_USER])
+      .mockResolvedValueOnce([MOCK_ORG])
+      .mockResolvedValueOnce([]); // store_refresh_token
     mockVerify.mockResolvedValue(true);
 
     const response = await app.inject({

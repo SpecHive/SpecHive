@@ -13,6 +13,8 @@
  *   pnpm test:integration
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { describe, it, expect, beforeAll } from 'vitest';
 
 const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
@@ -20,6 +22,7 @@ const TEST_USER_EMAIL = 'test-user@assertly.dev';
 const TEST_USER_PASSWORD = 'test-password';
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
 const INTEGRATION_ORG2_ID = '01970000-0000-7000-8000-000000000006';
+const TEST_IP = `10.switch.${randomBytes(4).toString('hex')}`;
 
 async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -37,7 +40,7 @@ async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Pro
 async function login(organizationId?: string): Promise<string> {
   const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
     body: JSON.stringify({
       email: TEST_USER_EMAIL,
       password: TEST_USER_PASSWORD,
@@ -63,6 +66,7 @@ describe('Switch organization', () => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${tokenOrg1}`,
+        'X-Forwarded-For': TEST_IP,
       },
       body: JSON.stringify({ organizationId: INTEGRATION_ORG2_ID }),
     });
@@ -82,6 +86,7 @@ describe('Switch organization', () => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${tokenOrg1}`,
+        'X-Forwarded-For': TEST_IP,
       },
       body: JSON.stringify({ organizationId: INTEGRATION_ORG2_ID }),
     });
@@ -89,7 +94,7 @@ describe('Switch organization', () => {
     const { token: tokenOrg2 } = (await switchResponse.json()) as { token: string };
 
     const meResponse = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${tokenOrg2}` },
+      headers: { Authorization: `Bearer ${tokenOrg2}`, 'X-Forwarded-For': TEST_IP },
     });
 
     expect(meResponse.status).toBe(200);
@@ -107,6 +112,7 @@ describe('Switch organization', () => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${tokenOrg1}`,
+        'X-Forwarded-For': TEST_IP,
       },
       body: JSON.stringify({ organizationId: INTEGRATION_ORG2_ID }),
     });
@@ -114,7 +120,7 @@ describe('Switch organization', () => {
     const { token: tokenOrg2 } = (await switchResponse.json()) as { token: string };
 
     const orgsResponse = await fetch(`${QUERY_API_URL}/v1/auth/organizations`, {
-      headers: { Authorization: `Bearer ${tokenOrg2}` },
+      headers: { Authorization: `Bearer ${tokenOrg2}`, 'X-Forwarded-For': TEST_IP },
     });
 
     expect(orgsResponse.status).toBe(200);
@@ -131,6 +137,7 @@ describe('Switch organization', () => {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${tokenOrg1}`,
+        'X-Forwarded-For': TEST_IP,
       },
       body: JSON.stringify({ organizationId: fakeOrgId }),
     });

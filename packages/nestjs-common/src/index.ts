@@ -10,6 +10,7 @@ export type { BootstrapOptions } from './bootstrap/bootstrap-app';
 export { isProductionEnv } from './utils/env-helpers';
 export { escapeLikePattern } from './utils/like-escape';
 export { IS_PRODUCTION, isProductionProvider } from './providers/is-production.provider';
+export { IsProductionModule } from './providers/is-production.module';
 export { throwZodBadRequest } from './utils/zod-error';
 export { GLOBAL_RATE_LIMIT_TTL_MS } from './utils/rate-limit';
 export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard';

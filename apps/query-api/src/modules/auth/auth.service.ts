@@ -1,3 +1,5 @@
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+
 import type { Database } from '@assertly/database';
 import { setTenantContext } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
@@ -28,10 +30,18 @@ type UserOrganization = {
   role: MembershipRole;
 };
 
+type RefreshTokenRow = {
+  id: string;
+  user_id: string;
+  expires_at: Date;
+  revoked_at: Date | null;
+};
+
 @Injectable()
 export class AuthService {
   private readonly jwtSecret: Uint8Array;
-  private readonly jwtExpiresIn: string;
+  private readonly accessExpiresIn: string;
+  private readonly refreshExpiresIn: string;
 
   constructor(
     @Inject(DATABASE_CONNECTION)
@@ -39,7 +49,9 @@ export class AuthService {
     config: ConfigService<EnvConfig>,
   ) {
     this.jwtSecret = new TextEncoder().encode(config.getOrThrow<string>('JWT_SECRET'));
-    this.jwtExpiresIn = config.getOrThrow<string>('JWT_EXPIRES_IN');
+    this.accessExpiresIn =
+      config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? config.getOrThrow<string>('JWT_EXPIRES_IN');
+    this.refreshExpiresIn = config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
   }
 
   async login(email: string, password: string, organizationId?: string) {
@@ -89,8 +101,11 @@ export class AuthService {
       role: selectedOrg.role,
     });
 
+    const refreshToken = await this.createAndStoreRefreshToken(user.id);
+
     return {
       token,
+      refreshToken,
       user: { id: user.id, email: user.email, name: user.name },
       organization: {
         id: selectedOrg.organization_id,
@@ -136,8 +151,11 @@ export class AuthService {
       role: targetOrg.role,
     });
 
+    const refreshToken = await this.createAndStoreRefreshToken(userId);
+
     return {
       token,
+      refreshToken,
       user: { id: profile.id, email: profile.email, name: profile.name },
       organization: {
         id: targetOrg.organization_id,
@@ -145,6 +163,77 @@ export class AuthService {
         slug: targetOrg.organization_slug,
       },
     };
+  }
+
+  async refreshAccessToken(refreshTokenRaw: string, organizationId?: string) {
+    const tokenHash = this.hashRefreshToken(refreshTokenRaw);
+    const rows = await this.db.execute<RefreshTokenRow>(
+      sql`SELECT * FROM find_refresh_token_by_hash(${tokenHash})`,
+    );
+
+    if (rows.length === 0) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const row = rows[0]!;
+
+    if (row.revoked_at) {
+      throw new UnauthorizedException('Refresh token has been revoked');
+    }
+
+    if (new Date(row.expires_at) < new Date()) {
+      throw new UnauthorizedException('Refresh token has expired');
+    }
+
+    // Revoke old refresh token (token rotation)
+    await this.db.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
+
+    const orgs = await this.db.execute<UserOrganization>(
+      sql`SELECT * FROM get_user_organizations(${row.user_id}::uuid)`,
+    );
+
+    if (orgs.length === 0) {
+      throw new ForbiddenException('User has no organization memberships');
+    }
+
+    let selectedOrg: UserOrganization;
+    if (organizationId) {
+      const found = orgs.find((o) => o.organization_id === organizationId);
+      if (!found) {
+        throw new ForbiddenException('User is not a member of the requested organization');
+      }
+      selectedOrg = found;
+    } else {
+      selectedOrg = orgs[0]!;
+    }
+
+    const token = await this.signToken({
+      sub: row.user_id,
+      organizationId: selectedOrg.organization_id,
+      role: selectedOrg.role,
+    });
+
+    const newRefreshToken = await this.createAndStoreRefreshToken(row.user_id);
+
+    return {
+      token,
+      refreshToken: newRefreshToken,
+      user: { id: row.user_id },
+      organization: {
+        id: selectedOrg.organization_id,
+        name: selectedOrg.organization_name,
+        slug: selectedOrg.organization_slug,
+      },
+    };
+  }
+
+  async logout(refreshTokenRaw: string): Promise<void> {
+    const tokenHash = this.hashRefreshToken(refreshTokenRaw);
+    await this.db.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
+  }
+
+  async revokeAllUserTokens(userId: string): Promise<void> {
+    await this.db.execute(sql`SELECT revoke_all_user_refresh_tokens(${userId}::uuid)`);
   }
 
   async getOrganizations(userId: UserId) {
@@ -164,7 +253,47 @@ export class AuthService {
     return new SignJWT({ ...payload })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime(this.jwtExpiresIn)
+      .setExpirationTime(this.accessExpiresIn)
       .sign(this.jwtSecret);
+  }
+
+  private generateRefreshToken(): string {
+    return randomBytes(48).toString('base64url');
+  }
+
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private parseExpiry(str: string): Date {
+    const match = str.match(/^(\d+)([smhd])$/);
+    if (!match) {
+      throw new Error(`Invalid expiry format: ${str}`);
+    }
+
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!;
+
+    const multipliers: Record<string, number> = {
+      s: 1000,
+      m: 60 * 1000,
+      h: 60 * 60 * 1000,
+      d: 24 * 60 * 60 * 1000,
+    };
+
+    return new Date(Date.now() + value * multipliers[unit]!);
+  }
+
+  private async createAndStoreRefreshToken(userId: string): Promise<string> {
+    const raw = this.generateRefreshToken();
+    const hash = this.hashRefreshToken(raw);
+    const id = randomUUID();
+    const expiresAt = this.parseExpiry(this.refreshExpiresIn);
+
+    await this.db.execute(
+      sql`SELECT store_refresh_token(${id}::uuid, ${userId}::uuid, ${hash}, ${expiresAt.toISOString()}::timestamptz)`,
+    );
+
+    return raw;
   }
 }

@@ -8,9 +8,12 @@
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
+const TEST_IP = `10.analytics.ep.${randomBytes(4).toString('hex')}`;
 
 const DATABASE_URL =
   process.env['ADMIN_DATABASE_URL'] ??
@@ -46,7 +49,10 @@ async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Pro
 async function login(): Promise<string> {
   const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Forwarded-For': `10.analytics.${randomBytes(4).toString('hex')}`,
+    },
     body: JSON.stringify({
       email: 'test-user@assertly.dev',
       password: 'test-password',
@@ -158,7 +164,7 @@ describe('Analytics endpoints', () => {
   it('GET /summary returns correct aggregations', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
 
     expect(res.status).toBe(200);
@@ -183,7 +189,7 @@ describe('Analytics endpoints', () => {
   it('GET /pass-rate-trend returns daily buckets in ascending order', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/pass-rate-trend?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
 
     expect(res.status).toBe(200);
@@ -210,7 +216,7 @@ describe('Analytics endpoints', () => {
   it('GET /duration-trend returns min <= avg <= max invariant', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/duration-trend?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
 
     expect(res.status).toBe(200);
@@ -236,7 +242,7 @@ describe('Analytics endpoints', () => {
   it('GET /flaky-tests returns flaky test names', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/flaky-tests?days=30&limit=10`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
 
     expect(res.status).toBe(200);
@@ -263,7 +269,7 @@ describe('Analytics endpoints', () => {
 
   it('returns 400 with invalid projectId', async () => {
     const res = await fetch(`${QUERY_API_URL}/v1/projects/not-a-uuid/analytics/summary`, {
-      headers: { Authorization: `Bearer ${jwt}` },
+      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(res.status).toBe(400);
   });
@@ -271,7 +277,7 @@ describe('Analytics endpoints', () => {
   it('returns 400 with invalid days param', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=0`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
     expect(res.status).toBe(400);
   });
@@ -279,7 +285,7 @@ describe('Analytics endpoints', () => {
   it('returns 400 with days exceeding max', async () => {
     const res = await fetch(
       `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=91`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
+      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
     );
     expect(res.status).toBe(400);
   });

@@ -13,7 +13,7 @@
  *   pnpm test:integration
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
@@ -22,6 +22,7 @@ const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
 const PROJECT_TOKEN = 'test-token';
 const TEST_USER_EMAIL = 'test-user@assertly.dev';
 const TEST_USER_PASSWORD = 'test-password';
+const TEST_IP = `10.artifact.${randomBytes(4).toString('hex')}`;
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
 const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
 
@@ -57,7 +58,7 @@ async function sendEvent(event: Record<string, unknown>): Promise<void> {
 async function login(): Promise<string> {
   const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
     body: JSON.stringify({
       email: TEST_USER_EMAIL,
       password: TEST_USER_PASSWORD,
@@ -157,7 +158,7 @@ describe('Artifact download', () => {
     for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
       const runsResponse = await fetch(
         `${QUERY_API_URL}/v1/runs?projectId=${INTEGRATION_PROJECT_ID}`,
-        { headers: { Authorization: `Bearer ${jwtToken}` } },
+        { headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP } },
       );
 
       if (runsResponse.ok) {
@@ -176,7 +177,7 @@ describe('Artifact download', () => {
     let foundTestId: string | undefined;
     for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
       const testsResponse = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests`, {
-        headers: { Authorization: `Bearer ${jwtToken}` },
+        headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
       });
 
       if (testsResponse.ok) {
@@ -196,7 +197,7 @@ describe('Artifact download', () => {
     // Wait for artifact to be processed (artifact.upload is a separate async event)
     for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
       const detailRes = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests/${foundTestId}`, {
-        headers: { Authorization: `Bearer ${jwtToken}` },
+        headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
       });
 
       if (detailRes.ok) {
@@ -216,7 +217,7 @@ describe('Artifact download', () => {
   it('fetches artifact download URL and downloads the content', async () => {
     // Get tests for the run
     const testsResponse = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests`, {
-      headers: { Authorization: `Bearer ${jwtToken}` },
+      headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(testsResponse.status).toBe(200);
 
@@ -228,7 +229,7 @@ describe('Artifact download', () => {
     // Use the detail endpoint which includes artifacts
     const testDetailResponse = await fetch(
       `${QUERY_API_URL}/v1/runs/${runId}/tests/${testsBody.data[0]!.id}`,
-      { headers: { Authorization: `Bearer ${jwtToken}` } },
+      { headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP } },
     );
     expect(testDetailResponse.status).toBe(200);
 
@@ -243,7 +244,7 @@ describe('Artifact download', () => {
 
     // Get the presigned download URL
     const downloadResponse = await fetch(`${QUERY_API_URL}/v1/artifacts/${artifactId}/download`, {
-      headers: { Authorization: `Bearer ${jwtToken}` },
+      headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(downloadResponse.status).toBe(200);
 

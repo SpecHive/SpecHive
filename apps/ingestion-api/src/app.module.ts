@@ -3,7 +3,7 @@ import {
   DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
-  isProductionProvider,
+  IsProductionModule,
   ThrottlerBehindProxyGuard,
 } from '@assertly/nestjs-common';
 import { Module } from '@nestjs/common';
@@ -20,6 +20,7 @@ const GLOBAL_RATE_LIMIT_MAX = 60;
 @Module({
   imports: [
     ConfigModule,
+    IsProductionModule,
     ThrottlerModule.forRoot([
       {
         ttl: GLOBAL_RATE_LIMIT_TTL_MS,
@@ -36,6 +37,6 @@ const GLOBAL_RATE_LIMIT_MAX = 60;
     }),
     IngestionModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }, isProductionProvider],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })
 export class AppModule {}

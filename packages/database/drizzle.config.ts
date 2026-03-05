@@ -10,6 +10,7 @@ export default defineConfig({
     './src/schema/tenant.ts',
     './src/schema/project.ts',
     './src/schema/execution.ts',
+    './src/schema/auth.ts',
     './src/schema/relations.ts',
   ],
   out: './drizzle',

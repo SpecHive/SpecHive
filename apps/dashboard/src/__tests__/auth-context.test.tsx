@@ -1,8 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { toast } from 'sonner';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { apiClient } from '@/lib/api-client';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -11,7 +10,9 @@ vi.mock('@/lib/api-client', () => ({
   apiClient: {
     post: vi.fn(),
     setToken: vi.fn(),
+    setRefreshToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
+    setOnTokenRefresh: vi.fn(),
   },
 }));
 
@@ -24,6 +25,7 @@ vi.mock('sonner', () => ({
 
 const mockLoginResponse = {
   token: 'jwt-token',
+  refreshToken: 'refresh-jwt',
   user: { id: '1', email: 'a@b.com', name: 'Test User' },
   organization: { id: '1', name: 'Test Org', slug: 'test-org' },
 };
@@ -73,6 +75,7 @@ describe('AuthContext', () => {
     });
     expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
     expect(apiClient.setToken).toHaveBeenCalledWith('jwt-token');
+    expect(apiClient.setRefreshToken).toHaveBeenCalledWith('refresh-jwt');
   });
 
   it('logs out successfully', async () => {
@@ -85,11 +88,17 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
     });
 
+    // Reset mock to track logout call
+    vi.mocked(apiClient.post).mockResolvedValueOnce(undefined);
+
     await userEvent.click(screen.getByText('Logout'));
     await waitFor(() => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
     });
     expect(apiClient.setToken).toHaveBeenCalledWith(null);
+    expect(apiClient.setRefreshToken).toHaveBeenCalledWith(null);
+    // Verify logout API call with refresh token
+    expect(apiClient.post).toHaveBeenCalledWith('/v1/auth/logout', { refreshToken: 'refresh-jwt' });
   });
 
   describe('sessionStorage persistence', () => {
@@ -104,6 +113,7 @@ describe('AuthContext', () => {
       });
 
       expect(sessionStorage.getItem('assertly_token')).toBe('jwt-token');
+      expect(sessionStorage.getItem('assertly_refresh_token')).toBe('refresh-jwt');
       expect(JSON.parse(sessionStorage.getItem('assertly_user')!)).toEqual(mockLoginResponse.user);
       expect(JSON.parse(sessionStorage.getItem('assertly_org')!)).toEqual(
         mockLoginResponse.organization,
@@ -112,6 +122,7 @@ describe('AuthContext', () => {
 
     it('restores auth state from sessionStorage on mount', () => {
       sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_refresh_token', 'stored-refresh-token');
       sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
       sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
 
@@ -120,14 +131,19 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
       expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
       expect(apiClient.setToken).toHaveBeenCalledWith('stored-token');
+      expect(apiClient.setRefreshToken).toHaveBeenCalledWith('stored-refresh-token');
     });
 
     it('clears sessionStorage on logout', async () => {
       sessionStorage.setItem('assertly_token', 'stored-token');
+      sessionStorage.setItem('assertly_refresh_token', 'stored-refresh-token');
       sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
       sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
+
+      vi.mocked(apiClient.post).mockResolvedValueOnce(undefined);
+
       await userEvent.click(screen.getByText('Logout'));
 
       await waitFor(() => {
@@ -135,6 +151,7 @@ describe('AuthContext', () => {
       });
 
       expect(sessionStorage.getItem('assertly_token')).toBeNull();
+      expect(sessionStorage.getItem('assertly_refresh_token')).toBeNull();
       expect(sessionStorage.getItem('assertly_user')).toBeNull();
       expect(sessionStorage.getItem('assertly_org')).toBeNull();
     });
@@ -163,42 +180,15 @@ describe('AuthContext', () => {
     });
   });
 
-  describe('session expiry warning', () => {
-    function makeJwt(expUnix: number): string {
-      const header = btoa(JSON.stringify({ alg: 'HS256' }));
-      const payload = btoa(JSON.stringify({ exp: expUnix }));
-      return `${header}.${payload}.sig`;
-    }
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it('shows warning toast 5 minutes before expiry', () => {
-      vi.useFakeTimers();
-      const now = Date.now();
-      const expiry = Math.floor((now + 10 * 60 * 1000) / 1000);
-      const jwt = makeJwt(expiry);
-
-      sessionStorage.setItem('assertly_token', jwt);
-      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
-      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
-
-      renderWithAuth();
-
-      expect(toast.warning).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(5 * 60 * 1000);
-
-      expect(toast.warning).toHaveBeenCalledWith(
-        'Your session expires in 5 minutes. Please save your work.',
-        { id: 'session-expiry-warning' },
-      );
-    });
-
+  describe('session management', () => {
     it('registers onUnauthorized callback', () => {
       renderWithAuth();
       expect(apiClient.setOnUnauthorized).toHaveBeenCalledWith(expect.any(Function));
+    });
+
+    it('registers onTokenRefresh callback', () => {
+      renderWithAuth();
+      expect(apiClient.setOnTokenRefresh).toHaveBeenCalledWith(expect.any(Function));
     });
   });
 });

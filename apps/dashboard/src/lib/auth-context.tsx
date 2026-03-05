@@ -31,18 +31,20 @@ interface AuthContextValue {
 
 const STORAGE_KEYS = {
   token: 'assertly_token',
+  refreshToken: 'assertly_refresh_token',
   user: 'assertly_user',
   org: 'assertly_org',
 } as const;
 
 function loadSessionState(): {
   token: string | null;
+  refreshToken: string | null;
   user: AuthUser | null;
   organization: AuthOrganization | null;
 } {
   try {
     const token = sessionStorage.getItem(STORAGE_KEYS.token);
-    if (!token) return { token: null, user: null, organization: null };
+    if (!token) return { token: null, refreshToken: null, user: null, organization: null };
 
     const user = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.user) ?? 'null') as AuthUser | null;
     const organization = JSON.parse(
@@ -51,38 +53,37 @@ function loadSessionState(): {
 
     if (!user || !organization) {
       clearSessionStorage();
-      return { token: null, user: null, organization: null };
+      return { token: null, refreshToken: null, user: null, organization: null };
     }
 
+    const refreshToken = sessionStorage.getItem(STORAGE_KEYS.refreshToken);
+
     apiClient.setToken(token);
-    return { token, user, organization };
+    apiClient.setRefreshToken(refreshToken);
+    return { token, refreshToken, user, organization };
   } catch {
     clearSessionStorage();
-    return { token: null, user: null, organization: null };
+    return { token: null, refreshToken: null, user: null, organization: null };
   }
 }
 
-function persistSession(token: string, user: AuthUser, organization: AuthOrganization): void {
+function persistSession(
+  token: string,
+  refreshToken: string,
+  user: AuthUser,
+  organization: AuthOrganization,
+): void {
   sessionStorage.setItem(STORAGE_KEYS.token, token);
+  sessionStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
   sessionStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
   sessionStorage.setItem(STORAGE_KEYS.org, JSON.stringify(organization));
 }
 
 function clearSessionStorage(): void {
   sessionStorage.removeItem(STORAGE_KEYS.token);
+  sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
   sessionStorage.removeItem(STORAGE_KEYS.user);
   sessionStorage.removeItem(STORAGE_KEYS.org);
-}
-
-const EXPIRY_WARNING_MS = 5 * 60 * 1000;
-
-function getTokenExpiry(token: string): number | null {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]!)) as { exp?: number };
-    return payload.exp ? payload.exp * 1000 : null;
-  } catch {
-    return null;
-  }
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -94,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionState.organization,
   );
   const [token, setToken] = useState<string | null>(sessionState.token);
+  const [refreshToken, setRefreshToken] = useState<string | null>(sessionState.refreshToken);
   const navigate = useNavigate();
 
   const login = useCallback(
@@ -106,8 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       setOrganization(response.organization);
       setToken(response.token);
+      setRefreshToken(response.refreshToken);
       apiClient.setToken(response.token);
-      persistSession(response.token, response.user, response.organization);
+      apiClient.setRefreshToken(response.refreshToken);
+      persistSession(response.token, response.refreshToken, response.user, response.organization);
       navigate('/');
     },
     [navigate],
@@ -121,50 +125,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       setOrganization(response.organization);
       setToken(response.token);
+      setRefreshToken(response.refreshToken);
       apiClient.setToken(response.token);
-      persistSession(response.token, response.user, response.organization);
+      apiClient.setRefreshToken(response.refreshToken);
+      persistSession(response.token, response.refreshToken, response.user, response.organization);
       navigate('/');
     },
     [navigate],
   );
 
   const logout = useCallback(() => {
+    // Fire-and-forget server-side revocation
+    if (refreshToken) {
+      apiClient.post('/v1/auth/logout', { refreshToken }).catch(() => {});
+    }
+
     setUser(null);
     setOrganization(null);
     setToken(null);
+    setRefreshToken(null);
     apiClient.setToken(null);
+    apiClient.setRefreshToken(null);
     clearSessionStorage();
     navigate('/login');
-  }, [navigate]);
+  }, [navigate, refreshToken]);
 
+  // Persist tokens after silent refresh
   useEffect(() => {
-    if (!token) return;
-    const expiresAt = getTokenExpiry(token);
-    if (!expiresAt) return;
-
-    const now = Date.now();
-    const timeUntilExpiry = expiresAt - now;
-
-    if (timeUntilExpiry <= 0) {
-      logout();
-      return;
-    }
-
-    const warningTime = timeUntilExpiry - EXPIRY_WARNING_MS;
-    if (warningTime <= 0) {
-      toast.warning('Your session expires in 5 minutes. Please save your work.', {
-        id: 'session-expiry-warning',
-      });
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      toast.warning('Your session expires in 5 minutes. Please save your work.', {
-        id: 'session-expiry-warning',
-      });
-    }, warningTime);
-    return () => clearTimeout(timer);
-  }, [token, logout]);
+    apiClient.setOnTokenRefresh((newToken, newRefreshToken) => {
+      setToken(newToken);
+      setRefreshToken(newRefreshToken);
+      sessionStorage.setItem(STORAGE_KEYS.token, newToken);
+      sessionStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
+    });
+    return () => apiClient.setOnTokenRefresh(null);
+  }, []);
 
   useEffect(() => {
     apiClient.setOnUnauthorized(() => {

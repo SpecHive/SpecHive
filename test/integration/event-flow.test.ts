@@ -133,6 +133,30 @@ describe('End-to-end event flow', () => {
     expect(response.status).toBe(401);
   });
 
+  it('rejects events with a revoked project token', async () => {
+    const TOKEN_ID = '01970000-0000-7000-8000-000000000003';
+    await sql`UPDATE project_tokens SET revoked_at = NOW() WHERE id = ${TOKEN_ID}`;
+    try {
+      const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-project-token': PROJECT_TOKEN,
+        },
+        body: JSON.stringify({
+          version: '1',
+          timestamp: new Date().toISOString(),
+          runId: crypto.randomUUID(),
+          eventType: 'run.start',
+          payload: {},
+        }),
+      });
+      expect(response.status).toBe(401);
+    } finally {
+      await sql`UPDATE project_tokens SET revoked_at = NULL WHERE id = ${TOKEN_ID}`;
+    }
+  });
+
   it('processes a full lifecycle: run.start -> suite.start -> test.start -> test.end -> suite.end -> run.end', async () => {
     // 1. run.start
     await sendEvent('run.start', RUN_ID, { metadata: { ci: true } });

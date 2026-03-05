@@ -86,6 +86,7 @@ export interface ArtifactDownloadResponse {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   user: UserProfile;
   organization: {
     id: OrganizationId;

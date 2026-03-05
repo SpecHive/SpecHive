@@ -59,6 +59,11 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: {
+            get: vi.fn((key: string) => {
+              if (key === 'JWT_ACCESS_EXPIRES_IN') return '15m';
+              if (key === 'JWT_REFRESH_EXPIRES_IN') return '7d';
+              return undefined;
+            }),
             getOrThrow: vi.fn((key: string) => {
               if (key === 'JWT_SECRET') return JWT_SECRET;
               if (key === 'JWT_EXPIRES_IN') return '24h';
@@ -74,12 +79,16 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('returns token and user info on successful login', async () => {
-      mockExecute.mockResolvedValueOnce([MOCK_USER]).mockResolvedValueOnce([MOCK_ORG]);
+      mockExecute
+        .mockResolvedValueOnce([MOCK_USER])
+        .mockResolvedValueOnce([MOCK_ORG])
+        .mockResolvedValueOnce([]); // store_refresh_token
       mockVerify.mockResolvedValue(true);
 
       const result = await service.login('test@assertly.dev', 'password123');
 
       expect(result.token).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
       expect(result.user.email).toBe('test@assertly.dev');
       expect(result.organization.id).toBe(MOCK_ORG.organization_id);
 
@@ -127,7 +136,10 @@ describe('AuthService', () => {
 
     it('uses the requested organizationId when provided', async () => {
       const secondOrg = { ...MOCK_ORG, organization_id: 'org-2', organization_name: 'Org 2' };
-      mockExecute.mockResolvedValueOnce([MOCK_USER]).mockResolvedValueOnce([MOCK_ORG, secondOrg]);
+      mockExecute
+        .mockResolvedValueOnce([MOCK_USER])
+        .mockResolvedValueOnce([MOCK_ORG, secondOrg])
+        .mockResolvedValueOnce([]); // store_refresh_token
       mockVerify.mockResolvedValue(true);
 
       const result = await service.login('test@assertly.dev', 'password123', 'org-2');

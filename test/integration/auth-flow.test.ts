@@ -14,12 +14,17 @@
  *   pnpm test:integration
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { describe, it, expect, beforeAll } from 'vitest';
 
 const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
 const TEST_USER_EMAIL = 'test-user@assertly.dev';
 const TEST_USER_PASSWORD = 'test-password';
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
+
+// Unique per test run to avoid stale throttle state from prior runs
+const TEST_IP = `10.auth.flow.${randomBytes(4).toString('hex')}`;
 
 async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -40,20 +45,22 @@ describe('Auth flow', () => {
   }, 30_000);
 
   it('rejects unauthenticated requests to protected endpoints (401)', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/me`);
+    const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
+      headers: { 'X-Forwarded-For': TEST_IP },
+    });
     expect(response.status).toBe(401);
   });
 
   it('rejects requests with malformed Authorization header (401)', async () => {
     const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
-      headers: { Authorization: 'InvalidFormat' },
+      headers: { Authorization: 'InvalidFormat', 'X-Forwarded-For': TEST_IP },
     });
     expect(response.status).toBe(401);
   });
 
   it('rejects requests with invalid JWT (401)', async () => {
     const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
-      headers: { Authorization: 'Bearer invalid.jwt.token' },
+      headers: { Authorization: 'Bearer invalid.jwt.token', 'X-Forwarded-For': TEST_IP },
     });
     expect(response.status).toBe(401);
   });
@@ -61,7 +68,7 @@ describe('Auth flow', () => {
   it('login returns JWT for valid credentials', async () => {
     const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
       body: JSON.stringify({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
@@ -79,7 +86,7 @@ describe('Auth flow', () => {
   it('login fails with invalid credentials (401)', async () => {
     const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
       body: JSON.stringify({
         email: TEST_USER_EMAIL,
         password: 'wrong-password',
@@ -94,7 +101,7 @@ describe('Auth flow', () => {
     // First, login to get a valid JWT
     const loginResponse = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
       body: JSON.stringify({
         email: TEST_USER_EMAIL,
         password: TEST_USER_PASSWORD,
@@ -108,7 +115,7 @@ describe('Auth flow', () => {
 
     // Now access a protected endpoint
     const meResponse = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, 'X-Forwarded-For': TEST_IP },
     });
 
     expect(meResponse.status).toBe(200);
