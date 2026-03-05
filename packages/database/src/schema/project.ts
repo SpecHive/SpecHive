@@ -13,10 +13,9 @@ export const projects = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
-    slug: varchar('slug', { length: 100 }).notNull(),
     ...timestamps,
   },
-  (table) => [uniqueIndex('projects_org_slug_idx').on(table.organizationId, table.slug)],
+  (table) => [uniqueIndex('projects_org_name_idx').on(table.organizationId, table.name)],
 );
 
 export const projectTokens = pgTable(

@@ -94,5 +94,6 @@ services:
       start_period: 30s
     volumes:
       - ./apps/dashboard/src:/app/apps/dashboard/src:ro
+      - ./apps/dashboard/public:/app/apps/dashboard/public:ro
       - ./apps/dashboard/index.html:/app/apps/dashboard/index.html:ro
       - ./packages:/app/packages:ro

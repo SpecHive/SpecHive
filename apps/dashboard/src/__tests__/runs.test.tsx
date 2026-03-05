@@ -55,7 +55,7 @@ describe('RunsPage', () => {
       if (path === '/v1/projects') {
         return {
           data: {
-            data: [{ id: '1', name: 'Project', slug: 'p', createdAt: null }],
+            data: [{ id: '1', name: 'Project', createdAt: null }],
             meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
           },
           loading: false,
@@ -80,7 +80,7 @@ describe('RunsPage', () => {
       if (path === '/v1/projects') {
         return {
           data: {
-            data: [{ id: '1', name: 'Project', slug: 'p', createdAt: null }],
+            data: [{ id: '1', name: 'Project', createdAt: null }],
             meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
           },
           loading: false,

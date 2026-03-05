@@ -105,7 +105,6 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
     .values({
       organizationId: org!.id,
       name: 'Perf Baseline Project',
-      slug: `perf-proj-${uuidv7()}`,
     })
     .returning();
 

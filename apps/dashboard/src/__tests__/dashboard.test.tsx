@@ -39,7 +39,7 @@ vi.mock('recharts', async () => {
 });
 
 const mockProjects = {
-  data: [{ id: 'proj-1', name: 'Project', slug: 'project', createdAt: null }],
+  data: [{ id: 'proj-1', name: 'Project', createdAt: null }],
   meta: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
 };
 

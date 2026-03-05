@@ -84,8 +84,8 @@ describe('Cross-tenant analytics isolation', () => {
 
     // Seed Org B project + run + suite + test
     await sql`
-      INSERT INTO projects (id, organization_id, name, slug, created_at, updated_at)
-      VALUES (${ORG_B_PROJECT_ID}, ${ORG_B_ID}, 'Org B Project', 'org-b-project', NOW(), NOW())
+      INSERT INTO projects (id, organization_id, name, created_at, updated_at)
+      VALUES (${ORG_B_PROJECT_ID}, ${ORG_B_ID}, 'Org B Project', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING
     `;
     await sql`

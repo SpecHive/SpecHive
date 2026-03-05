@@ -96,7 +96,6 @@ const RUN_NAMES: (string | null)[] = [
 
 interface ProjectConfig {
   name: string;
-  slug: string;
   runCount: number;
   testsPerRun: { min: number; max: number };
   suiteConfig: { depth: number; suitesPerLevel: number };
@@ -297,7 +296,6 @@ const UNIT_TESTS = [
 const PROJECTS: ProjectConfig[] = [
   {
     name: 'Frontend E2E',
-    slug: 'frontend-e2e',
     runCount: 18,
     testsPerRun: { min: 15, max: 30 },
     suiteConfig: { depth: 3, suitesPerLevel: 3 },
@@ -308,7 +306,6 @@ const PROJECTS: ProjectConfig[] = [
   },
   {
     name: 'Backend API',
-    slug: 'backend-api',
     runCount: 16,
     testsPerRun: { min: 20, max: 40 },
     suiteConfig: { depth: 2, suitesPerLevel: 4 },
@@ -319,7 +316,6 @@ const PROJECTS: ProjectConfig[] = [
   },
   {
     name: 'Unit Tests',
-    slug: 'unit-tests',
     runCount: 15,
     testsPerRun: { min: 50, max: 100 },
     suiteConfig: { depth: 2, suitesPerLevel: 5 },
@@ -513,7 +509,6 @@ export async function seed(dbUrl: string, password?: string) {
         .values({
           organizationId: seedOrg.id,
           name: config.name,
-          slug: config.slug,
         })
         .onConflictDoNothing()
         .returning();
@@ -521,7 +516,7 @@ export async function seed(dbUrl: string, password?: string) {
       const seedProject =
         project ??
         (await db.query.projects.findFirst({
-          where: (p, { eq, and }) => and(eq(p.slug, config.slug), eq(p.organizationId, seedOrg.id)),
+          where: (p, { eq, and }) => and(eq(p.name, config.name), eq(p.organizationId, seedOrg.id)),
         }));
 
       if (!seedProject) {

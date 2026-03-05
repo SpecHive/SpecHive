@@ -37,6 +37,7 @@ export class ProjectTokenGuard implements CanActivate {
       token_hash: string;
       project_id: string;
       organization_id: string;
+      revoked_at: string | null;
     }>(sql`SELECT * FROM validate_project_token_by_prefix(${tokenPrefix})`);
 
     if (candidates.length === 0) {
@@ -53,6 +54,11 @@ export class ProjectTokenGuard implements CanActivate {
 
     if (!matchedRow) {
       throw new UnauthorizedException('Invalid or revoked project token');
+    }
+
+    // Defense-in-depth: catch regressions if SQL function's revoked_at filter is removed
+    if (matchedRow.revoked_at) {
+      throw new UnauthorizedException('Token has been revoked');
     }
 
     const projectContext: ProjectContext = {

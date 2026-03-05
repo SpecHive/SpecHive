@@ -79,10 +79,10 @@ describe('RLS tenant isolation', () => {
         (${ORG_B_ID}, 'Org B', 'org-b')
     `;
     await superSql`
-      INSERT INTO projects (id, organization_id, name, slug)
+      INSERT INTO projects (id, organization_id, name)
       VALUES
-        (${PROJECT_A_ID}, ${ORG_A_ID}, 'Project A', 'proj-a'),
-        (${PROJECT_B_ID}, ${ORG_B_ID}, 'Project B', 'proj-b')
+        (${PROJECT_A_ID}, ${ORG_A_ID}, 'Project A'),
+        (${PROJECT_B_ID}, ${ORG_B_ID}, 'Project B')
     `;
     await superSql`
       INSERT INTO runs (id, project_id, organization_id, status, metadata, total_tests, passed_tests, failed_tests, skipped_tests)

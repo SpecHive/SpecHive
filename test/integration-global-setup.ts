@@ -78,12 +78,11 @@ export async function setup(): Promise<void> {
     `;
 
     await sql`
-      INSERT INTO projects (id, organization_id, name, slug, created_at, updated_at)
+      INSERT INTO projects (id, organization_id, name, created_at, updated_at)
       VALUES (
         ${INTEGRATION_PROJECT_ID},
         ${INTEGRATION_ORG_ID},
         'Integration Test Project',
-        'integration-test',
         NOW(),
         NOW()
       )

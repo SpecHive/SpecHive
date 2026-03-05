@@ -3,7 +3,7 @@ import { setTenantContext } from '@assertly/database';
 import { projects } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { asc, count } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
@@ -19,9 +19,7 @@ export class ProjectsService {
   async listProjects(
     organizationId: OrganizationId,
     pagination: PaginationParams,
-  ): Promise<
-    PaginatedResponse<{ id: string; name: string; slug: string; createdAt: Date | null }>
-  > {
+  ): Promise<PaginatedResponse<{ id: string; name: string; createdAt: Date | null }>> {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
@@ -32,7 +30,6 @@ export class ProjectsService {
           .select({
             id: projects.id,
             name: projects.name,
-            slug: projects.slug,
             createdAt: projects.createdAt,
           })
           .from(projects)
@@ -46,5 +43,23 @@ export class ProjectsService {
 
       return buildPaginatedResponse(rows, total, pagination.page, pagination.pageSize);
     });
+  }
+
+  async createProject(organizationId: OrganizationId, dto: { name: string }) {
+    try {
+      return await this.db.transaction(async (tx) => {
+        await setTenantContext(tx, organizationId);
+        const [created] = await tx
+          .insert(projects)
+          .values({ organizationId, name: dto.name })
+          .returning();
+        return created;
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+        throw new ConflictException('A project with this name already exists');
+      }
+      throw err;
+    }
   }
 }

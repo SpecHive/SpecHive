@@ -125,7 +125,7 @@ describe('Migration correctness', () => {
       'tests_organization_id_idx',
       'artifacts_test_idx',
       'artifacts_organization_id_idx',
-      'projects_org_slug_idx',
+      'projects_org_name_idx',
       'project_tokens_prefix_idx',
       'project_tokens_hash_idx',
       'memberships_org_user_idx',

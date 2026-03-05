@@ -2,11 +2,14 @@ import type {
   ArtifactId,
   OrganizationId,
   ProjectId,
+  ProjectTokenId,
   RunId,
   SuiteId,
   TestId,
   UserId,
 } from '@assertly/shared-types';
+
+import type { PaginatedResponse } from './pagination.js';
 
 export interface OrganizationSummary {
   id: OrganizationId;
@@ -18,7 +21,6 @@ export interface OrganizationSummary {
 export interface ProjectSummary {
   id: ProjectId;
   name: string;
-  slug: string;
   createdAt: string | null;
 }
 
@@ -132,3 +134,38 @@ export interface FlakyTestSummary {
   flakyCount: number;
   totalRuns: number;
 }
+
+export interface CreateProjectRequest {
+  name: string;
+}
+
+export interface ProjectResponse {
+  id: ProjectId;
+  name: string;
+  organizationId: OrganizationId;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CreateTokenRequest {
+  name: string;
+}
+
+export interface TokenCreatedResponse {
+  id: ProjectTokenId;
+  name: string;
+  tokenPrefix: string;
+  token: string;
+  createdAt: string | null;
+}
+
+export interface TokenListItem {
+  id: ProjectTokenId;
+  name: string;
+  tokenPrefix: string;
+  createdAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+export type TokenListResponse = PaginatedResponse<TokenListItem>;

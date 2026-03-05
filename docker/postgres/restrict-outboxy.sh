@@ -3,7 +3,7 @@ set -euo pipefail
 
 DB="${POSTGRES_DB:-assertly}"
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-'EOSQL'
   -- Revoke access to ALL tables from outboxy, then grant back only its own
   REVOKE SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM outboxy;
 

@@ -83,10 +83,10 @@ describe('RLS write-path isolation', () => {
         (${ORG_B_ID}, 'Write Org B', 'write-org-b')
     `;
     await superSql`
-      INSERT INTO projects (id, organization_id, name, slug)
+      INSERT INTO projects (id, organization_id, name)
       VALUES
-        (${PROJECT_A_ID}, ${ORG_A_ID}, 'Write Project A', 'write-proj-a'),
-        (${PROJECT_B_ID}, ${ORG_B_ID}, 'Write Project B', 'write-proj-b')
+        (${PROJECT_A_ID}, ${ORG_A_ID}, 'Write Project A'),
+        (${PROJECT_B_ID}, ${ORG_B_ID}, 'Write Project B')
     `;
     await superSql`
       INSERT INTO project_tokens (id, project_id, organization_id, name, token_hash, token_prefix)
@@ -143,8 +143,8 @@ describe('RLS write-path isolation', () => {
       await appSql.begin(async (tx) => {
         await tx`SELECT set_config('app.current_organization_id', ${ORG_A_ID}, true)`;
         await tx`
-          INSERT INTO projects (id, organization_id, name, slug)
-          VALUES (${NEW_PROJECT_ID}, ${ORG_A_ID}, 'New Project A', 'new-proj-a')
+          INSERT INTO projects (id, organization_id, name)
+          VALUES (${NEW_PROJECT_ID}, ${ORG_A_ID}, 'New Project A')
         `;
       });
 
@@ -161,8 +161,8 @@ describe('RLS write-path isolation', () => {
         appSql.begin(async (tx) => {
           await tx`SELECT set_config('app.current_organization_id', ${ORG_A_ID}, true)`;
           await tx`
-            INSERT INTO projects (id, organization_id, name, slug)
-            VALUES (${NEW_PROJECT_ID}, ${ORG_B_ID}, 'Cross-Org Project', 'cross-proj')
+            INSERT INTO projects (id, organization_id, name)
+            VALUES (${NEW_PROJECT_ID}, ${ORG_B_ID}, 'Cross-Org Project')
           `;
         }),
       ).rejects.toThrow();

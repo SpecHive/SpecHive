@@ -1,5 +1,6 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
+import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -13,10 +14,14 @@ describe('ProjectsService', () => {
   const mockLimit = vi.fn();
   const mockOffset = vi.fn();
   const mockExecute = vi.fn();
+  const mockInsert = vi.fn();
+  const mockValues = vi.fn();
+  const mockReturning = vi.fn();
 
   const mockTx = {
     execute: mockExecute,
     select: mockSelect,
+    insert: mockInsert,
   };
 
   const mockDb = {
@@ -28,12 +33,25 @@ describe('ProjectsService', () => {
 
     // Chain mocks for select().from().orderBy().limit().offset()
     mockOffset.mockResolvedValue([
-      { id: 'proj-1', name: 'Alpha', slug: 'alpha', createdAt: new Date('2024-01-01') },
+      { id: 'proj-1', name: 'Alpha', createdAt: new Date('2024-01-01') },
     ]);
     mockLimit.mockReturnValue({ offset: mockOffset });
     mockOrderBy.mockReturnValue({ limit: mockLimit });
     mockFrom.mockReturnValue({ orderBy: mockOrderBy });
     mockSelect.mockReturnValue({ from: mockFrom });
+
+    // Chain mocks for insert().values().returning()
+    mockReturning.mockResolvedValue([
+      {
+        id: 'proj-new',
+        name: 'New Project',
+        organizationId: 'org-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+    mockValues.mockReturnValue({ returning: mockReturning });
+    mockInsert.mockReturnValue({ values: mockValues });
 
     const module = await Test.createTestingModule({
       providers: [ProjectsService, { provide: DATABASE_CONNECTION, useValue: mockDb }],
@@ -52,7 +70,7 @@ describe('ProjectsService', () => {
               offset: vi
                 .fn()
                 .mockResolvedValue([
-                  { id: 'proj-1', name: 'Alpha', slug: 'alpha', createdAt: new Date('2024-01-01') },
+                  { id: 'proj-1', name: 'Alpha', createdAt: new Date('2024-01-01') },
                 ]),
             }),
           }),
@@ -101,5 +119,48 @@ describe('ProjectsService', () => {
 
     // setTenantContext calls tx.execute
     expect(mockExecute).toHaveBeenCalled();
+  });
+
+  describe('createProject', () => {
+    it('inserts with correct name and returns created row', async () => {
+      const created = {
+        id: 'proj-new',
+        name: 'My Project',
+        organizationId: 'org-1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockReturning.mockResolvedValueOnce([created]);
+
+      const result = await service.createProject('org-1' as OrganizationId, { name: 'My Project' });
+
+      expect(result).toEqual(created);
+      expect(mockInsert).toHaveBeenCalled();
+      expect(mockExecute).toHaveBeenCalled();
+    });
+
+    it('throws ConflictException on duplicate name (23505)', async () => {
+      const pgError = Object.assign(new Error('duplicate key'), { code: '23505' });
+      mockDb.transaction.mockRejectedValueOnce(pgError);
+
+      await expect(
+        service.createProject('org-1' as OrganizationId, { name: 'Duplicate' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('re-throws non-23505 errors', async () => {
+      const genericError = new Error('connection lost');
+      mockDb.transaction.mockRejectedValueOnce(genericError);
+
+      await expect(
+        service.createProject('org-1' as OrganizationId, { name: 'Test' }),
+      ).rejects.toThrow('connection lost');
+    });
+
+    it('sets tenant context before insert', async () => {
+      await service.createProject('org-1' as OrganizationId, { name: 'Context Test' });
+
+      expect(mockExecute).toHaveBeenCalled();
+    });
   });
 });
