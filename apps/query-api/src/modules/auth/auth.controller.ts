@@ -1,14 +1,6 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
+import { ZodValidationPipe } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
-import {
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  Post,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 
@@ -43,19 +35,14 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly loginRateLimit: LoginRateLimitService,
-    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
   ) {}
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
   @HttpCode(200)
-  async login(@Req() req: { body: unknown }) {
-    const result = loginSchema.safeParse(req.body);
-    if (!result.success)
-      throwZodBadRequest(result.error, 'Invalid login payload', this.isProduction);
-
-    const { email, password, organizationId } = result.data;
+  async login(@Body(new ZodValidationPipe(loginSchema)) body: z.infer<typeof loginSchema>) {
+    const { email, password, organizationId } = body;
 
     if (this.loginRateLimit.isBlocked(email)) {
       throw new UnauthorizedException('Invalid email or password');
@@ -91,39 +78,24 @@ export class AuthController {
 
   @Post('switch-organization')
   @HttpCode(200)
-  async switchOrganization(@CurrentUser() user: UserContext, @Req() req: { body: unknown }) {
-    const result = switchOrgSchema.safeParse(req.body);
-    if (!result.success)
-      throwZodBadRequest(result.error, 'Invalid switch-organization payload', this.isProduction);
-
-    return this.authService.switchOrganization(
-      user.userId,
-      result.data.organizationId as OrganizationId,
-    );
+  async switchOrganization(
+    @CurrentUser() user: UserContext,
+    @Body(new ZodValidationPipe(switchOrgSchema)) body: z.infer<typeof switchOrgSchema>,
+  ) {
+    return this.authService.switchOrganization(user.userId, body.organizationId as OrganizationId);
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Req() req: { body: unknown }) {
-    const result = refreshSchema.safeParse(req.body);
-    if (!result.success)
-      throwZodBadRequest(result.error, 'Invalid refresh payload', this.isProduction);
-
-    return this.authService.refreshAccessToken(
-      result.data.refreshToken,
-      result.data.organizationId,
-    );
+  async refresh(@Body(new ZodValidationPipe(refreshSchema)) body: z.infer<typeof refreshSchema>) {
+    return this.authService.refreshAccessToken(body.refreshToken, body.organizationId);
   }
 
   @Public()
   @Post('logout')
   @HttpCode(204)
-  async logout(@Req() req: { body: unknown }) {
-    const result = logoutSchema.safeParse(req.body);
-    if (!result.success)
-      throwZodBadRequest(result.error, 'Invalid logout payload', this.isProduction);
-
-    await this.authService.logout(result.data.refreshToken);
+  async logout(@Body(new ZodValidationPipe(logoutSchema)) body: z.infer<typeof logoutSchema>) {
+    await this.authService.logout(body.refreshToken);
   }
 }

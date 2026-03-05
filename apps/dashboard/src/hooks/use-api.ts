@@ -10,7 +10,11 @@ interface UseApiResult<T> {
   refetch: () => void;
 }
 
-export function useApi<T>(path: string | null, params?: Record<string, string>): UseApiResult<T> {
+export function useApi<T>(
+  path: string | null,
+  params?: Record<string, string>,
+  options?: { toastId?: string },
+): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +36,8 @@ export function useApi<T>(path: string | null, params?: Record<string, string>):
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      if (message !== 'Unauthorized') toast.error(message, { id: `api-error:${path}` });
+      if (message !== 'Unauthorized')
+        toast.error(message, { id: options?.toastId ?? `api-error:${path}` });
     } finally {
       setLoading(false);
     }

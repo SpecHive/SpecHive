@@ -101,21 +101,25 @@ export function DashboardPage() {
   } = useApi<ProjectAnalyticsSummary>(
     projectId ? `/v1/projects/${projectId}/analytics/summary` : null,
     projectId ? { days: String(trendDays) } : undefined,
+    { toastId: 'api-error:analytics' },
   );
 
   const { data: passRateTrend, loading: trendLoading } = useApi<PassRateTrendPoint[]>(
     projectId ? `/v1/projects/${projectId}/analytics/pass-rate-trend` : null,
     projectId ? { days: String(trendDays) } : undefined,
+    { toastId: 'api-error:analytics' },
   );
 
   const { data: durationTrend, loading: durationLoading } = useApi<DurationTrendPoint[]>(
     projectId ? `/v1/projects/${projectId}/analytics/duration-trend` : null,
     projectId ? { days: String(trendDays) } : undefined,
+    { toastId: 'api-error:analytics' },
   );
 
   const { data: flakyTests, loading: flakyLoading } = useApi<FlakyTestSummary[]>(
     projectId ? `/v1/projects/${projectId}/analytics/flaky-tests` : null,
     projectId ? { days: String(trendDays), limit: '10' } : undefined,
+    { toastId: 'api-error:analytics' },
   );
 
   const loading = projectsLoading || runsLoading || summaryLoading;

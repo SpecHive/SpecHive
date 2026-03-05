@@ -187,6 +187,7 @@ describe('DashboardPage', () => {
     expect(mockUseApi).toHaveBeenCalledWith(
       expect.stringContaining('/analytics/summary'),
       expect.objectContaining({ days: '7' }),
+      expect.objectContaining({ toastId: 'api-error:analytics' }),
     );
   });
 

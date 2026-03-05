@@ -1,6 +1,6 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
+import { ZodValidationPipe } from '@assertly/nestjs-common';
 import type { ArtifactId } from '@assertly/shared-types';
-import { Controller, Get, Inject, Param } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -10,16 +10,13 @@ import { ArtifactsService } from './artifacts.service';
 
 @Controller('v1/artifacts')
 export class ArtifactsController {
-  constructor(
-    private readonly artifactsService: ArtifactsService,
-    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
-  ) {}
+  constructor(private readonly artifactsService: ArtifactsService) {}
 
   @Get(':id/download')
-  async download(@CurrentUser() user: UserContext, @Param('id') id: string) {
-    const result = uuidSchema.safeParse(id);
-    if (!result.success) throwZodBadRequest(result.error, 'Invalid artifact ID', this.isProduction);
-
-    return this.artifactsService.getDownloadUrl(user.organizationId, result.data as ArtifactId);
+  async download(
+    @CurrentUser() user: UserContext,
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+  ) {
+    return this.artifactsService.getDownloadUrl(user.organizationId, id as ArtifactId);
   }
 }

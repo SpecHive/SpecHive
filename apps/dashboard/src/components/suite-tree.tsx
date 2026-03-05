@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { SuiteSummary } from '@/types/api';
@@ -125,7 +125,7 @@ export function SuiteTree({
   testCountBySuiteId,
 }: SuiteTreeProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const tree = buildTree(suites);
+  const tree = useMemo(() => buildTree(suites), [suites]);
 
   const handleToggle = (suiteId: string) => {
     setExpanded((prev) => ({ ...prev, [suiteId]: !prev[suiteId] }));

@@ -1,4 +1,3 @@
-import { createDbConnection } from '@assertly/database';
 import {
   createS3ModuleOptions,
   DatabaseModule,
@@ -38,13 +37,7 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
       },
     ]),
     HealthModule,
-    DatabaseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig>) => {
-        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
-      },
-    }),
+    DatabaseModule.forRootFromEnv(),
     S3Module.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvConfig>) => createS3ModuleOptions(config),

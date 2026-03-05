@@ -10,6 +10,7 @@ import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
+import { z } from 'zod';
 
 const MAX_DAYS = 90;
 const MAX_FLAKY_LIMIT = 100;
@@ -17,6 +18,38 @@ const MAX_FLAKY_LIMIT = 100;
 function clampDays(days: number): number {
   return Math.min(Math.max(days, 1), MAX_DAYS);
 }
+
+const projectAnalyticsSummarySchema = z.object({
+  totalRuns: z.number(),
+  totalTests: z.number(),
+  passedTests: z.number(),
+  failedTests: z.number(),
+  skippedTests: z.number(),
+  flakyTests: z.number(),
+  passRate: z.number(),
+  avgDurationMs: z.number(),
+});
+
+const passRateTrendPointSchema = z.object({
+  date: z.string(),
+  passRate: z.number(),
+  totalTests: z.number(),
+  passedTests: z.number(),
+  failedTests: z.number(),
+});
+
+const durationTrendPointSchema = z.object({
+  date: z.string(),
+  avgDurationMs: z.number(),
+  minDurationMs: z.number(),
+  maxDurationMs: z.number(),
+});
+
+const flakyTestSummarySchema = z.object({
+  testName: z.string(),
+  flakyCount: z.number(),
+  totalRuns: z.number(),
+});
 
 @Injectable()
 export class AnalyticsService {
@@ -70,7 +103,7 @@ export class AnalyticsService {
         };
       }
 
-      return result[0] as unknown as ProjectAnalyticsSummary;
+      return projectAnalyticsSummarySchema.parse(result[0]);
     });
   }
 
@@ -103,7 +136,7 @@ export class AnalyticsService {
         ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
       `);
 
-      return result as unknown as PassRateTrendPoint[];
+      return passRateTrendPointSchema.array().parse(result);
     });
   }
 
@@ -132,7 +165,7 @@ export class AnalyticsService {
         ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
       `);
 
-      return result as unknown as DurationTrendPoint[];
+      return durationTrendPointSchema.array().parse(result);
     });
   }
 
@@ -164,7 +197,7 @@ export class AnalyticsService {
         LIMIT ${clampedLimit}
       `);
 
-      return result as unknown as FlakyTestSummary[];
+      return flakyTestSummarySchema.array().parse(result);
     });
   }
 }

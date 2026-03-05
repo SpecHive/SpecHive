@@ -2,6 +2,7 @@ import type { Database } from '@assertly/database';
 import { runs, setTenantContext, suites } from '@assertly/database';
 import { DATABASE_CONNECTION, escapeLikePattern } from '@assertly/nestjs-common';
 import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
+import { RunStatus } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
 
@@ -28,7 +29,7 @@ export class RunsService {
     organizationId: OrganizationId,
     projectId: ProjectId,
     pagination: PaginationParams,
-    status?: string,
+    status?: RunStatus,
     search?: string,
     sortBy: keyof typeof RunsService.runsSortColumns = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc',

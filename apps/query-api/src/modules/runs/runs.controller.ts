@@ -1,7 +1,7 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
+import { ZodValidationPipe } from '@assertly/nestjs-common';
 import { RunStatus } from '@assertly/shared-types';
 import type { ProjectId, RunId } from '@assertly/shared-types';
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';
@@ -22,32 +22,29 @@ const listRunsSchema = paginationSchema.extend({
 
 @Controller('v1/runs')
 export class RunsController {
-  constructor(
-    private readonly runsService: RunsService,
-    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
-  ) {}
+  constructor(private readonly runsService: RunsService) {}
 
   @Get()
-  async list(@CurrentUser() user: UserContext, @Query() query: Record<string, string>) {
-    const result = listRunsSchema.safeParse(query);
-    if (!result.success) throwZodBadRequest(result.error, 'Invalid request', this.isProduction);
-
+  async list(
+    @CurrentUser() user: UserContext,
+    @Query(new ZodValidationPipe(listRunsSchema)) query: z.infer<typeof listRunsSchema>,
+  ) {
     return this.runsService.listRuns(
       user.organizationId,
-      result.data.projectId as ProjectId,
-      { page: result.data.page, pageSize: result.data.pageSize },
-      result.data.status,
-      result.data.search,
-      result.data.sortBy,
-      result.data.sortOrder,
+      query.projectId as ProjectId,
+      { page: query.page, pageSize: query.pageSize },
+      query.status,
+      query.search,
+      query.sortBy,
+      query.sortOrder,
     );
   }
 
   @Get(':id')
-  async getById(@CurrentUser() user: UserContext, @Param('id') id: string) {
-    const result = uuidSchema.safeParse(id);
-    if (!result.success) throwZodBadRequest(result.error, 'Invalid request', this.isProduction);
-
-    return this.runsService.getRunById(user.organizationId, result.data as RunId);
+  async getById(
+    @CurrentUser() user: UserContext,
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+  ) {
+    return this.runsService.getRunById(user.organizationId, id as RunId);
   }
 }

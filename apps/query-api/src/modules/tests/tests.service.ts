@@ -2,6 +2,7 @@ import type { Database } from '@assertly/database';
 import { artifacts, setTenantContext, tests } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import { TestStatus } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm/sql';
@@ -47,7 +48,7 @@ export class TestsService {
     organizationId: OrganizationId,
     runId: RunId,
     pagination: PaginationParams,
-    status?: string,
+    status?: TestStatus,
     suiteId?: SuiteId,
     sortBy: keyof typeof TestsService.testsSortColumns = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'asc',

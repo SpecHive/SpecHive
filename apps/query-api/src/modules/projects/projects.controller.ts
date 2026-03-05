@@ -1,5 +1,6 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { ZodValidationPipe } from '@assertly/nestjs-common';
+import { Controller, Get, Query } from '@nestjs/common';
+import { z } from 'zod';
 
 import { paginationSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
@@ -9,17 +10,13 @@ import { ProjectsService } from './projects.service';
 
 @Controller('v1/projects')
 export class ProjectsController {
-  constructor(
-    private readonly projectsService: ProjectsService,
-    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
-  ) {}
+  constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
-  async list(@CurrentUser() user: UserContext, @Query() query: Record<string, string>) {
-    const result = paginationSchema.safeParse(query);
-    if (!result.success) {
-      throwZodBadRequest(result.error, 'Invalid pagination', this.isProduction);
-    }
-    return this.projectsService.listProjects(user.organizationId, result.data);
+  async list(
+    @CurrentUser() user: UserContext,
+    @Query(new ZodValidationPipe(paginationSchema)) query: z.infer<typeof paginationSchema>,
+  ) {
+    return this.projectsService.listProjects(user.organizationId, query);
   }
 }

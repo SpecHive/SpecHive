@@ -1,3 +1,4 @@
+import { createDbConnection } from '@assertly/database';
 import {
   type DynamicModule,
   Global,
@@ -5,6 +6,7 @@ import {
   Module,
   type OptionalFactoryDependency,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { DATABASE_CONNECTION } from '../constants';
 
@@ -29,5 +31,15 @@ export class DatabaseModule {
       ],
       exports: [DATABASE_CONNECTION],
     };
+  }
+
+  static forRootFromEnv(): DynamicModule {
+    return DatabaseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
+        return createDbConnection(databaseUrl);
+      },
+    });
   }
 }

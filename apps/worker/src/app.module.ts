@@ -1,4 +1,3 @@
-import { createDbConnection } from '@assertly/database';
 import {
   createOutboxyAdapter,
   createS3ModuleOptions,
@@ -34,13 +33,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
       },
     ]),
     HealthModule,
-    DatabaseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<EnvConfig>) => {
-        const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
-      },
-    }),
+    DatabaseModule.forRootFromEnv(),
     OutboxyModule.forRootAsync({
       useFactory: () => ({
         dialect: new PostgreSqlDialect(),
