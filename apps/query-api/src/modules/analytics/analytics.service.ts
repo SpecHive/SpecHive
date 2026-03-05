@@ -184,16 +184,24 @@ export class AnalyticsService {
       const result = await tx.execute(sql`
         SELECT
           ${tests.name} AS "testName",
-          COUNT(*)::int AS "flakyCount",
+          COUNT(*) FILTER (WHERE ${tests.status} = 'flaky')::int AS "flakyCount",
           COUNT(DISTINCT ${tests.runId})::int AS "totalRuns"
         FROM ${tests}
           INNER JOIN ${runs} ON ${runs.id} = ${tests.runId}
         WHERE ${runs.projectId} = ${projectId}
-          AND ${tests.status} = 'flaky'
           AND ${runs.finishedAt} IS NOT NULL
           AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
+          AND ${tests.name} IN (
+            SELECT DISTINCT t2.name
+            FROM ${tests} t2
+              INNER JOIN ${runs} r2 ON r2.id = t2.run_id
+            WHERE r2.project_id = ${projectId}
+              AND t2.status = 'flaky'
+              AND r2.finished_at IS NOT NULL
+              AND r2.finished_at >= NOW() - INTERVAL '1 day' * ${clampedDays}
+          )
         GROUP BY ${tests.name}
-        ORDER BY COUNT(*) DESC
+        ORDER BY (COUNT(*) FILTER (WHERE ${tests.status} = 'flaky'))::float / COUNT(DISTINCT ${tests.runId}) DESC
         LIMIT ${clampedLimit}
       `);
 

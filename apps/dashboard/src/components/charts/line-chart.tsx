@@ -64,7 +64,12 @@ export function LineChart<T extends object>({
           {...(yFormatter ? { tickFormatter: yFormatter } : {})}
           tick={{ fontSize: 12 }}
         />
-        {tooltipContent ? <Tooltip content={tooltipContent} /> : <Tooltip />}
+        <Tooltip
+          formatter={(value) => [
+            yFormatter && typeof value === 'number' ? yFormatter(value) : value,
+          ]}
+          {...(tooltipContent ? { content: tooltipContent } : {})}
+        />
         <Legend />
         {lines.map((line, i) => (
           <Line

@@ -129,6 +129,9 @@ describe('AnalyticsService', () => {
       expect(result[0]).toHaveProperty('testName');
       expect(result[0]).toHaveProperty('flakyCount');
       expect(result[0]).toHaveProperty('totalRuns');
+      // Verify the contract: totalRuns should always be >= flakyCount
+      expect(result[0].totalRuns).toBeGreaterThanOrEqual(result[0].flakyCount);
+      expect(result[1].totalRuns).toBeGreaterThanOrEqual(result[1].flakyCount);
     });
 
     it('clamps days to max 90', async () => {

@@ -6,6 +6,7 @@ import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
 import { LineChart, type LineChartLine } from '@/components/charts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useApi } from '@/hooks/use-api';
 import { CHART_COLORS } from '@/lib/chart-colors';
 import { statusColorsDot } from '@/lib/constants';
@@ -166,60 +167,116 @@ export function DashboardPage() {
         </div>
       ) : (
         summary && (
-          <section aria-labelledby="stats-heading">
-            <h2 id="stats-heading" className="sr-only">
-              Key metrics
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Runs</CardTitle>
-                  <PlayCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{summary.totalRuns.toLocaleString()}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pass Rate</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{summary.passRate.toFixed(1)}%</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Failed Tests</CardTitle>
-                  <XCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{summary.failedTests}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg. Duration</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatDurationMs(summary.avgDurationMs)}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Flaky Tests</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{summary.flakyTests}</div>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
+          <TooltipProvider>
+            <section aria-labelledby="stats-heading">
+              <h2 id="stats-heading" className="sr-only">
+                Key metrics
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Runs</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PlayCircle
+                            className="h-4 w-4 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Count of test runs completed in the selected time period.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{summary.totalRuns.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Pass Rate</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CheckCircle
+                            className="h-4 w-4 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Percentage of tests that passed: (passed / total) × 100.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{summary.passRate.toFixed(1)}%</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Failed Tests</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <XCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Number of tests that did not pass during the selected period.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{summary.failedTests}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Avg. Duration</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Mean execution time across all test runs in the selected period.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {formatDurationMs(summary.avgDurationMs)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Flaky Tests</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertTriangle
+                            className="h-4 w-4 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Tests with inconsistent pass/fail results across multiple runs.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{summary.flakyTests}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          </TooltipProvider>
         )
       )}
 

@@ -192,3 +192,4 @@ See `.env.example` for the full list with comments. Key variables:
 - **Docker Postgres init.sh only runs once**: On a fresh volume. If you need to recreate the `assertly_app` role, either `docker compose down -v` and restart, or create the role manually.
 - **Build order matters**: `shared-types` → `reporter-core-protocol` → `database` → `nestjs-common` → apps. `pnpm build` handles this via workspace topology.
 - **Two-file compose strategy**: `docker-compose.yml` is the production base (no host port bindings). `docker-compose.dev.yml` adds host ports, hot-reload, and dev settings. Local development always uses both files.
+- **No backward compatibility required**: The platform has not been released yet. All components (reporter, protocol, worker, dashboard) can be changed in lockstep. No need to maintain dual-path support or deprecation shims when refactoring.
