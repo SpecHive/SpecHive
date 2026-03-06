@@ -5,7 +5,6 @@ export const envSchema = baseEnvSchema
   .extend({
     DATABASE_URL: z.string().url(),
     JWT_SECRET: z.string().min(1),
-    JWT_EXPIRES_IN: z.string().default('24h'),
     JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
     JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
     CORS_ORIGIN: z.string().url().default('http://localhost:5173'),

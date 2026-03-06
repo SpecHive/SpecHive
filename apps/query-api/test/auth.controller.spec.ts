@@ -55,7 +55,7 @@ describe('AuthController', () => {
             }),
             getOrThrow: vi.fn((key: string) => {
               if (key === 'JWT_SECRET') return JWT_SECRET;
-              if (key === 'JWT_EXPIRES_IN') return '24h';
+              if (key === 'JWT_ACCESS_EXPIRES_IN') return '15m';
               return '';
             }),
           },

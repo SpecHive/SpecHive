@@ -211,6 +211,7 @@ services:
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
       interval: 10s
@@ -254,6 +255,7 @@ services:
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
       interval: 10s
@@ -291,7 +293,8 @@ services:
       DATABASE_URL: postgres://assertly_app:${ASSERTLY_APP_PASSWORD:-assertly_app}@postgres:5432/${POSTGRES_DB:-assertly}
       PORT: '3002'
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
       MINIO_ENDPOINT: minio:9000
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
@@ -299,6 +302,7 @@ services:
       MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}
       MINIO_BUCKET: ${MINIO_BUCKET:-assertly-artifacts}
       MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
       interval: 10s

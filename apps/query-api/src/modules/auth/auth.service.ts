@@ -49,8 +49,7 @@ export class AuthService {
     config: ConfigService<EnvConfig>,
   ) {
     this.jwtSecret = new TextEncoder().encode(config.getOrThrow<string>('JWT_SECRET'));
-    this.accessExpiresIn =
-      config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? config.getOrThrow<string>('JWT_EXPIRES_IN');
+    this.accessExpiresIn = config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN');
     this.refreshExpiresIn = config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
   }
 

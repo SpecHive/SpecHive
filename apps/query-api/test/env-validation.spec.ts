@@ -34,11 +34,6 @@ describe('query-api envSchema', () => {
     ).toThrow();
   });
 
-  it('defaults JWT_EXPIRES_IN to 24h', () => {
-    const result = envSchema.parse(VALID_ENV);
-    expect(result.JWT_EXPIRES_IN).toBe('24h');
-  });
-
   it('defaults CORS_ORIGIN to http://localhost:5173', () => {
     const result = envSchema.parse(VALID_ENV);
     expect(result.CORS_ORIGIN).toBe('http://localhost:5173');
