@@ -238,7 +238,13 @@ describe('IngestionController', () => {
           timestamp: TIMESTAMP,
           runId: RUN_ID,
           eventType: 'artifact.upload',
-          payload: { testId: TEST_ID, artifactType: 'screenshot', name: 'img.png', data: 'base64' },
+          payload: {
+            artifactId: '00000000-0000-4000-a000-000000000030',
+            testId: TEST_ID,
+            artifactType: 'screenshot',
+            name: 'img.png',
+            storagePath: 'org/proj/run/test/artifact_img.png',
+          },
         };
 
         const response = await app.inject({ method: 'POST', url: '/v1/events', payload });

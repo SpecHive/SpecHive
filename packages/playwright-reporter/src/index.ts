@@ -11,6 +11,7 @@ import {
   asTestId,
   sanitizeArtifactName,
 } from '@assertly/shared-types';
+import type { ArtifactId } from '@assertly/shared-types';
 import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
 import type {
   FullConfig,
@@ -257,16 +258,47 @@ export default class AssertlyReporter implements Reporter {
         console.warn(`[assertly] Large artifact "${attachment.name}" (${buffer.length} bytes)`);
       }
 
-      const data = buffer.toString('base64');
-      const artifactType = mapContentTypeToArtifactType(attachment.contentType);
+      const contentType = attachment.contentType ?? 'application/octet-stream';
       const name = sanitizeArtifactName(attachment.name);
+
+      const presign = await this.client.presignArtifact({
+        runId: this.runId,
+        testId,
+        fileName: name,
+        contentType,
+        sizeBytes: buffer.length,
+      });
+
+      if (!presign) {
+        console.warn(`[assertly] Failed to get presigned URL for artifact "${attachment.name}"`);
+        continue;
+      }
+
+      const uploaded = await this.client.uploadToPresignedUrl(
+        presign.uploadUrl,
+        buffer,
+        contentType,
+      );
+      if (!uploaded) {
+        console.warn(`[assertly] Failed to upload artifact "${attachment.name}" to S3`);
+        continue;
+      }
+
+      const artifactType = mapContentTypeToArtifactType(attachment.contentType);
 
       this.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
         eventType: 'artifact.upload',
-        payload: { testId, artifactType, name, data, mimeType: attachment.contentType },
+        payload: {
+          artifactId: presign.artifactId as ArtifactId,
+          testId,
+          artifactType,
+          name,
+          storagePath: presign.storagePath,
+          mimeType: attachment.contentType,
+        },
       });
     }
   }

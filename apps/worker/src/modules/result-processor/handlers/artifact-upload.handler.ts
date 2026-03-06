@@ -1,14 +1,10 @@
 import { artifacts } from '@assertly/database';
 import { S3Service } from '@assertly/nestjs-common';
 import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
-import { asArtifactId, sanitizeArtifactName } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
-import { uuidv7 } from 'uuidv7';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
-
-const LARGE_ARTIFACT_BYTES = 5 * 1024 * 1024;
 
 @EventHandler()
 @Injectable()
@@ -19,37 +15,34 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
   constructor(private readonly s3: S3Service) {}
 
   async handle(event: ArtifactUploadEvent, ctx: EventHandlerContext): Promise<void> {
-    const artifactId = asArtifactId(uuidv7());
-    const buffer = Buffer.from(event.payload.data, 'base64');
-    const sizeBytes = buffer.length;
-    const safeName = sanitizeArtifactName(event.payload.name);
-    const storagePath = `${ctx.organizationId}/${ctx.projectId}/${event.runId}/${event.payload.testId}/${artifactId}/${safeName}`;
+    const { artifactId, storagePath, testId, artifactType, name, mimeType } = event.payload;
+    const expectedPrefix = `${ctx.organizationId}/${ctx.projectId}/`;
 
-    if (sizeBytes > LARGE_ARTIFACT_BYTES) {
-      this.logger.warn(
-        `Artifact ${artifactId} is ${(sizeBytes / 1024 / 1024).toFixed(1)}MB — exceeds 5MB threshold`,
+    if (!storagePath.startsWith(expectedPrefix)) {
+      this.logger.error(
+        `Artifact ${artifactId} has invalid storage path prefix: expected "${expectedPrefix}", got "${storagePath}"`,
       );
+      return;
     }
 
-    let finalStoragePath = storagePath;
-    try {
-      await this.s3.upload(storagePath, buffer, event.payload.mimeType);
-    } catch (error) {
-      this.logger.error(`S3 upload failed for artifact ${artifactId}: ${error}`);
-      finalStoragePath = `failed://${storagePath}`;
+    const head = await this.s3.headObject(storagePath);
+    if (!head.exists) {
+      throw new Error(`Artifact ${artifactId} not found in S3 at "${storagePath}" — will retry`);
     }
 
     await ctx.tx.insert(artifacts).values({
       id: artifactId,
-      testId: event.payload.testId,
+      testId,
       organizationId: ctx.organizationId,
-      type: event.payload.artifactType,
-      name: safeName,
-      storagePath: finalStoragePath,
-      sizeBytes,
-      mimeType: event.payload.mimeType ?? null,
+      type: artifactType,
+      name,
+      storagePath,
+      sizeBytes: head.contentLength ?? 0,
+      mimeType: mimeType ?? null,
     });
 
-    this.logger.log(`Stored artifact ${artifactId} for test ${event.payload.testId}`);
+    this.logger.log(
+      `Stored artifact ${artifactId} (${head.contentLength ?? 0} bytes) for test ${testId}`,
+    );
   }
 }

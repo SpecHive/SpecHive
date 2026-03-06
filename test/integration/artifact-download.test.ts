@@ -2,9 +2,11 @@
  * Artifact download E2E integration test.
  *
  * Verifies the happy-path artifact pipeline:
- * 1. Ingest a test run with an artifact via ingestion-api
- * 2. Worker processes events (via Outboxy)
- * 3. Download the artifact via query-api presigned URL
+ * 1. Get a presigned upload URL from ingestion-api
+ * 2. PUT the file directly to S3
+ * 3. Send artifact.upload event with metadata (artifactId + storagePath)
+ * 4. Worker verifies via HEAD and inserts DB row
+ * 5. Download the artifact via query-api presigned URL
  *
  * Requires the full Docker Compose stack running:
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
@@ -55,6 +57,34 @@ async function sendEvent(event: Record<string, unknown>): Promise<void> {
   }
 }
 
+async function presignArtifact(body: Record<string, unknown>): Promise<{
+  artifactId: string;
+  storagePath: string;
+  uploadUrl: string;
+  expiresIn: number;
+}> {
+  const response = await fetch(`${INGESTION_API_URL}/v1/artifacts/presign`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-project-token': PROJECT_TOKEN,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status !== 201) {
+    const text = await response.text();
+    throw new Error(`Presign request failed (${response.status}): ${text}`);
+  }
+
+  return response.json() as Promise<{
+    artifactId: string;
+    storagePath: string;
+    uploadUrl: string;
+    expiresIn: number;
+  }>;
+}
+
 async function login(): Promise<string> {
   const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
     method: 'POST',
@@ -79,7 +109,6 @@ describe('Artifact download', () => {
   const suiteId = randomUUID();
   const testId = randomUUID();
   const artifactContent = 'Hello, this is a test artifact!';
-  const artifactBase64 = Buffer.from(artifactContent).toString('base64');
 
   let jwtToken: string;
 
@@ -112,16 +141,35 @@ describe('Artifact download', () => {
       payload: { testId, suiteId, testName: 'artifact test' },
     });
 
+    // Step 1: Get presigned upload URL
+    const presign = await presignArtifact({
+      runId,
+      testId,
+      fileName: 'test-screenshot.png',
+      contentType: 'image/png',
+      sizeBytes: Buffer.byteLength(artifactContent),
+    });
+
+    // Step 2: Upload directly to S3 via presigned URL
+    const uploadResponse = await fetch(presign.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+      body: artifactContent,
+    });
+    expect(uploadResponse.ok).toBe(true);
+
+    // Step 3: Send artifact.upload event with metadata only
     await sendEvent({
       version: '1',
       timestamp: timestamp(),
       runId,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: presign.artifactId,
         testId,
         artifactType: 'screenshot',
         name: 'test-screenshot.png',
-        data: artifactBase64,
+        storagePath: presign.storagePath,
         mimeType: 'image/png',
       },
     });

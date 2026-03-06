@@ -1,5 +1,6 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import {
+  asArtifactId,
   asRunId,
   asSuiteId,
   asTestId,
@@ -224,10 +225,11 @@ describe('IngestionService', () => {
         runId: RUN_ID,
         eventType: 'artifact.upload' as const,
         payload: {
+          artifactId: asArtifactId('00000000-0000-4000-a000-000000000030'),
           testId: asTestId('00000000-0000-4000-a000-000000000020'),
           artifactType: ArtifactType.Screenshot,
           name: 'failure.png',
-          data: 'base64data',
+          storagePath: 'org/proj/run/test/artifact_failure.png',
         },
       };
 

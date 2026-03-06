@@ -12,10 +12,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AssertlyReporter from '../src/index.js';
 import type { AssertlyReporterConfig } from '../src/types.js';
 
-const { mockSendEvent, mockCheckHealth, mockReadFile } = vi.hoisted(() => ({
+const {
+  mockSendEvent,
+  mockCheckHealth,
+  mockReadFile,
+  mockPresignArtifact,
+  mockUploadToPresignedUrl,
+} = vi.hoisted(() => ({
   mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 }),
   mockCheckHealth: vi.fn().mockResolvedValue(true),
   mockReadFile: vi.fn(),
+  mockPresignArtifact: vi.fn().mockResolvedValue({
+    artifactId: '00000000-0000-7000-8000-000000000099',
+    storagePath: 'org/proj/run/test/artifact.png',
+    uploadUrl: 'https://s3.example.com/presigned',
+    expiresIn: 300,
+  }),
+  mockUploadToPresignedUrl: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('../src/client.js', () => {
@@ -23,6 +36,8 @@ vi.mock('../src/client.js', () => {
     AssertlyClient: class MockAssertlyClient {
       sendEvent = mockSendEvent;
       checkHealth = mockCheckHealth;
+      presignArtifact = mockPresignArtifact;
+      uploadToPresignedUrl = mockUploadToPresignedUrl;
     },
   };
 });
@@ -437,10 +452,17 @@ describe('AssertlyReporter', () => {
 
       const artifacts = collectArtifactEvents();
       expect(artifacts).toHaveLength(1);
-      expect(artifacts[0]!.payload.data).toBe(content.toString('base64'));
+      expect(artifacts[0]!.payload.artifactId).toBe('00000000-0000-7000-8000-000000000099');
+      expect(artifacts[0]!.payload.storagePath).toBe('org/proj/run/test/artifact.png');
       expect(artifacts[0]!.payload.artifactType).toBe(ArtifactType.Screenshot);
       expect(artifacts[0]!.payload.name).toBe('screenshot.png');
       expect(artifacts[0]!.payload.mimeType).toBe('image/png');
+      expect(mockPresignArtifact).toHaveBeenCalled();
+      expect(mockUploadToPresignedUrl).toHaveBeenCalledWith(
+        'https://s3.example.com/presigned',
+        content,
+        'image/png',
+      );
     });
 
     it('sends artifact.upload for attachment with body', async () => {
@@ -458,7 +480,7 @@ describe('AssertlyReporter', () => {
 
       const artifacts = collectArtifactEvents();
       expect(artifacts).toHaveLength(1);
-      expect(artifacts[0]!.payload.data).toBe(body.toString('base64'));
+      expect(artifacts[0]!.payload.storagePath).toBeDefined();
     });
 
     it('skips attachment with neither path nor body', async () => {

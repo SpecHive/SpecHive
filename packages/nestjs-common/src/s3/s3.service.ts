@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3';
@@ -37,6 +38,29 @@ export class S3Service {
     return getSignedUrl(this.presignerClient, command, {
       expiresIn: expiresIn ?? DEFAULT_PRESIGNED_EXPIRY_SECONDS,
     });
+  }
+
+  async getPresignedUploadUrl(key: string, contentType: string, expiresIn = 300): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: contentType,
+    });
+    return getSignedUrl(this.presignerClient, command, { expiresIn });
+  }
+
+  async headObject(key: string): Promise<{ exists: boolean; contentLength?: number | undefined }> {
+    try {
+      const response = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return { exists: true, contentLength: response.ContentLength };
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.name === 'NotFound' || error.name === 'NoSuchKey')) {
+        return { exists: false };
+      }
+      throw error;
+    }
   }
 
   async delete(key: string): Promise<void> {

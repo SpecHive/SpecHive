@@ -1,4 +1,5 @@
 import type { V1Event } from '@assertly/reporter-core-protocol';
+import type { ArtifactId } from '@assertly/shared-types';
 
 export interface SendEventResult {
   ok: boolean;
@@ -6,6 +7,13 @@ export interface SendEventResult {
   retryable?: boolean;
   statusCode?: number;
   retries?: number;
+}
+
+export interface PresignResult {
+  artifactId: ArtifactId;
+  storagePath: string;
+  uploadUrl: string;
+  expiresIn: number;
 }
 
 const DEFAULT_TIMEOUT = 10_000;
@@ -46,6 +54,52 @@ export class AssertlyClient {
     }
 
     return lastResult;
+  }
+
+  async presignArtifact(request: {
+    runId: string;
+    testId: string;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+  }): Promise<PresignResult | null> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await fetch(`${this.apiUrl}/v1/artifacts/presign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-project-token': this.projectToken,
+        },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      return (await response.json()) as PresignResult;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async uploadToPresignedUrl(url: string, body: Buffer, contentType: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body,
+        signal: controller.signal,
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async checkHealth(): Promise<boolean> {

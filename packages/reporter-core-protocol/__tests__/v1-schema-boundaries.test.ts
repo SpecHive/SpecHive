@@ -11,6 +11,7 @@ const BASE_ENVELOPE = {
 
 const SUITE_ID = '00000000-0000-4000-8000-000000000002';
 const TEST_ID = '00000000-0000-4000-8000-000000000003';
+const ARTIFACT_ID = '00000000-0000-4000-8000-000000000004';
 
 describe('SuiteStartSchema – suiteName boundaries', () => {
   it('accepts suiteName at exactly 500 characters', () => {
@@ -70,60 +71,17 @@ describe('TestStartSchema – testName boundaries', () => {
   });
 });
 
-describe('ArtifactUploadSchema – data boundaries', () => {
-  it('rejects data at 10,000,001 characters', () => {
-    const result = ArtifactUploadSchema.safeParse({
-      ...BASE_ENVELOPE,
-      eventType: 'artifact.upload',
-      payload: {
-        testId: TEST_ID,
-        artifactType: ArtifactType.Log,
-        name: 'large.log',
-        data: 'x'.repeat(10_000_001),
-      },
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts data at exactly 10,000,000 characters', () => {
-    const result = ArtifactUploadSchema.safeParse({
-      ...BASE_ENVELOPE,
-      eventType: 'artifact.upload',
-      payload: {
-        testId: TEST_ID,
-        artifactType: ArtifactType.Log,
-        name: 'large.log',
-        data: 'x'.repeat(10_000_000),
-      },
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts empty data (no min length constraint)', () => {
-    const result = ArtifactUploadSchema.safeParse({
-      ...BASE_ENVELOPE,
-      eventType: 'artifact.upload',
-      payload: {
-        testId: TEST_ID,
-        artifactType: ArtifactType.Log,
-        name: 'empty.log',
-        data: '',
-      },
-    });
-    expect(result.success).toBe(true);
-  });
-});
-
 describe('ArtifactUploadSchema – name boundaries', () => {
   it('accepts name at exactly 500 characters', () => {
     const result = ArtifactUploadSchema.safeParse({
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: ArtifactType.Screenshot,
         name: 'a'.repeat(500),
-        data: 'base64data==',
+        storagePath: 'org/proj/run/test/artifact_file.png',
       },
     });
     expect(result.success).toBe(true);
@@ -134,10 +92,11 @@ describe('ArtifactUploadSchema – name boundaries', () => {
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: ArtifactType.Screenshot,
         name: 'a'.repeat(501),
-        data: 'base64data==',
+        storagePath: 'org/proj/run/test/artifact_file.png',
       },
     });
     expect(result.success).toBe(false);

@@ -174,10 +174,11 @@ describe('ResultProcessorService', () => {
 
   it('routes artifact.upload to ArtifactUploadHandler', async () => {
     const envelope = makeEnvelope('artifact.upload', {
+      artifactId: '00000000-0000-4000-a000-000000000040',
       testId: TEST_ID,
       artifactType: 'screenshot',
       name: 'failure.png',
-      data: Buffer.from('test').toString('base64'),
+      storagePath: 'org/proj/run/test/artifact_failure.png',
     });
     await service.processEvent(envelope);
     expect(handlers[6]!.handle).toHaveBeenCalledOnce();

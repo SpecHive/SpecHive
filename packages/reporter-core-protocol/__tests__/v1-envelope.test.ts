@@ -8,6 +8,7 @@ const PROJECT_ID = '00000000-0000-4000-8000-000000000020';
 const RUN_ID = '00000000-0000-4000-8000-000000000001';
 const SUITE_ID = '00000000-0000-4000-8000-000000000002';
 const TEST_ID = '00000000-0000-4000-8000-000000000003';
+const ARTIFACT_ID = '00000000-0000-4000-8000-000000000004';
 
 const BASE_EVENT = {
   version: '1' as const,
@@ -90,10 +91,11 @@ describe('EnrichedEventEnvelopeSchema', () => {
         ...BASE_EVENT,
         eventType: 'artifact.upload',
         payload: {
+          artifactId: ARTIFACT_ID,
           testId: TEST_ID,
           artifactType: ArtifactType.Screenshot,
           name: 'failure.png',
-          data: 'base64data',
+          storagePath: 'org/proj/run/test/failure.png',
         },
       },
     });

@@ -55,7 +55,7 @@ export class IngestionService {
       case 'test.end':
         return event.payload.testId;
       case 'artifact.upload':
-        return event.payload.testId;
+        return event.payload.artifactId;
       default: {
         const _exhaustive: never = event;
         throw _exhaustive;

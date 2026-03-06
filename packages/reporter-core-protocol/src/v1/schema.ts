@@ -2,6 +2,7 @@ import {
   RunStatus,
   TestStatus,
   ArtifactType,
+  asArtifactId,
   asRunId,
   asSuiteId,
   asTestId,
@@ -91,10 +92,11 @@ export const ArtifactUploadSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('artifact.upload'),
   payload: z.object({
+    artifactId: z.string().uuid().transform(asArtifactId),
     testId: z.string().uuid().transform(asTestId),
     artifactType: z.nativeEnum(ArtifactType),
     name: z.string().max(500),
-    data: z.string().max(10_000_000),
+    storagePath: z.string().max(1000),
     mimeType: z.string().optional(),
   }),
 });

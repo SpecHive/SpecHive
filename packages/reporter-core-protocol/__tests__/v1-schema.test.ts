@@ -1,5 +1,5 @@
 import { RunStatus, TestStatus, ArtifactType } from '@assertly/shared-types';
-import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
+import type { ArtifactId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -21,6 +21,7 @@ const BASE_ENVELOPE = {
 
 const SUITE_ID = '00000000-0000-4000-8000-000000000002';
 const TEST_ID = '00000000-0000-4000-8000-000000000003';
+const ARTIFACT_ID = '00000000-0000-4000-8000-000000000004';
 
 describe('RunStartSchema', () => {
   it('parses a valid run.start event', () => {
@@ -250,10 +251,11 @@ describe('ArtifactUploadSchema', () => {
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: ArtifactType.Screenshot,
         name: 'failure-screenshot.png',
-        data: 'base64encodeddata==',
+        storagePath: 'org/proj/run/test/artifact_file.png',
         mimeType: 'image/png',
       },
     });
@@ -265,10 +267,11 @@ describe('ArtifactUploadSchema', () => {
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: ArtifactType.Log,
         name: 'test.log',
-        data: 'bG9nIGNvbnRlbnQ=',
+        storagePath: 'org/proj/run/test/artifact_file.log',
       },
     });
     expect(result.success).toBe(true);
@@ -279,16 +282,17 @@ describe('ArtifactUploadSchema', () => {
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: 'gif',
         name: 'animation.gif',
-        data: 'base64data==',
+        storagePath: 'org/proj/run/test/animation.gif',
       },
     });
     expect(result.success).toBe(false);
   });
 
-  it('fails when data field is missing', () => {
+  it('fails when artifactId is missing', () => {
     const result = ArtifactUploadSchema.safeParse({
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
@@ -296,6 +300,36 @@ describe('ArtifactUploadSchema', () => {
         testId: TEST_ID,
         artifactType: ArtifactType.Screenshot,
         name: 'screenshot.png',
+        storagePath: 'org/proj/run/test/screenshot.png',
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('fails when storagePath is missing', () => {
+    const result = ArtifactUploadSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'artifact.upload',
+      payload: {
+        artifactId: ARTIFACT_ID,
+        testId: TEST_ID,
+        artifactType: ArtifactType.Screenshot,
+        name: 'screenshot.png',
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('fails when artifactId is not a valid UUID', () => {
+    const result = ArtifactUploadSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'artifact.upload',
+      payload: {
+        artifactId: 'not-a-uuid',
+        testId: TEST_ID,
+        artifactType: ArtifactType.Screenshot,
+        name: 'screenshot.png',
+        storagePath: 'org/proj/run/test/screenshot.png',
       },
     });
     expect(result.success).toBe(false);
@@ -332,10 +366,11 @@ describe('V1EventSchema discriminated union', () => {
       ...BASE_ENVELOPE,
       eventType: 'artifact.upload',
       payload: {
+        artifactId: ARTIFACT_ID,
         testId: TEST_ID,
         artifactType: ArtifactType.Trace,
         name: 'trace.zip',
-        data: 'dHJhY2VkYXRh',
+        storagePath: 'org/proj/run/test/trace.zip',
       },
     });
     expect(result.success).toBe(true);
@@ -480,6 +515,24 @@ describe('Branded ID types', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expectTypeOf(result.data.payload.testId).toEqualTypeOf<TestId>();
+    }
+  });
+
+  it('parsed artifactId is branded as ArtifactId', () => {
+    const result = ArtifactUploadSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'artifact.upload',
+      payload: {
+        artifactId: ARTIFACT_ID,
+        testId: TEST_ID,
+        artifactType: ArtifactType.Screenshot,
+        name: 'screenshot.png',
+        storagePath: 'org/proj/run/test/screenshot.png',
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expectTypeOf(result.data.payload.artifactId).toEqualTypeOf<ArtifactId>();
     }
   });
 });
