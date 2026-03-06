@@ -8,7 +8,7 @@ import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
 const VALID_TRANSITIONS: Record<string, RunStatus[]> = {
-  [RunStatus.Pending]: [RunStatus.Running, RunStatus.Cancelled],
+  [RunStatus.Pending]: [RunStatus.Running, RunStatus.Passed, RunStatus.Failed, RunStatus.Cancelled],
   [RunStatus.Running]: [RunStatus.Passed, RunStatus.Failed, RunStatus.Cancelled],
 };
 

@@ -12,86 +12,31 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
-const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
+import { IngestionApiClient } from '../helpers/api-clients';
+import { INGESTION_URL, PROJECT_TOKEN, SEED_TOKEN_ID } from '../helpers/constants';
+import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
+import {
+  createRunStartEvent,
+  createRunEndEvent,
+  createSuiteStartEvent,
+  createSuiteEndEvent,
+  createTestStartEvent,
+  createTestEndEvent,
+} from '../helpers/factories';
+import { waitForService, waitForRow } from '../helpers/wait';
 
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
-
-async function waitForRow(
-  sql: ReturnType<typeof postgres>,
-  table: string,
-  id: string,
-  maxAttempts = 30,
-  delayMs = 500,
-): Promise<Record<string, unknown>> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const rows = await sql`SELECT * FROM ${sql(table)} WHERE id = ${id}`;
-    if (rows.length > 0) return rows[0] as Record<string, unknown>;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Row ${id} not found in ${table} after ${maxAttempts * delayMs}ms`);
-}
-
-async function sendEvent(
-  eventType: string,
-  runId: string,
-  payload: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-project-token': PROJECT_TOKEN,
-    },
-    body: JSON.stringify({
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId,
-      eventType,
-      payload,
-    }),
-  });
-
-  expect(response.status).toBe(202);
-  return (await response.json()) as Record<string, unknown>;
-}
+const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
 
 const RUN_ID = crypto.randomUUID();
 const SUITE_ID = crypto.randomUUID();
 const TEST_ID = crypto.randomUUID();
 
 describe('End-to-end event flow', () => {
-  let sql: ReturnType<typeof postgres>;
+  let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
 
   beforeAll(async () => {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    sql = postgres(DATABASE_URL, { max: 1 });
-
-    await waitForService(INGESTION_API_URL);
+    sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
+    await waitForService(INGESTION_URL);
   }, 30_000);
 
   afterAll(async () => {
@@ -99,143 +44,117 @@ describe('End-to-end event flow', () => {
   });
 
   it('rejects events without a project token', async () => {
-    const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: crypto.randomUUID(),
-        eventType: 'run.start',
-        payload: {},
-      }),
-    });
+    const response = await ingestionApi.events.sendWithoutToken(createRunStartEvent());
 
     expect(response.status).toBe(401);
   });
 
   it('rejects events with an invalid token', async () => {
-    const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': 'invalid-token-that-does-not-exist',
-      },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: crypto.randomUUID(),
-        eventType: 'run.start',
-        payload: {},
-      }),
-    });
+    const response = await ingestionApi.events.sendWithToken(
+      createRunStartEvent(),
+      'invalid-token-that-does-not-exist',
+    );
 
     expect(response.status).toBe(401);
   });
 
   it('rejects events with a revoked project token', async () => {
-    const TOKEN_ID = '01970000-0000-7000-8000-000000000003';
-    await sql`UPDATE project_tokens SET revoked_at = NOW() WHERE id = ${TOKEN_ID}`;
+    await sql`UPDATE project_tokens SET revoked_at = NOW() WHERE id = ${SEED_TOKEN_ID}`;
     try {
-      const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-project-token': PROJECT_TOKEN,
-        },
-        body: JSON.stringify({
-          version: '1',
-          timestamp: new Date().toISOString(),
-          runId: crypto.randomUUID(),
-          eventType: 'run.start',
-          payload: {},
-        }),
-      });
+      const response = await ingestionApi.events.sendWithToken(
+        createRunStartEvent(),
+        PROJECT_TOKEN,
+      );
       expect(response.status).toBe(401);
     } finally {
-      await sql`UPDATE project_tokens SET revoked_at = NULL WHERE id = ${TOKEN_ID}`;
+      await sql`UPDATE project_tokens SET revoked_at = NULL WHERE id = ${SEED_TOKEN_ID}`;
     }
   });
 
   it('processes a full lifecycle: run.start -> suite.start -> test.start -> test.end -> suite.end -> run.end', async () => {
     // 1. run.start
-    await sendEvent('run.start', RUN_ID, { metadata: { ci: true } });
-    const run = await waitForRow(sql, 'runs', RUN_ID);
+    const sendResult = await ingestionApi.events.send(
+      createRunStartEvent({ runId: RUN_ID, payload: { metadata: { ci: true } } }),
+    );
+    expect(sendResult.status).toBe(202);
+
+    const run = await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`);
     expect(run['status']).toBe('pending');
 
     // 2. suite.start
-    await sendEvent('suite.start', RUN_ID, {
-      suiteId: SUITE_ID,
-      suiteName: 'Auth Tests',
-    });
-    const suite = await waitForRow(sql, 'suites', SUITE_ID);
+    const suiteResult = await ingestionApi.events.send(
+      createSuiteStartEvent({
+        runId: RUN_ID,
+        payload: { suiteId: SUITE_ID, suiteName: 'Auth Tests' },
+      }),
+    );
+    expect(suiteResult.status).toBe(202);
+
+    const suite = await waitForRow(() => sql`SELECT * FROM suites WHERE id = ${SUITE_ID}`);
     expect(suite['name']).toBe('Auth Tests');
     expect(suite['run_id']).toBe(RUN_ID);
 
     // 3. test.start
-    await sendEvent('test.start', RUN_ID, {
-      testId: TEST_ID,
-      suiteId: SUITE_ID,
-      testName: 'should login successfully',
-    });
-    const testRow = await waitForRow(sql, 'tests', TEST_ID);
+    const testStartResult = await ingestionApi.events.send(
+      createTestStartEvent({
+        runId: RUN_ID,
+        payload: { testId: TEST_ID, suiteId: SUITE_ID, testName: 'should login successfully' },
+      }),
+    );
+    expect(testStartResult.status).toBe(202);
+
+    const testRow = await waitForRow(() => sql`SELECT * FROM tests WHERE id = ${TEST_ID}`);
     expect(testRow['name']).toBe('should login successfully');
     expect(testRow['status']).toBe('pending');
 
     // 4. test.end
-    await sendEvent('test.end', RUN_ID, {
-      testId: TEST_ID,
-      status: 'passed',
-      durationMs: 150,
+    const testEndResult = await ingestionApi.events.send(
+      createTestEndEvent({
+        runId: RUN_ID,
+        payload: { testId: TEST_ID, status: 'passed', durationMs: 150 },
+      }),
+    );
+    expect(testEndResult.status).toBe(202);
+
+    const updatedTest = await waitForRow(() => sql`SELECT * FROM tests WHERE id = ${TEST_ID}`, {
+      predicate: (row) => row['status'] === 'passed',
     });
-    // Wait for the test to be updated
-    let updatedTest: Record<string, unknown> | undefined;
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM tests WHERE id = ${TEST_ID}`;
-      if (rows[0] && rows[0]['status'] === 'passed') {
-        updatedTest = rows[0] as Record<string, unknown>;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    expect(updatedTest).toBeDefined();
-    expect(updatedTest!['status']).toBe('passed');
-    expect(updatedTest!['duration_ms']).toBe(150);
+    expect(updatedTest['status']).toBe('passed');
+    expect(updatedTest['duration_ms']).toBe(150);
 
     // 5. suite.end (no-op for DB, but still should be accepted)
-    await sendEvent('suite.end', RUN_ID, { suiteId: SUITE_ID });
+    const suiteEndResult = await ingestionApi.events.send(
+      createSuiteEndEvent({ runId: RUN_ID, payload: { suiteId: SUITE_ID } }),
+    );
+    expect(suiteEndResult.status).toBe(202);
 
     // 6. run.end
-    await sendEvent('run.end', RUN_ID, { status: 'passed' });
-    // Wait for run to finish
-    let finishedRun: Record<string, unknown> | undefined;
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM runs WHERE id = ${RUN_ID}`;
-      if (rows[0] && rows[0]['status'] === 'passed') {
-        finishedRun = rows[0] as Record<string, unknown>;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    expect(finishedRun).toBeDefined();
-    expect(finishedRun!['status']).toBe('passed');
-    expect(finishedRun!['total_tests']).toBe(1);
-    expect(finishedRun!['passed_tests']).toBe(1);
+    const runEndResult = await ingestionApi.events.send(
+      createRunEndEvent({ runId: RUN_ID, payload: { status: 'passed' } }),
+    );
+    expect(runEndResult.status).toBe(202);
+
+    const finishedRun = await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`, {
+      predicate: (row) => row['status'] === 'passed',
+    });
+    expect(finishedRun['status']).toBe('passed');
+    expect(finishedRun['total_tests']).toBe(1);
+    expect(finishedRun['passed_tests']).toBe(1);
   }, 60_000);
 
   it('skips duplicate events', async () => {
     const duplicateRunId = crypto.randomUUID();
 
     // Send the same event twice with the same runId
-    const body1 = await sendEvent('run.start', duplicateRunId, {});
-    const body2 = await sendEvent('run.start', duplicateRunId, {});
+    const body1 = await ingestionApi.events.send(createRunStartEvent({ runId: duplicateRunId }));
+    const body2 = await ingestionApi.events.send(createRunStartEvent({ runId: duplicateRunId }));
 
     // Both should be accepted by the ingestion API (publish-only)
-    expect(body1).toHaveProperty('eventId');
-    expect(body2).toHaveProperty('eventId');
+    expect(body1.body).toHaveProperty('eventId');
+    expect(body2.body).toHaveProperty('eventId');
 
     // Wait for the first event to be processed
-    await waitForRow(sql, 'runs', duplicateRunId);
+    await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${duplicateRunId}`);
 
     // Give extra time for potential duplicate processing
     await new Promise((r) => setTimeout(r, 2000));

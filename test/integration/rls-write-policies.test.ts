@@ -12,27 +12,11 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
-
-const APP_DATABASE_URL =
-  process.env['APP_DATABASE_URL'] ??
-  process.env['DATABASE_URL'] ??
-  'postgres://assertly_app:assertly_app@localhost:5432/assertly';
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function loadPostgres() {
-  const mod = await import('postgres');
-  postgres = mod.default;
-}
+import {
+  buildSuperuserDatabaseUrl,
+  buildAppDatabaseUrl,
+  createPostgresConnection,
+} from '../helpers/database';
 
 // Deterministic UUIDs for two organizations and their data
 const ORG_A_ID = '00000000-0000-4000-b000-aaaaaaaaaaaa';
@@ -55,14 +39,12 @@ const NEW_PROJECT_ID = '00000000-0000-4000-b000-aaaa00000099';
 const NEW_TOKEN_ID = '00000000-0000-4000-b000-aaaa00000098';
 
 describe('RLS write-path isolation', () => {
-  let superSql: ReturnType<typeof postgres>;
-  let appSql: ReturnType<typeof postgres>;
+  let superSql: Awaited<ReturnType<typeof createPostgresConnection>>;
+  let appSql: Awaited<ReturnType<typeof createPostgresConnection>>;
 
   beforeAll(async () => {
-    await loadPostgres();
-
-    superSql = postgres(DATABASE_URL, { max: 1 });
-    appSql = postgres(APP_DATABASE_URL, { max: 1 });
+    superSql = await createPostgresConnection(buildSuperuserDatabaseUrl());
+    appSql = await createPostgresConnection(buildAppDatabaseUrl());
 
     await superSql`SELECT 1`;
 

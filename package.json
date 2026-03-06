@@ -16,6 +16,7 @@
     "test": "pnpm test:unit && pnpm test:integration",
     "test:unit": "pnpm -r run test",
     "test:integration": "vitest run --config test/vitest.integration.config.ts",
+    "test:coverage": "vitest run --coverage",
     "build": "pnpm -r run build",
     "db:generate": "pnpm -r --filter='*' run db:generate",
     "db:migrate": "pnpm -r --filter='*' run db:migrate",
@@ -52,6 +53,7 @@
     "prettier": "^3.4.2",
     "typescript": "^5.9.3",
     "unplugin-swc": "^1.5.9",
+    "@vitest/coverage-v8": "^4.0.0",
     "vitest": "^4.0.0"
   }
 }

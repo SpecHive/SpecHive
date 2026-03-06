@@ -13,7 +13,7 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
   private readonly logger = new Logger(TestStartHandler.name);
 
   async handle(event: TestStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx
+    const result = await ctx.tx
       .insert(tests)
       .values({
         id: event.payload.testId,
@@ -24,7 +24,13 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
         status: TestStatus.Pending,
         startedAt: new Date(event.timestamp),
       })
-      .onConflictDoNothing({ target: tests.id });
+      .onConflictDoNothing()
+      .returning({ id: tests.id });
+
+    if (result.length === 0) {
+      this.logger.debug(`Duplicate test.start skipped for test ${event.payload.testId}`);
+      return;
+    }
 
     this.logger.log(`Created test ${event.payload.testId} in run ${event.runId}`);
   }

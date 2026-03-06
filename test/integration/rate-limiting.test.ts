@@ -9,20 +9,9 @@ import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
+import { waitForService, QueryApiClient, QUERY_API_URL } from '../helpers';
 
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
+const queryApi = new QueryApiClient(QUERY_API_URL);
 
 describe('Rate limiting on login endpoint', () => {
   // Unique per test run to avoid stale throttle state from prior runs
@@ -37,16 +26,8 @@ describe('Rate limiting on login endpoint', () => {
 
     // Send 11 requests sequentially for deterministic ordering
     for (let i = 0; i < 11; i++) {
-      const res = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Forwarded-For': TEST_IP,
-        },
-        body: JSON.stringify({
-          email: 'rate-limit-test@example.com',
-          password: 'wrong-password',
-        }),
+      const res = await queryApi.auth.loginRaw('rate-limit-test@example.com', 'wrong-password', {
+        forwardedIp: TEST_IP,
       });
       statuses.push(res.status);
     }

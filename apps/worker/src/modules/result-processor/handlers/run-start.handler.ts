@@ -13,7 +13,7 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
   private readonly logger = new Logger(RunStartHandler.name);
 
   async handle(event: RunStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx
+    const result = await ctx.tx
       .insert(runs)
       .values({
         id: event.runId,
@@ -24,7 +24,13 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
         startedAt: new Date(event.timestamp),
         metadata: (event.payload.metadata ?? {}) as Record<string, unknown>,
       })
-      .onConflictDoNothing({ target: runs.id });
+      .onConflictDoNothing()
+      .returning({ id: runs.id });
+
+    if (result.length === 0) {
+      this.logger.debug(`Duplicate run.start skipped for run ${event.runId}`);
+      return;
+    }
 
     this.logger.log(`Created run ${event.runId}`);
   }

@@ -8,8 +8,7 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
-    "test": "vitest run",
-    "test:e2e": "vitest run test/"
+    "test": "vitest run"
   },
   "dependencies": {
     "@assertly/api-types": "workspace:*",

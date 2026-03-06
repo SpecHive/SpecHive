@@ -19,17 +19,10 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
+import { buildSuperuserDatabaseUrl } from '../helpers/database';
+
 // Needs the superuser role (not assertly_app) to CREATE DATABASE for temp test DBs.
-// ADMIN_DATABASE_URL takes precedence; falls back to POSTGRES_* env vars from .env,
-// then to the local-dev default.
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
+const DATABASE_URL = buildSuperuserDatabaseUrl();
 
 const TEST_DB_NAME = `assertly_migration_test_${Date.now()}`;
 

@@ -1,25 +1,18 @@
-import type { OrganizationId, ProjectId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { TestStatus } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';
+import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
 import { TestStartHandler } from '../../src/modules/result-processor/handlers/test-start.handler';
 
 describe('TestStartHandler', () => {
   let handler: TestStartHandler;
-  let mockInsert: ReturnType<typeof vi.fn>;
-  let ctx: EventHandlerContext;
+  let ctx: ReturnType<typeof createHandlerContext>['ctx'];
+  let mocks: ReturnType<typeof createHandlerContext>['mocks'];
 
   beforeEach(async () => {
-    mockInsert = vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn() }),
-    });
-    ctx = {
-      tx: { insert: mockInsert } as unknown as EventHandlerContext['tx'],
-      organizationId: 'org-1' as OrganizationId,
-      projectId: 'proj-1' as ProjectId,
-    };
+    ({ ctx, mocks } = createHandlerContext());
 
     const module = await Test.createTestingModule({
       providers: [TestStartHandler],
@@ -43,9 +36,8 @@ describe('TestStartHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(mockInsert).toHaveBeenCalled();
-    const valuesCall = mockInsert.mock.results[0].value.values;
-    expect(valuesCall).toHaveBeenCalledWith({
+    expect(mocks.insert.insert).toHaveBeenCalled();
+    expect(mocks.insert.values).toHaveBeenCalledWith({
       id: 'test-1',
       suiteId: 'suite-1',
       runId: 'run-1',
@@ -54,5 +46,25 @@ describe('TestStartHandler', () => {
       status: TestStatus.Pending,
       startedAt: new Date('2025-01-01T00:00:00.000Z'),
     });
+  });
+
+  it('logs debug when duplicate is skipped', async () => {
+    mocks.insert.returning.mockResolvedValueOnce([]);
+
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.start' as const,
+      payload: {
+        testId: 'test-dup' as TestId,
+        suiteId: 'suite-1' as SuiteId,
+        testName: 'dup test',
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.insert.returning).toHaveBeenCalled();
   });
 });

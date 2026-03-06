@@ -10,31 +10,11 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-// Superuser URL for seeding/cleanup (bypasses RLS).
-// Built from POSTGRES_* env vars (auto-loaded from .env by Vitest) so no manual
-// DATABASE_URL override is needed.
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
-
-// App-role URL (subject to RLS) — the connection the application actually uses.
-const APP_DATABASE_URL =
-  process.env['APP_DATABASE_URL'] ??
-  process.env['DATABASE_URL'] ??
-  'postgres://assertly_app:assertly_app@localhost:5432/assertly';
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function loadPostgres() {
-  const mod = await import('postgres');
-  postgres = mod.default;
-}
+import {
+  buildSuperuserDatabaseUrl,
+  buildAppDatabaseUrl,
+  createPostgresConnection,
+} from '../helpers/database';
 
 // Two org UUIDs used across all tests (deterministic to simplify cleanup)
 const ORG_A_ID = '00000000-0000-4000-a000-aaaaaaaaaaaa';
@@ -51,14 +31,12 @@ const ARTIFACT_A_ID = '00000000-0000-4000-a000-aaaa00000040';
 const ARTIFACT_B_ID = '00000000-0000-4000-a000-bbbb00000040';
 
 describe('RLS tenant isolation', () => {
-  let superSql: ReturnType<typeof postgres>;
-  let appSql: ReturnType<typeof postgres>;
+  let superSql: Awaited<ReturnType<typeof createPostgresConnection>>;
+  let appSql: Awaited<ReturnType<typeof createPostgresConnection>>;
 
   beforeAll(async () => {
-    await loadPostgres();
-
-    superSql = postgres(DATABASE_URL, { max: 1 });
-    appSql = postgres(APP_DATABASE_URL, { max: 1 });
+    superSql = await createPostgresConnection(buildSuperuserDatabaseUrl());
+    appSql = await createPostgresConnection(buildAppDatabaseUrl());
 
     // Verify database is reachable
     await superSql`SELECT 1`;

@@ -1,33 +1,21 @@
-import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
+import type { RunId } from '@assertly/shared-types';
 import { RunStatus } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';
+import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
 import { RunEndHandler } from '../../src/modules/result-processor/handlers/run-end.handler';
 
 describe('RunEndHandler', () => {
   let handler: RunEndHandler;
-  let mockUpdateWhere: ReturnType<typeof vi.fn>;
-  let mockSet: ReturnType<typeof vi.fn>;
-  let mockUpdate: ReturnType<typeof vi.fn>;
-  let mockSelectWhere: ReturnType<typeof vi.fn>;
-  let mockFrom: ReturnType<typeof vi.fn>;
-  let mockSelect: ReturnType<typeof vi.fn>;
-  let ctx: EventHandlerContext;
+  let ctx: ReturnType<typeof createHandlerContext>['ctx'];
+  let mocks: ReturnType<typeof createHandlerContext>['mocks'];
 
   beforeEach(async () => {
-    mockSelectWhere = vi.fn().mockResolvedValue([{ status: RunStatus.Running }]);
-    mockFrom = vi.fn().mockReturnValue({ where: mockSelectWhere });
-    mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
-    mockUpdateWhere = vi.fn();
-    mockSet = vi.fn().mockReturnValue({ where: mockUpdateWhere });
-    mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
-    ctx = {
-      tx: { update: mockUpdate, select: mockSelect } as unknown as EventHandlerContext['tx'],
-      organizationId: 'org-1' as OrganizationId,
-      projectId: 'proj-1' as ProjectId,
-    };
+    ({ ctx, mocks } = createHandlerContext());
+
+    // run-end reads the current run status before updating
+    mocks.select.where.mockResolvedValue([{ status: RunStatus.Running }]);
 
     const module = await Test.createTestingModule({
       providers: [RunEndHandler],
@@ -47,12 +35,12 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(mockSelect).toHaveBeenCalled();
-    expect(mockUpdate).toHaveBeenCalled();
-    expect(mockSet).toHaveBeenCalledWith({
+    expect(mocks.select.select).toHaveBeenCalled();
+    expect(mocks.update.update).toHaveBeenCalled();
+    expect(mocks.update.set).toHaveBeenCalledWith({
       status: RunStatus.Passed,
       finishedAt: new Date('2025-01-01T01:00:00.000Z'),
     });
-    expect(mockUpdateWhere).toHaveBeenCalled();
+    expect(mocks.update.where).toHaveBeenCalled();
   });
 });

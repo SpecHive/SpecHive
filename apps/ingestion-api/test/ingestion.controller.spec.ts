@@ -1,6 +1,5 @@
 import { AllExceptionsFilter, IS_PRODUCTION } from '@assertly/nestjs-common';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { ExecutionContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -9,6 +8,7 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
+import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
 import { ProjectTokenGuard } from '../src/guards/project-token.guard';
 import type { ProjectContext } from '../src/guards/project-token.guard';
 import { IngestionController } from '../src/modules/ingestion/ingestion.controller';
@@ -34,22 +34,6 @@ function buildModule(nodeEnv: string) {
     get: vi.fn().mockReturnValue(nodeEnv),
     getOrThrow: vi.fn().mockReturnValue(nodeEnv),
   };
-
-  // Override ProjectTokenGuard to always pass and inject the mock project context
-  class MockProjectTokenGuard {
-    canActivate(context: ExecutionContext): boolean {
-      const request = context.switchToHttp().getRequest();
-      request.projectContext = MOCK_PROJECT_CONTEXT;
-      return true;
-    }
-  }
-
-  // Override ThrottlerGuard to always allow through
-  class MockThrottlerGuard {
-    canActivate(): boolean {
-      return true;
-    }
-  }
 
   return {
     mockProcessEvent,

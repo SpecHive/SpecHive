@@ -1,0 +1,69 @@
+import { randomBytes } from 'node:crypto';
+
+import { BaseClient, type ApiResponse } from './base-client';
+
+/** HTTP client for the analytics endpoints (`/v1/projects/:id/analytics/*`). */
+export class AnalyticsClient extends BaseClient {
+  private authHeaders(token: string, forwardedIp?: string): Record<string, string> {
+    return {
+      Authorization: `Bearer ${token}`,
+      'X-Forwarded-For': forwardedIp ?? `10.test.${randomBytes(4).toString('hex')}`,
+    };
+  }
+
+  /** GET /v1/projects/:id/analytics/summary — KPI summary for a project. */
+  async summary(
+    token: string,
+    projectId: string,
+    days = 30,
+    forwardedIp?: string,
+  ): Promise<ApiResponse> {
+    return this.request('GET', `/v1/projects/${projectId}/analytics/summary?days=${days}`, {
+      headers: this.authHeaders(token, forwardedIp),
+    });
+  }
+
+  /** GET /v1/projects/:id/analytics/pass-rate-trend — daily pass-rate trend. */
+  async passRateTrend(
+    token: string,
+    projectId: string,
+    days = 30,
+    forwardedIp?: string,
+  ): Promise<ApiResponse> {
+    return this.request('GET', `/v1/projects/${projectId}/analytics/pass-rate-trend?days=${days}`, {
+      headers: this.authHeaders(token, forwardedIp),
+    });
+  }
+
+  /** GET /v1/projects/:id/analytics/duration-trend — daily duration trend. */
+  async durationTrend(
+    token: string,
+    projectId: string,
+    days = 30,
+    forwardedIp?: string,
+  ): Promise<ApiResponse> {
+    return this.request('GET', `/v1/projects/${projectId}/analytics/duration-trend?days=${days}`, {
+      headers: this.authHeaders(token, forwardedIp),
+    });
+  }
+
+  /** GET /v1/projects/:id/analytics/flaky-tests — top flaky tests. */
+  async flakyTests(
+    token: string,
+    projectId: string,
+    days = 30,
+    limit = 10,
+    forwardedIp?: string,
+  ): Promise<ApiResponse> {
+    return this.request(
+      'GET',
+      `/v1/projects/${projectId}/analytics/flaky-tests?days=${days}&limit=${limit}`,
+      { headers: this.authHeaders(token, forwardedIp) },
+    );
+  }
+
+  /** Raw request for unauthorized/invalid tests. */
+  async summaryRaw(projectId: string, headers?: Record<string, string>): Promise<Response> {
+    return this.requestRaw('GET', `/v1/projects/${projectId}/analytics/summary`, { headers });
+  }
+}

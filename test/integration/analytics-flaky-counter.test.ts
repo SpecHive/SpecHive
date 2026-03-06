@@ -8,79 +8,29 @@
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  */
 
-import { randomBytes } from 'node:crypto';
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
-const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
-const TEST_IP = `10.flaky.${randomBytes(4).toString('hex')}`;
-const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
+import { IngestionApiClient, QueryApiClient } from '../helpers/api-clients';
+import {
+  INGESTION_URL,
+  QUERY_API_URL,
+  PROJECT_TOKEN,
+  SEED_PROJECT_ID,
+  SEED_EMAIL,
+  SEED_PASSWORD,
+} from '../helpers/constants';
+import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
+import {
+  createRunStartEvent,
+  createRunEndEvent,
+  createSuiteStartEvent,
+  createTestStartEvent,
+  createTestEndEvent,
+} from '../helpers/factories';
+import { waitForService, waitForRow } from '../helpers/wait';
 
-const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
-
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
-
-async function sendEvent(
-  eventType: string,
-  runId: string,
-  payload: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
-  const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-project-token': PROJECT_TOKEN,
-    },
-    body: JSON.stringify({
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId,
-      eventType,
-      payload,
-    }),
-  });
-
-  expect(response.status).toBe(202);
-  return (await response.json()) as Record<string, unknown>;
-}
-
-async function login(): Promise<string> {
-  const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
-    body: JSON.stringify({
-      email: 'test-user@assertly.dev',
-      password: 'test-password',
-    }),
-  });
-  expect(response.status).toBe(200);
-  const body = (await response.json()) as { token: string };
-  return body.token;
-}
+const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
+const queryApi = new QueryApiClient(QUERY_API_URL);
 
 const RUN_ID = crypto.randomUUID();
 const SUITE_ID = crypto.randomUUID();
@@ -88,17 +38,15 @@ const FLAKY_TEST_ID = crypto.randomUUID();
 const PASSED_TEST_ID = crypto.randomUUID();
 
 describe('Flaky tests counter', () => {
-  let sql: ReturnType<typeof postgres>;
+  let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
   let jwt: string;
 
   beforeAll(async () => {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    sql = postgres(DATABASE_URL, { max: 1 });
+    sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
 
-    await waitForService(INGESTION_API_URL);
+    await waitForService(INGESTION_URL);
     await waitForService(QUERY_API_URL);
-    jwt = await login();
+    jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
   }, 30_000);
 
   afterAll(async () => {
@@ -107,96 +55,78 @@ describe('Flaky tests counter', () => {
 
   it('increments flakyTests counter on test.end with status flaky', async () => {
     // 1. Start run
-    await sendEvent('run.start', RUN_ID, {});
-    // Wait for run to appear in DB
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM runs WHERE id = ${RUN_ID}`;
-      if (rows.length > 0) break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await ingestionApi.events.send(createRunStartEvent({ runId: RUN_ID }));
+    await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`);
 
     // 2. Start suite
-    await sendEvent('suite.start', RUN_ID, {
-      suiteId: SUITE_ID,
-      suiteName: 'Flaky Test Suite',
-    });
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM suites WHERE id = ${SUITE_ID}`;
-      if (rows.length > 0) break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await ingestionApi.events.send(
+      createSuiteStartEvent({
+        runId: RUN_ID,
+        payload: { suiteId: SUITE_ID, suiteName: 'Flaky Test Suite' },
+      }),
+    );
+    await waitForRow(() => sql`SELECT * FROM suites WHERE id = ${SUITE_ID}`);
 
     // 3. Start and end a flaky test
-    await sendEvent('test.start', RUN_ID, {
-      testId: FLAKY_TEST_ID,
-      suiteId: SUITE_ID,
-      testName: 'should handle intermittent failure',
-    });
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM tests WHERE id = ${FLAKY_TEST_ID}`;
-      if (rows.length > 0) break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await ingestionApi.events.send(
+      createTestStartEvent({
+        runId: RUN_ID,
+        payload: {
+          testId: FLAKY_TEST_ID,
+          suiteId: SUITE_ID,
+          testName: 'should handle intermittent failure',
+        },
+      }),
+    );
+    await waitForRow(() => sql`SELECT * FROM tests WHERE id = ${FLAKY_TEST_ID}`);
 
-    await sendEvent('test.end', RUN_ID, {
-      testId: FLAKY_TEST_ID,
-      status: 'flaky',
-      durationMs: 200,
-    });
+    await ingestionApi.events.send(
+      createTestEndEvent({
+        runId: RUN_ID,
+        payload: { testId: FLAKY_TEST_ID, status: 'flaky', durationMs: 200 },
+      }),
+    );
 
     // 4. Start and end a passing test
-    await sendEvent('test.start', RUN_ID, {
-      testId: PASSED_TEST_ID,
-      suiteId: SUITE_ID,
-      testName: 'should pass reliably',
-    });
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM tests WHERE id = ${PASSED_TEST_ID}`;
-      if (rows.length > 0) break;
-      await new Promise((r) => setTimeout(r, 500));
-    }
+    await ingestionApi.events.send(
+      createTestStartEvent({
+        runId: RUN_ID,
+        payload: { testId: PASSED_TEST_ID, suiteId: SUITE_ID, testName: 'should pass reliably' },
+      }),
+    );
+    await waitForRow(() => sql`SELECT * FROM tests WHERE id = ${PASSED_TEST_ID}`);
 
-    await sendEvent('test.end', RUN_ID, {
-      testId: PASSED_TEST_ID,
-      status: 'passed',
-      durationMs: 50,
-    });
+    await ingestionApi.events.send(
+      createTestEndEvent({
+        runId: RUN_ID,
+        payload: { testId: PASSED_TEST_ID, status: 'passed', durationMs: 50 },
+      }),
+    );
 
     // 5. End run
-    await sendEvent('run.end', RUN_ID, { status: 'passed' });
+    await ingestionApi.events.send(
+      createRunEndEvent({ runId: RUN_ID, payload: { status: 'passed' } }),
+    );
 
     // Wait for run counters to update
-    let finishedRun: Record<string, unknown> | undefined;
-    for (let i = 0; i < 30; i++) {
-      const rows = await sql`SELECT * FROM runs WHERE id = ${RUN_ID}`;
-      if (rows[0] && rows[0]['status'] === 'passed') {
-        finishedRun = rows[0] as Record<string, unknown>;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 500));
-    }
-    expect(finishedRun).toBeDefined();
-    expect(finishedRun!['total_tests']).toBe(2);
-    expect(finishedRun!['passed_tests']).toBe(1);
-    expect(finishedRun!['flaky_tests']).toBe(1);
+    const finishedRun = await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`, {
+      predicate: (row) => row['status'] === 'passed',
+    });
+    expect(finishedRun['total_tests']).toBe(2);
+    expect(finishedRun['passed_tests']).toBe(1);
+    expect(finishedRun['flaky_tests']).toBe(1);
 
     // 6. Verify the query API exposes flakyTests
-    const listRes = await fetch(`${QUERY_API_URL}/v1/runs?projectId=${INTEGRATION_PROJECT_ID}`, {
-      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
-    });
-    expect(listRes.status).toBe(200);
-    const listBody = (await listRes.json()) as { data: Array<Record<string, unknown>> };
+    const { status: listStatus, body: listBody } = await queryApi.runs.list(jwt, SEED_PROJECT_ID);
+    expect(listStatus).toBe(200);
     const matchingRun = listBody.data.find((r) => r['id'] === RUN_ID);
     expect(matchingRun).toBeDefined();
     expect(matchingRun).toHaveProperty('flakyTests');
     expect(typeof matchingRun!['flakyTests']).toBe('number');
 
     // 7. Verify run detail also includes flakyTests
-    const detailRes = await fetch(`${QUERY_API_URL}/v1/runs/${RUN_ID}`, {
-      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
-    });
-    expect(detailRes.status).toBe(200);
-    const detailBody = (await detailRes.json()) as Record<string, unknown>;
+    const { status: detailStatus, body: detailBody } = await queryApi.runs.get(jwt, RUN_ID);
+    expect(detailStatus).toBe(200);
     expect(detailBody['flakyTests']).toBe(1);
   }, 60_000);
 });

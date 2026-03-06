@@ -8,60 +8,23 @@
  *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
  */
 
-import { randomBytes } from 'node:crypto';
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
-const TEST_IP = `10.analytics.ep.${randomBytes(4).toString('hex')}`;
+import { QueryApiClient } from '../helpers/api-clients';
+import {
+  QUERY_API_URL,
+  SEED_ORG_ID,
+  SEED_PROJECT_ID,
+  SEED_EMAIL,
+  SEED_PASSWORD,
+} from '../helpers/constants';
+import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
+import { waitForService } from '../helpers/wait';
 
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
-
-const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
-const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
+const queryApi = new QueryApiClient(QUERY_API_URL);
 
 // Deterministic UUIDs for analytics test data (unique prefix to avoid collisions)
 const ANALYTICS_RUN_PREFIX = '01970000-aaaa-7000-8000-';
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
-
-async function login(): Promise<string> {
-  const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Forwarded-For': `10.analytics.${randomBytes(4).toString('hex')}`,
-    },
-    body: JSON.stringify({
-      email: 'test-user@assertly.dev',
-      password: 'test-password',
-    }),
-  });
-  expect(response.status).toBe(200);
-  const body = (await response.json()) as { token: string };
-  return body.token;
-}
 
 function runId(index: number): string {
   return `${ANALYTICS_RUN_PREFIX}${String(index).padStart(12, '0')}`;
@@ -76,16 +39,14 @@ function testId(runIndex: number, testIndex: number): string {
 }
 
 describe('Analytics endpoints', () => {
-  let sql: ReturnType<typeof postgres>;
+  let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
   let jwt: string;
 
   beforeAll(async () => {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    sql = postgres(DATABASE_URL, { max: 1 });
+    sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
 
     await waitForService(QUERY_API_URL);
-    jwt = await login();
+    jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
 
     // Seed analytics test data: 5 runs across 10 days
     // Each run has 10 tests with known status distributions
@@ -108,7 +69,7 @@ describe('Analytics endpoints', () => {
       await sql`
         INSERT INTO runs (id, project_id, organization_id, status, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests, started_at, finished_at, name)
         VALUES (
-          ${runId(i)}, ${INTEGRATION_PROJECT_ID}, ${INTEGRATION_ORG_ID},
+          ${runId(i)}, ${SEED_PROJECT_ID}, ${SEED_ORG_ID},
           'passed', ${totalTests}, ${config.passed}, ${config.failed}, ${config.skipped}, ${config.flaky},
           ${startedAt.toISOString()}, ${finishedAt.toISOString()}, ${`Analytics Test Run ${i}`}
         )
@@ -118,7 +79,7 @@ describe('Analytics endpoints', () => {
       // Create a suite per run (DB trigger requires test.run_id == suite.run_id)
       await sql`
         INSERT INTO suites (id, run_id, organization_id, name)
-        VALUES (${suiteId(i)}, ${runId(i)}, ${INTEGRATION_ORG_ID}, ${`Analytics Suite ${i}`})
+        VALUES (${suiteId(i)}, ${runId(i)}, ${SEED_ORG_ID}, ${`Analytics Suite ${i}`})
         ON CONFLICT DO NOTHING
       `;
 
@@ -139,7 +100,7 @@ describe('Analytics endpoints', () => {
           await sql`
             INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, duration_ms, started_at, finished_at)
             VALUES (
-              ${tId}, ${suiteId(i)}, ${runId(i)}, ${INTEGRATION_ORG_ID},
+              ${tId}, ${suiteId(i)}, ${runId(i)}, ${SEED_ORG_ID},
               ${testName}, ${status}, ${100 + testIdx * 10},
               ${startedAt.toISOString()}, ${testFinishedAt.toISOString()}
             )
@@ -162,13 +123,9 @@ describe('Analytics endpoints', () => {
   });
 
   it('GET /summary returns correct aggregations', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
+    const { status, body } = await queryApi.analytics.summary(jwt, SEED_PROJECT_ID);
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as Record<string, unknown>;
+    expect(status).toBe(200);
 
     expect(body).toHaveProperty('totalRuns');
     expect(body).toHaveProperty('totalTests');
@@ -180,25 +137,23 @@ describe('Analytics endpoints', () => {
     expect(body).toHaveProperty('avgDurationMs');
 
     // We seeded 5 runs with a total of 50 tests
-    expect(body['totalRuns']).toBeGreaterThanOrEqual(5);
-    expect(body['totalTests']).toBeGreaterThanOrEqual(50);
-    expect(typeof body['passRate']).toBe('number');
-    expect(typeof body['avgDurationMs']).toBe('number');
+    const b = body as Record<string, unknown>;
+    expect(b['totalRuns']).toBeGreaterThanOrEqual(5);
+    expect(b['totalTests']).toBeGreaterThanOrEqual(50);
+    expect(typeof b['passRate']).toBe('number');
+    expect(typeof b['avgDurationMs']).toBe('number');
   });
 
   it('GET /pass-rate-trend returns daily buckets in ascending order', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/pass-rate-trend?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
+    const { status, body } = await queryApi.analytics.passRateTrend(jwt, SEED_PROJECT_ID);
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as Array<Record<string, unknown>>;
+    expect(status).toBe(200);
 
-    expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBeGreaterThanOrEqual(1);
+    const items = body as Array<Record<string, unknown>>;
+    expect(Array.isArray(items)).toBe(true);
+    expect(items.length).toBeGreaterThanOrEqual(1);
 
-    for (const item of body) {
+    for (const item of items) {
       expect(item).toHaveProperty('date');
       expect(item).toHaveProperty('passRate');
       expect(item).toHaveProperty('totalTests');
@@ -208,24 +163,21 @@ describe('Analytics endpoints', () => {
     }
 
     // Verify ascending date order
-    const dates = body.map((item) => item['date'] as string);
+    const dates = items.map((item) => item['date'] as string);
     const sorted = [...dates].sort();
     expect(dates).toEqual(sorted);
   });
 
   it('GET /duration-trend returns min <= avg <= max invariant', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/duration-trend?days=30`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
+    const { status, body } = await queryApi.analytics.durationTrend(jwt, SEED_PROJECT_ID);
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as Array<Record<string, unknown>>;
+    expect(status).toBe(200);
 
-    expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBeGreaterThanOrEqual(1);
+    const items = body as Array<Record<string, unknown>>;
+    expect(Array.isArray(items)).toBe(true);
+    expect(items.length).toBeGreaterThanOrEqual(1);
 
-    for (const item of body) {
+    for (const item of items) {
       expect(item).toHaveProperty('date');
       expect(item).toHaveProperty('avgDurationMs');
       expect(item).toHaveProperty('minDurationMs');
@@ -240,19 +192,16 @@ describe('Analytics endpoints', () => {
   });
 
   it('GET /flaky-tests returns flaky test names', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/flaky-tests?days=30&limit=10`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
+    const { status, body } = await queryApi.analytics.flakyTests(jwt, SEED_PROJECT_ID);
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as Array<Record<string, unknown>>;
+    expect(status).toBe(200);
 
-    expect(Array.isArray(body)).toBe(true);
+    const items = body as Array<Record<string, unknown>>;
+    expect(Array.isArray(items)).toBe(true);
     // We seeded 3 runs with flaky tests (runs 0, 2, 3 each have 1 flaky)
-    expect(body.length).toBeGreaterThanOrEqual(1);
+    expect(items.length).toBeGreaterThanOrEqual(1);
 
-    for (const item of body) {
+    for (const item of items) {
       expect(item).toHaveProperty('testName');
       expect(item).toHaveProperty('flakyCount');
       expect(item).toHaveProperty('totalRuns');
@@ -261,32 +210,24 @@ describe('Analytics endpoints', () => {
   });
 
   it('returns 401 without JWT', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary`,
-    );
+    const res = await queryApi.analytics.summaryRaw(SEED_PROJECT_ID);
     expect(res.status).toBe(401);
   });
 
   it('returns 400 with invalid projectId', async () => {
-    const res = await fetch(`${QUERY_API_URL}/v1/projects/not-a-uuid/analytics/summary`, {
-      headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP },
+    const res = await queryApi.analytics.summaryRaw('not-a-uuid', {
+      Authorization: `Bearer ${jwt}`,
     });
     expect(res.status).toBe(400);
   });
 
   it('returns 400 with invalid days param', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=0`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
-    expect(res.status).toBe(400);
+    const { status } = await queryApi.analytics.summary(jwt, SEED_PROJECT_ID, 0);
+    expect(status).toBe(400);
   });
 
   it('returns 400 with days exceeding max', async () => {
-    const res = await fetch(
-      `${QUERY_API_URL}/v1/projects/${INTEGRATION_PROJECT_ID}/analytics/summary?days=91`,
-      { headers: { Authorization: `Bearer ${jwt}`, 'X-Forwarded-For': TEST_IP } },
-    );
-    expect(res.status).toBe(400);
+    const { status } = await queryApi.analytics.summary(jwt, SEED_PROJECT_ID, 91);
+    expect(status).toBe(400);
   });
 });

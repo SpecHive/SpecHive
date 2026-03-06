@@ -18,26 +18,19 @@ import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
-const TEST_USER_EMAIL = 'test-user@assertly.dev';
-const TEST_USER_PASSWORD = 'test-password';
-const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
+import {
+  waitForService,
+  QueryApiClient,
+  QUERY_API_URL,
+  SEED_ORG_ID,
+  SEED_EMAIL,
+  SEED_PASSWORD,
+} from '../helpers';
 
 // Unique per test run to avoid stale throttle state from prior runs
 const TEST_IP = `10.auth.flow.${randomBytes(4).toString('hex')}`;
 
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
+const queryApi = new QueryApiClient(QUERY_API_URL);
 
 describe('Auth flow', () => {
   beforeAll(async () => {
@@ -45,88 +38,61 @@ describe('Auth flow', () => {
   }, 30_000);
 
   it('rejects unauthenticated requests to protected endpoints (401)', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
+    // Raw fetch: need to send request with no Authorization header at all
+    const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { 'X-Forwarded-For': TEST_IP },
     });
     expect(response.status).toBe(401);
   });
 
   it('rejects requests with malformed Authorization header (401)', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
+    // Raw fetch: need to send a malformed Authorization header
+    const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { Authorization: 'InvalidFormat', 'X-Forwarded-For': TEST_IP },
     });
     expect(response.status).toBe(401);
   });
 
   it('rejects requests with invalid JWT (401)', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
+    // Raw fetch: need to send an invalid Bearer token
+    const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { Authorization: 'Bearer invalid.jwt.token', 'X-Forwarded-For': TEST_IP },
     });
     expect(response.status).toBe(401);
   });
 
   it('login returns JWT for valid credentials', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
-      body: JSON.stringify({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        organizationId: INTEGRATION_ORG_ID,
-      }),
+    const { status, body } = await queryApi.auth.login(SEED_EMAIL, SEED_PASSWORD, {
+      organizationId: SEED_ORG_ID,
+      forwardedIp: TEST_IP,
     });
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { token?: string };
+    expect(status).toBe(200);
     expect(body).toHaveProperty('token');
     expect(typeof body.token).toBe('string');
-    expect(body.token!.length).toBeGreaterThan(0);
+    expect(body.token.length).toBeGreaterThan(0);
   });
 
   it('login fails with invalid credentials (401)', async () => {
-    const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
-      body: JSON.stringify({
-        email: TEST_USER_EMAIL,
-        password: 'wrong-password',
-        organizationId: INTEGRATION_ORG_ID,
-      }),
+    const { status } = await queryApi.auth.login(SEED_EMAIL, 'wrong-password', {
+      organizationId: SEED_ORG_ID,
+      forwardedIp: TEST_IP,
     });
 
-    expect(response.status).toBe(401);
+    expect(status).toBe(401);
   });
 
   it('allows access to protected endpoints with valid JWT (200)', async () => {
-    // First, login to get a valid JWT
-    const loginResponse = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
-      body: JSON.stringify({
-        email: TEST_USER_EMAIL,
-        password: TEST_USER_PASSWORD,
-        organizationId: INTEGRATION_ORG_ID,
-      }),
+    const token = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
+      organizationId: SEED_ORG_ID,
+      forwardedIp: TEST_IP,
     });
 
-    expect(loginResponse.status).toBe(200);
-    const loginBody = (await loginResponse.json()) as { token: string };
-    const token = loginBody.token;
+    const { status, body: meBody } = await queryApi.auth.me(token, TEST_IP);
 
-    // Now access a protected endpoint
-    const meResponse = await fetch(`${QUERY_API_URL}/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}`, 'X-Forwarded-For': TEST_IP },
-    });
-
-    expect(meResponse.status).toBe(200);
-    const meBody = (await meResponse.json()) as {
-      id: string;
-      email: string;
-      organizationId: string;
-      role: string;
-    };
-    expect(meBody.email).toBe(TEST_USER_EMAIL);
-    expect(meBody.organizationId).toBe(INTEGRATION_ORG_ID);
+    expect(status).toBe(200);
+    expect(meBody.email).toBe(SEED_EMAIL);
+    expect(meBody.organizationId).toBe(SEED_ORG_ID);
     expect(meBody.role).toBe('owner');
   });
 });

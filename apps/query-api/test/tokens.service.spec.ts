@@ -1,5 +1,5 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId, ProjectTokenId } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -152,7 +152,9 @@ describe('TokensService', () => {
       });
       mockSet.mockReturnValue({ where: mockWhereChain });
 
-      await expect(service.revokeToken(ORG_ID, PROJECT_ID, 'tok-1')).resolves.toBeUndefined();
+      await expect(
+        service.revokeToken(ORG_ID, PROJECT_ID, 'tok-1' as ProjectTokenId),
+      ).resolves.toBeUndefined();
     });
 
     it('throws NotFoundException if token not found or already revoked', async () => {
@@ -161,9 +163,9 @@ describe('TokensService', () => {
       });
       mockSet.mockReturnValue({ where: mockWhereChain });
 
-      await expect(service.revokeToken(ORG_ID, PROJECT_ID, 'tok-nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.revokeToken(ORG_ID, PROJECT_ID, 'tok-nonexistent' as ProjectTokenId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

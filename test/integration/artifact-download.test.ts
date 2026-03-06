@@ -15,94 +15,32 @@
  *   pnpm test:integration
  */
 
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
-const QUERY_API_URL = process.env['QUERY_API_URL'] ?? 'http://localhost:3002';
-const PROJECT_TOKEN = 'test-token';
-const TEST_USER_EMAIL = 'test-user@assertly.dev';
-const TEST_USER_PASSWORD = 'test-password';
-const TEST_IP = `10.artifact.${randomBytes(4).toString('hex')}`;
-const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
-const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
+import { IngestionApiClient, QueryApiClient } from '../helpers/api-clients';
+import {
+  INGESTION_URL,
+  QUERY_API_URL,
+  PROJECT_TOKEN,
+  SEED_PROJECT_ID,
+  SEED_EMAIL,
+  SEED_PASSWORD,
+} from '../helpers/constants';
+import {
+  createRunStartEvent,
+  createRunEndEvent,
+  createSuiteStartEvent,
+  createSuiteEndEvent,
+  createTestStartEvent,
+  createTestEndEvent,
+  createArtifactUploadEvent,
+} from '../helpers/factories';
+import { waitForService, poll } from '../helpers/wait';
 
-async function waitForService(url: string, maxAttempts = 30, delayMs = 1000): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
-
-async function sendEvent(event: Record<string, unknown>): Promise<void> {
-  const response = await fetch(`${INGESTION_API_URL}/v1/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-project-token': PROJECT_TOKEN,
-    },
-    body: JSON.stringify(event),
-  });
-
-  if (response.status !== 202) {
-    const text = await response.text();
-    throw new Error(`Event ingestion failed (${response.status}): ${text}`);
-  }
-}
-
-async function presignArtifact(body: Record<string, unknown>): Promise<{
-  artifactId: string;
-  storagePath: string;
-  uploadUrl: string;
-  expiresIn: number;
-}> {
-  const response = await fetch(`${INGESTION_API_URL}/v1/artifacts/presign`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-project-token': PROJECT_TOKEN,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (response.status !== 201) {
-    const text = await response.text();
-    throw new Error(`Presign request failed (${response.status}): ${text}`);
-  }
-
-  return response.json() as Promise<{
-    artifactId: string;
-    storagePath: string;
-    uploadUrl: string;
-    expiresIn: number;
-  }>;
-}
-
-async function login(): Promise<string> {
-  const response = await fetch(`${QUERY_API_URL}/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': TEST_IP },
-    body: JSON.stringify({
-      email: TEST_USER_EMAIL,
-      password: TEST_USER_PASSWORD,
-      organizationId: INTEGRATION_ORG_ID,
-    }),
-  });
-  expect(response.status).toBe(200);
-  const body = (await response.json()) as { token: string };
-  return body.token;
-}
-
-function timestamp(): string {
-  return new Date().toISOString();
-}
+const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
+const queryApi = new QueryApiClient(QUERY_API_URL);
 
 describe('Artifact download', () => {
   const runId = randomUUID();
@@ -113,44 +51,33 @@ describe('Artifact download', () => {
   let jwtToken: string;
 
   beforeAll(async () => {
-    await waitForService(INGESTION_API_URL);
+    await waitForService(INGESTION_URL);
     await waitForService(QUERY_API_URL);
 
     // Ingest a complete test run with an artifact
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'run.start',
-      payload: { runName: 'artifact-download-test' },
-    });
+    await ingestionApi.events.send(
+      createRunStartEvent({ runId, payload: { runName: 'artifact-download-test' } }),
+    );
 
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'suite.start',
-      payload: { suiteId, suiteName: 'Artifact Suite' },
-    });
+    await ingestionApi.events.send(
+      createSuiteStartEvent({ runId, payload: { suiteId, suiteName: 'Artifact Suite' } }),
+    );
 
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'test.start',
-      payload: { testId, suiteId, testName: 'artifact test' },
-    });
+    await ingestionApi.events.send(
+      createTestStartEvent({ runId, payload: { testId, suiteId, testName: 'artifact test' } }),
+    );
 
     // Step 1: Get presigned upload URL
-    const presign = await presignArtifact({
+    const { status: presignStatus, body: presign } = await ingestionApi.artifacts.presign({
       runId,
       testId,
       fileName: 'test-screenshot.png',
       contentType: 'image/png',
       sizeBytes: Buffer.byteLength(artifactContent),
     });
+    expect(presignStatus).toBe(201);
 
-    // Step 2: Upload directly to S3 via presigned URL
+    // Step 2: Upload directly to S3 via presigned URL (raw fetch — S3, not our API)
     const uploadResponse = await fetch(presign.uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'image/png' },
@@ -159,149 +86,100 @@ describe('Artifact download', () => {
     expect(uploadResponse.ok).toBe(true);
 
     // Step 3: Send artifact.upload event with metadata only
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'artifact.upload',
-      payload: {
-        artifactId: presign.artifactId,
-        testId,
-        artifactType: 'screenshot',
-        name: 'test-screenshot.png',
-        storagePath: presign.storagePath,
-        mimeType: 'image/png',
-      },
-    });
+    await ingestionApi.events.send(
+      createArtifactUploadEvent({
+        runId,
+        payload: {
+          artifactId: presign.artifactId,
+          testId,
+          artifactType: 'screenshot',
+          name: 'test-screenshot.png',
+          storagePath: presign.storagePath,
+          mimeType: 'image/png',
+        },
+      }),
+    );
 
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'test.end',
-      payload: { testId, status: 'passed', durationMs: 100 },
-    });
+    await ingestionApi.events.send(
+      createTestEndEvent({ runId, payload: { testId, status: 'passed', durationMs: 100 } }),
+    );
 
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'suite.end',
-      payload: { suiteId },
-    });
+    await ingestionApi.events.send(createSuiteEndEvent({ runId, payload: { suiteId } }));
 
-    await sendEvent({
-      version: '1',
-      timestamp: timestamp(),
-      runId,
-      eventType: 'run.end',
-      payload: { status: 'passed' },
-    });
+    await ingestionApi.events.send(createRunEndEvent({ runId, payload: { status: 'passed' } }));
 
-    jwtToken = await login();
+    jwtToken = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
 
     // Wait for the worker to process events via Outboxy
-    const maxPollAttempts = 30;
-    const pollDelayMs = 1000;
-    for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
-      const runsResponse = await fetch(
-        `${QUERY_API_URL}/v1/runs?projectId=${INTEGRATION_PROJECT_ID}`,
-        { headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP } },
-      );
-
-      if (runsResponse.ok) {
-        const runsBody = (await runsResponse.json()) as { data: { id: string }[] };
-        const found = runsBody.data?.some((r) => r.id === runId);
-        if (found) break;
-      }
-
-      if (attempt === maxPollAttempts) {
-        throw new Error(`Run ${runId} did not appear in query-api within ${maxPollAttempts}s`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollDelayMs));
-    }
+    await poll(
+      async () => {
+        const { body } = await queryApi.runs.list(jwtToken, SEED_PROJECT_ID);
+        return body.data?.some((r) => r['id'] === runId) ?? false;
+      },
+      { maxAttempts: 30, delayMs: 1000 },
+    );
 
     // Wait for tests to be processed (async via Outboxy)
-    let foundTestId: string | undefined;
-    for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
-      const testsResponse = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests`, {
-        headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
-      });
-
-      if (testsResponse.ok) {
-        const testsBody = (await testsResponse.json()) as { data: { id: string }[] };
-        if (testsBody.data?.length > 0) {
-          foundTestId = testsBody.data[0]!.id;
-          break;
+    const testsResult = await poll(
+      async () => {
+        const { status, body } = await queryApi.runs.tests(jwtToken, runId);
+        if (status === 200 && (body as { data: unknown[] }).data?.length > 0) {
+          return (body as { data: { id: string }[] }).data[0]!.id;
         }
-      }
-
-      if (attempt === maxPollAttempts) {
-        throw new Error(`Tests for run ${runId} did not appear within ${maxPollAttempts}s`);
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollDelayMs));
-    }
+        return undefined;
+      },
+      { predicate: (id): id is string => id !== undefined, maxAttempts: 30, delayMs: 1000 },
+    );
 
     // Wait for artifact to be processed (artifact.upload is a separate async event)
-    for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
-      const detailRes = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests/${foundTestId}`, {
-        headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
-      });
-
-      if (detailRes.ok) {
-        const detail = (await detailRes.json()) as { artifacts: { id: string }[] };
-        if (detail.artifacts?.length > 0) break;
-      }
-
-      if (attempt === maxPollAttempts) {
-        throw new Error(
-          `Artifact for test ${foundTestId} did not appear within ${maxPollAttempts}s`,
-        );
-      }
-      await new Promise((resolve) => setTimeout(resolve, pollDelayMs));
-    }
+    await poll(
+      async () => {
+        const { status, body } = await queryApi.runs.testDetail(jwtToken, runId, testsResult);
+        if (status === 200) {
+          const detail = body as { artifacts: { id: string }[] };
+          return detail.artifacts?.length > 0;
+        }
+        return false;
+      },
+      { maxAttempts: 30, delayMs: 1000 },
+    );
   }, 60_000);
 
   it('fetches artifact download URL and downloads the content', async () => {
     // Get tests for the run
-    const testsResponse = await fetch(`${QUERY_API_URL}/v1/runs/${runId}/tests`, {
-      headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
-    });
-    expect(testsResponse.status).toBe(200);
+    const { status: testsStatus, body: testsBody } = await queryApi.runs.tests(jwtToken, runId);
+    expect(testsStatus).toBe(200);
 
-    const testsBody = (await testsResponse.json()) as {
-      data: { id: string }[];
-    };
-    expect(testsBody.data.length).toBeGreaterThan(0);
+    const tests = testsBody as { data: { id: string }[] };
+    expect(tests.data.length).toBeGreaterThan(0);
 
     // Use the detail endpoint which includes artifacts
-    const testDetailResponse = await fetch(
-      `${QUERY_API_URL}/v1/runs/${runId}/tests/${testsBody.data[0]!.id}`,
-      { headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP } },
+    const { status: detailStatus, body: detailBody } = await queryApi.runs.testDetail(
+      jwtToken,
+      runId,
+      tests.data[0]!.id,
     );
-    expect(testDetailResponse.status).toBe(200);
+    expect(detailStatus).toBe(200);
 
-    const test = (await testDetailResponse.json()) as {
-      id: string;
-      artifacts: { id: string; name: string }[];
-    };
+    const test = detailBody as { id: string; artifacts: { id: string; name: string }[] };
     expect(test.artifacts).toBeDefined();
     expect(test.artifacts.length).toBeGreaterThan(0);
 
     const artifactId = test.artifacts[0]!.id;
 
     // Get the presigned download URL
-    const downloadResponse = await fetch(`${QUERY_API_URL}/v1/artifacts/${artifactId}/download`, {
-      headers: { Authorization: `Bearer ${jwtToken}`, 'X-Forwarded-For': TEST_IP },
-    });
-    expect(downloadResponse.status).toBe(200);
+    const { status: downloadStatus, body: downloadBody } = await queryApi.artifacts.download(
+      jwtToken,
+      artifactId,
+    );
+    expect(downloadStatus).toBe(200);
 
-    const downloadBody = (await downloadResponse.json()) as { url: string; expiresIn: number };
-    expect(downloadBody.url).toBeDefined();
-    expect(downloadBody.expiresIn).toBe(900);
+    const download = downloadBody as { url: string; expiresIn: number };
+    expect(download.url).toBeDefined();
+    expect(download.expiresIn).toBe(900);
 
-    // Download the artifact via presigned URL
-    const artifactResponse = await fetch(downloadBody.url);
+    // Download the artifact via presigned URL (raw fetch — S3, not our API)
+    const artifactResponse = await fetch(download.url);
     expect(artifactResponse.status).toBe(200);
 
     const content = await artifactResponse.text();

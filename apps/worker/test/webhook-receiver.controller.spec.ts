@@ -5,36 +5,12 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
+import { createWebhookPayload } from '../../../test/helpers/factories/webhook.factory';
 import { WebhookAuthGuard } from '../src/guards/webhook-auth.guard';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
 import { WebhookReceiverController } from '../src/modules/webhook-receiver/webhook-receiver.controller';
 
 const WEBHOOK_SECRET = 'test-secret-123';
-
-function createBatchPayload(
-  overrides: Partial<{
-    eventId: string;
-    aggregateType: string;
-    aggregateId: string;
-    eventType: string;
-    payload: Record<string, unknown>;
-  }> = {},
-) {
-  return {
-    batch: true,
-    count: 1,
-    events: [
-      {
-        eventId: 'evt-1',
-        aggregateType: 'TestRun',
-        aggregateId: 'run-1',
-        eventType: 'run.start',
-        payload: { runId: 'run-1' },
-        ...overrides,
-      },
-    ],
-  };
-}
 
 describe('WebhookReceiverController', () => {
   let app: NestFastifyApplication;
@@ -79,7 +55,7 @@ describe('WebhookReceiverController', () => {
       method: 'POST',
       url: '/webhooks/outboxy',
       headers: { 'x-webhook-secret': WEBHOOK_SECRET },
-      payload: createBatchPayload(),
+      payload: JSON.parse(createWebhookPayload()),
     });
 
     expect(response.statusCode).toBe(200);
@@ -104,7 +80,7 @@ describe('WebhookReceiverController', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/webhooks/outboxy',
-      payload: createBatchPayload({ payload: {} }),
+      payload: JSON.parse(createWebhookPayload({ payload: {} })),
     });
 
     expect(response.statusCode).toBe(401);
@@ -115,7 +91,7 @@ describe('WebhookReceiverController', () => {
       method: 'POST',
       url: '/webhooks/outboxy',
       headers: { 'x-webhook-secret': 'wrong-secret' },
-      payload: createBatchPayload({ payload: {} }),
+      payload: JSON.parse(createWebhookPayload({ payload: {} })),
     });
 
     expect(response.statusCode).toBe(401);

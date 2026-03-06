@@ -1,30 +1,12 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { defineConfig } from 'vitest/config';
 
-function loadDotEnv(): Record<string, string> {
-  try {
-    const content = readFileSync(resolve(process.cwd(), '.env'), 'utf-8');
-    const env: Record<string, string> = {};
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      env[trimmed.slice(0, eqIdx)] = trimmed.slice(eqIdx + 1);
-    }
-    return env;
-  } catch {
-    return {};
-  }
-}
+import { parseDotEnv } from './helpers/load-dot-env';
 
 export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    env: loadDotEnv(),
+    env: parseDotEnv(),
     globalSetup: ['test/integration-global-setup.ts'],
     // Run integration tests sequentially to avoid port conflicts and to keep
     // failure output readable.

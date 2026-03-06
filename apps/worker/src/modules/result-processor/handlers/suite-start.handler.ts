@@ -12,7 +12,7 @@ export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
   private readonly logger = new Logger(SuiteStartHandler.name);
 
   async handle(event: SuiteStartEvent, ctx: EventHandlerContext): Promise<void> {
-    await ctx.tx
+    const result = await ctx.tx
       .insert(suites)
       .values({
         id: event.payload.suiteId,
@@ -21,7 +21,13 @@ export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
         name: event.payload.suiteName,
         parentSuiteId: event.payload.parentSuiteId ?? null,
       })
-      .onConflictDoNothing({ target: suites.id });
+      .onConflictDoNothing()
+      .returning({ id: suites.id });
+
+    if (result.length === 0) {
+      this.logger.debug(`Duplicate suite.start skipped for suite ${event.payload.suiteId}`);
+      return;
+    }
 
     this.logger.log(`Created suite ${event.payload.suiteId} in run ${event.runId}`);
   }

@@ -14,7 +14,7 @@ vi.mock('argon2', () => ({
 }));
 
 vi.mock('@assertly/database', async (importOriginal) => {
-  const original = await importOriginal();
+  const original = await importOriginal<Record<string, unknown>>();
   return { ...original, setTenantContext: vi.fn() };
 });
 

@@ -12,36 +12,27 @@ import { execSync } from 'node:child_process';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
+import { IngestionApiClient } from '../helpers/api-clients';
+import { INGESTION_URL, WORKER_URL, PROJECT_TOKEN } from '../helpers/constants';
+import { createRunStartEvent, createWebhookPayload } from '../helpers/factories';
+import { waitForService } from '../helpers/wait';
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
-const WORKER_URL = process.env['WORKER_URL'] ?? 'http://localhost:3001';
 const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://localhost:3100';
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
-const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
 const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'assertly-postgres-1';
+
+const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
 
 const RUN_ID = crypto.randomUUID();
 const VALID_TIMESTAMP = '2026-02-24T10:00:00.000Z';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (crash-simulation-specific)
 // ---------------------------------------------------------------------------
-
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
 
 async function checkServiceHealth(url: string): Promise<boolean> {
   try {
@@ -85,33 +76,13 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void>
   throw new Error(`Postgres did not become ready within ${maxAttempts * delayMs}ms`);
 }
 
-function createBatchPayload(
-  eventType: string,
-  aggregateId: string,
-  payload: Record<string, unknown>,
-): string {
-  return JSON.stringify({
-    batch: true,
-    count: 1,
-    events: [
-      {
-        eventId: crypto.randomUUID(),
-        aggregateType: 'TestRun',
-        aggregateId,
-        eventType,
-        payload,
-      },
-    ],
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Test suites
 // ---------------------------------------------------------------------------
 
 describe('Crash simulation: ingestion-api', () => {
   beforeAll(async () => {
-    await waitForService(INGESTION_API_URL);
+    await waitForService(INGESTION_URL);
   }, 30_000);
 
   it('aborted run.start request leaves no partial state', async () => {
@@ -127,7 +98,7 @@ describe('Crash simulation: ingestion-api', () => {
 
     let requestError: unknown = null;
 
-    const sendPromise = fetch(`${INGESTION_API_URL}/v1/events`, {
+    const sendPromise = fetch(`${INGESTION_URL}/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -145,44 +116,27 @@ describe('Crash simulation: ingestion-api', () => {
     expect(requestError === null || requestError instanceof Error).toBe(true);
 
     // In publish-only mode, verify the service is still healthy after abort
-    const healthRes = await fetch(`${INGESTION_API_URL}/health`);
+    const healthRes = await fetch(`${INGESTION_URL}/health`);
     expect(healthRes.ok).toBe(true);
   });
 
   it('invalid payload returns 400 and does not crash the service', async () => {
-    const res = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body: JSON.stringify({ totally: 'wrong', shape: true }),
-    });
+    const res = await ingestionApi.events.sendRaw({ totally: 'wrong', shape: true });
 
     expect(res.status).toBe(400);
 
-    const healthRes = await fetch(`${INGESTION_API_URL}/health`);
+    const healthRes = await fetch(`${INGESTION_URL}/health`);
     expect(healthRes.ok).toBe(true);
   });
 
   it('missing auth token returns 401', async () => {
-    const res = await fetch(`${INGESTION_API_URL}/v1/events`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        version: '1',
-        timestamp: VALID_TIMESTAMP,
-        runId: RUN_ID,
-        eventType: 'run.start',
-        payload: {},
-      }),
-    });
+    const res = await ingestionApi.events.sendWithoutToken(createRunStartEvent({ runId: RUN_ID }));
 
     expect(res.status).toBe(401);
   });
 
   it('malformed JSON body returns a 4xx and does not crash the service', async () => {
-    const res = await fetch(`${INGESTION_API_URL}/v1/events`, {
+    const res = await fetch(`${INGESTION_URL}/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +148,7 @@ describe('Crash simulation: ingestion-api', () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
 
-    const healthRes = await fetch(`${INGESTION_API_URL}/health`);
+    const healthRes = await fetch(`${INGESTION_URL}/health`);
     expect(healthRes.ok).toBe(true);
   });
 });
@@ -211,7 +165,11 @@ describe('Crash simulation: worker', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: createBatchPayload('run.start', 'run-1', { runId: 'run-1' }),
+      body: createWebhookPayload({
+        eventType: 'run.start',
+        aggregateId: 'run-1',
+        payload: { runId: 'run-1' },
+      }),
     });
 
     expect(res.status).toBe(200);
@@ -256,7 +214,11 @@ describe('Crash simulation: worker', () => {
           'Content-Type': 'application/json',
           'x-webhook-secret': WEBHOOK_SECRET,
         },
-        body: createBatchPayload('test.end', `run-${i}`, { status: 'passed' }),
+        body: createWebhookPayload({
+          eventType: 'test.end',
+          aggregateId: `run-${i}`,
+          payload: { status: 'passed' },
+        }),
       });
     }
 
@@ -270,7 +232,7 @@ describe('Crash simulation: postgres restart', () => {
     // Verify Docker container is running - fail fast with clear message
     verifyDockerContainer(POSTGRES_CONTAINER);
     await waitForService(WORKER_URL);
-    await waitForService(INGESTION_API_URL);
+    await waitForService(INGESTION_URL);
   }, 30_000);
 
   it('worker reconnects to postgres after restart', async () => {
@@ -285,23 +247,23 @@ describe('Crash simulation: postgres restart', () => {
     await waitForPostgres();
 
     // Wait for worker to recover
-    await waitForService(WORKER_URL, 30, 1_000);
+    await waitForService(WORKER_URL, { maxAttempts: 30, delayMs: 1_000 });
 
     const afterHealth = await checkServiceHealth(WORKER_URL);
     expect(afterHealth).toBe(true);
   }, 60_000);
 
   it('ingestion-api reconnects to postgres after restart', async () => {
-    const beforeHealth = await checkServiceHealth(INGESTION_API_URL);
+    const beforeHealth = await checkServiceHealth(INGESTION_URL);
     expect(beforeHealth).toBe(true);
 
     restartPostgresContainer();
 
     await waitForPostgres();
 
-    await waitForService(INGESTION_API_URL, 30, 1_000);
+    await waitForService(INGESTION_URL, { maxAttempts: 30, delayMs: 1_000 });
 
-    const afterHealth = await checkServiceHealth(INGESTION_API_URL);
+    const afterHealth = await checkServiceHealth(INGESTION_URL);
     expect(afterHealth).toBe(true);
   }, 60_000);
 });
@@ -331,7 +293,11 @@ describe('Crash simulation: Outboxy retry', () => {
         'Content-Type': 'application/json',
         'x-webhook-secret': WEBHOOK_SECRET,
       },
-      body: createBatchPayload('run.start', 'run-retry', { runId: 'run-retry' }),
+      body: createWebhookPayload({
+        eventType: 'run.start',
+        aggregateId: 'run-retry',
+        payload: { runId: 'run-retry' },
+      }),
     });
 
     expect(workerRes.status).toBe(200);
@@ -341,18 +307,11 @@ describe('Crash simulation: Outboxy retry', () => {
     // Verify idempotent processing: sending the same event ID twice
     // should not cause errors — the worker should handle it gracefully.
     const dedupEventId = crypto.randomUUID();
-    const batchBody = JSON.stringify({
-      batch: true,
-      count: 1,
-      events: [
-        {
-          eventId: dedupEventId,
-          aggregateType: 'TestRun',
-          aggregateId: 'run-dedup',
-          eventType: 'run.start',
-          payload: { runId: 'run-dedup' },
-        },
-      ],
+    const batchBody = createWebhookPayload({
+      eventId: dedupEventId,
+      aggregateId: 'run-dedup',
+      eventType: 'run.start',
+      payload: { runId: 'run-dedup' },
     });
 
     const first = await fetch(`${WORKER_URL}/webhooks/outboxy`, {

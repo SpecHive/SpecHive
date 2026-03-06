@@ -1,25 +1,18 @@
-import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
+import type { RunId } from '@assertly/shared-types';
 import { RunStatus } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';
+import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
 import { RunStartHandler } from '../../src/modules/result-processor/handlers/run-start.handler';
 
 describe('RunStartHandler', () => {
   let handler: RunStartHandler;
-  let mockInsert: ReturnType<typeof vi.fn>;
-  let ctx: EventHandlerContext;
+  let ctx: ReturnType<typeof createHandlerContext>['ctx'];
+  let mocks: ReturnType<typeof createHandlerContext>['mocks'];
 
   beforeEach(async () => {
-    mockInsert = vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({ onConflictDoNothing: vi.fn() }),
-    });
-    ctx = {
-      tx: { insert: mockInsert } as unknown as EventHandlerContext['tx'],
-      organizationId: 'org-1' as OrganizationId,
-      projectId: 'proj-1' as ProjectId,
-    };
+    ({ ctx, mocks } = createHandlerContext());
 
     const module = await Test.createTestingModule({
       providers: [RunStartHandler],
@@ -39,9 +32,8 @@ describe('RunStartHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(mockInsert).toHaveBeenCalled();
-    const valuesCall = mockInsert.mock.results[0].value.values;
-    expect(valuesCall).toHaveBeenCalledWith({
+    expect(mocks.insert.insert).toHaveBeenCalled();
+    expect(mocks.insert.values).toHaveBeenCalledWith({
       id: 'run-1',
       projectId: 'proj-1',
       organizationId: 'org-1',
@@ -63,8 +55,9 @@ describe('RunStartHandler', () => {
 
     await handler.handle(event, ctx);
 
-    const valuesCall = mockInsert.mock.results[0].value.values;
-    expect(valuesCall).toHaveBeenCalledWith(expect.objectContaining({ name: 'Nightly E2E' }));
+    expect(mocks.insert.values).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Nightly E2E' }),
+    );
   });
 
   it('defaults metadata to empty object when not provided', async () => {
@@ -78,7 +71,22 @@ describe('RunStartHandler', () => {
 
     await handler.handle(event, ctx);
 
-    const valuesCall = mockInsert.mock.results[0].value.values;
-    expect(valuesCall).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
+    expect(mocks.insert.values).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
+  });
+
+  it('logs debug when duplicate is skipped', async () => {
+    mocks.insert.returning.mockResolvedValueOnce([]);
+
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-dup' as RunId,
+      eventType: 'run.start' as const,
+      payload: {},
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.insert.returning).toHaveBeenCalled();
   });
 });

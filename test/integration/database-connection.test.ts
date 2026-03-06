@@ -17,15 +17,9 @@ import {
   getRawClient,
   setTenantContext,
 } from '../../packages/database/src/connection.js';
+import { buildSuperuserDatabaseUrl } from '../helpers';
 
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
+const DATABASE_URL = buildSuperuserDatabaseUrl();
 
 describe('getRawClient', () => {
   let db: ReturnType<typeof createDbConnection>;

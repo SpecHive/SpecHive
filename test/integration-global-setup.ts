@@ -7,27 +7,8 @@
  * All inserts use ON CONFLICT DO NOTHING for idempotency.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-// globalSetup runs outside the Vitest env, so we must load .env manually.
-function loadDotEnv(): void {
-  try {
-    const content = readFileSync(resolve(process.cwd(), '.env'), 'utf-8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eqIdx = trimmed.indexOf('=');
-      if (eqIdx === -1) continue;
-      const key = trimmed.slice(0, eqIdx);
-      if (process.env[key] === undefined) {
-        process.env[key] = trimmed.slice(eqIdx + 1);
-      }
-    }
-  } catch {
-    // No .env file — rely on existing env vars
-  }
-}
+import { buildSuperuserDatabaseUrl } from './helpers/database';
+import { loadDotEnvIntoProcess } from './helpers/load-dot-env';
 
 // Deterministic UUIDv7-like IDs for seeded data
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
@@ -54,12 +35,9 @@ async function computeTestPasswordHash(): Promise<string> {
 }
 
 export async function setup(): Promise<void> {
-  loadDotEnv();
+  loadDotEnvIntoProcess();
 
-  const user = process.env['POSTGRES_USER'] ?? 'assertly';
-  const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-  const db = process.env['POSTGRES_DB'] ?? 'assertly';
-  const superuserUrl = `postgres://${user}:${pass}@localhost:5432/${db}`;
+  const superuserUrl = buildSuperuserDatabaseUrl();
 
   const postgres = (await import('postgres')).default;
   const sql = postgres(superuserUrl, { max: 1 });
@@ -165,5 +143,16 @@ export async function setup(): Promise<void> {
 }
 
 export async function teardown(): Promise<void> {
-  // No-op — seeded data is disposable with `docker compose down -v`
+  loadDotEnvIntoProcess();
+
+  const superuserUrl = buildSuperuserDatabaseUrl();
+
+  const postgres = (await import('postgres')).default;
+  const sql = postgres(superuserUrl, { max: 1 });
+  try {
+    await sql`TRUNCATE artifacts, tests, suites, runs, project_tokens,
+              memberships, projects, refresh_tokens, users, organizations CASCADE`;
+  } finally {
+    await sql.end();
+  }
 }

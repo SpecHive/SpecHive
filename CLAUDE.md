@@ -184,6 +184,54 @@ See `.env.example` for the full list with comments. Key variables:
 - **Conventional commits**: Enforced by commitlint — `feat:`, `fix:`, `chore:`, etc.
 - **Drizzle ORM**: Schema defined in `packages/database/src/schema/`. Migrations in `packages/database/drizzle/`.
 
+## Testing conventions
+
+### Test architecture
+
+```
+test/
+├── helpers/
+│   ├── api-clients/        # Typed HTTP clients (QueryApiClient, IngestionApiClient)
+│   ├── factories/          # Event & webhook payload factories
+│   ├── assertions/         # Domain-specific assertions
+│   ├── wait.ts             # waitForService(), waitForRow(), poll()
+│   ├── database.ts         # buildSuperuserDatabaseUrl(), createPostgresConnection()
+│   ├── load-dot-env.ts     # Shared .env parser
+│   ├── constants.ts        # Seeded IDs, URLs, credentials
+│   └── index.ts            # Barrel export
+├── unit-helpers/
+│   ├── handler-context.ts  # createHandlerContext() for worker handler specs
+│   ├── drizzle-mock.ts     # createMockInsertChain(), createMockDb()
+│   ├── mock-guards.ts      # MockProjectTokenGuard, MockThrottlerGuard
+│   ├── nestjs.ts           # createTestModule() wrapper
+│   └── index.ts
+├── integration/            # Integration tests (require Docker stack)
+├── integration-global-setup.ts
+└── vitest.integration.config.ts
+```
+
+### Patterns
+
+- **AAA structure**: Arrange–Act–Assert with blank line separation
+- **API Client Objects**: Use `QueryApiClient` / `IngestionApiClient` instead of raw `fetch()`
+- **Factories**: Use `createRunStartEvent()`, `createFullRunEvents()` etc. from `test/helpers/factories`
+- **Shared wait helpers**: Use `waitForService()`, `waitForRow()`, `poll()` from `test/helpers/wait`
+- **Constants**: Use `SEED_ORG_ID`, `SEED_PROJECT_ID` etc. from `test/helpers/constants`
+- **Three-layer rule**: Never duplicate helpers — integration tests import from `test/helpers/`, unit tests from `test/unit-helpers/`
+
+### Import paths
+
+```typescript
+// Integration tests
+import { waitForService, SEED_ORG_ID, QueryApiClient } from '../../helpers';
+
+// Unit tests (handler specs)
+import { createHandlerContext } from '../../../test/unit-helpers';
+
+// Unit tests (controller specs)
+import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
+```
+
 ## Important rules
 
 - **NestJS apps compile to CJS**: Despite packages using ESM, the NestJS apps (`ingestion-api`, `worker`, `query-api`) produce CommonJS output via their build step. Do not add `"type": "module"` to their `package.json`.

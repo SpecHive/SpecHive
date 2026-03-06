@@ -16,94 +16,27 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-const WORKER_WEBHOOK_URL =
-  process.env['WORKER_WEBHOOK_URL'] ?? 'http://localhost:3001/webhooks/outboxy';
+import { IngestionApiClient } from '../helpers/api-clients';
+import { INGESTION_URL, PROJECT_TOKEN, WORKER_URL } from '../helpers/constants';
+import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
+import { createRunStartEvent } from '../helpers/factories';
+import { createWebhookEventPayload } from '../helpers/factories/webhook.factory';
+import { waitForService, waitForRow } from '../helpers/wait';
 
-const DATABASE_URL =
-  process.env['ADMIN_DATABASE_URL'] ??
-  (() => {
-    const user = process.env['POSTGRES_USER'] ?? 'assertly';
-    const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
-    const db = process.env['POSTGRES_DB'] ?? 'assertly';
-    return `postgres://${user}:${pass}@localhost:5432/${db}`;
-  })();
+const WORKER_WEBHOOK_URL = process.env['WORKER_WEBHOOK_URL'] ?? `${WORKER_URL}/webhooks/outboxy`;
 
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production-min-32ch';
 
-// Deterministic IDs for seeded data from integration-global-setup.ts
-const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
-const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
+const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports -- dynamic import requires value-level typeof
-let postgres: typeof import('postgres').default;
-
-async function waitForService(url: string, maxAttempts = 20, delayMs = 500): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch(`${url}/health`);
-      if (res.ok) return;
-    } catch {
-      // Service not yet ready
-    }
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Service at ${url} did not become ready within ${maxAttempts * delayMs}ms`);
-}
-
-async function waitForRow(
-  sql: ReturnType<typeof postgres>,
-  table: string,
-  id: string,
-  maxAttempts = 30,
-  delayMs = 500,
-): Promise<Record<string, unknown>> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const rows = await sql`SELECT * FROM ${sql(table)} WHERE id = ${id}`;
-    if (rows.length > 0) return rows[0] as Record<string, unknown>;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
-  }
-  throw new Error(`Row ${id} not found in ${table} after ${maxAttempts * delayMs}ms`);
-}
-
-function createWebhookPayload(
-  eventType: string,
-  runId: string,
-  payload: Record<string, unknown>,
-  eventId?: string,
-): string {
-  const event = {
-    eventId: eventId ?? crypto.randomUUID(),
-    aggregateType: 'TestRun',
-    aggregateId: runId,
-    eventType,
-    payload: {
-      event: {
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId,
-        eventType,
-        payload,
-      },
-      organizationId: INTEGRATION_ORG_ID,
-      projectId: INTEGRATION_PROJECT_ID,
-    },
-    createdAt: new Date().toISOString(),
-  };
-
-  return JSON.stringify({
-    batch: true,
-    count: 1,
-    events: [event],
-  });
-}
-
+/** Send a webhook event directly to the worker endpoint. */
 async function sendWebhookEvent(
   eventType: string,
   runId: string,
   payload: Record<string, unknown>,
   options: { webhookSecret?: string; rawBody?: string } = {},
 ): Promise<{ status: number; body: unknown }> {
-  const rawBody = options.rawBody ?? createWebhookPayload(eventType, runId, payload);
+  const rawBody = options.rawBody ?? createWebhookEventPayload(eventType, runId, payload);
 
   const response = await fetch(WORKER_WEBHOOK_URL, {
     method: 'POST',
@@ -119,41 +52,22 @@ async function sendWebhookEvent(
   return { status: response.status, body };
 }
 
+/** Create a run via the ingestion pipeline and wait for it to appear in DB. */
 async function createRunViaIngestion(
-  sql: ReturnType<typeof postgres>,
+  sql: Awaited<ReturnType<typeof createPostgresConnection>>,
   runId: string,
 ): Promise<void> {
-  const INGESTION_API_URL = process.env['INGESTION_API_URL'] ?? 'http://localhost:3000';
-  const PROJECT_TOKEN = process.env['PROJECT_TOKEN'] ?? 'test-token';
+  await ingestionApi.events.send(createRunStartEvent({ runId }));
 
-  await fetch(`${INGESTION_API_URL}/v1/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-project-token': PROJECT_TOKEN,
-    },
-    body: JSON.stringify({
-      version: '1',
-      timestamp: new Date().toISOString(),
-      runId,
-      eventType: 'run.start',
-      payload: {},
-    }),
-  });
-
-  // Wait for the run to be created
-  await waitForRow(sql, 'runs', runId);
+  await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${runId}`);
 }
 
 describe('Worker error handling', () => {
-  let sql: ReturnType<typeof postgres>;
+  let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
 
   beforeAll(async () => {
-    const mod = await import('postgres');
-    postgres = mod.default;
-    sql = postgres(DATABASE_URL, { max: 1 });
-
-    await waitForService(WORKER_WEBHOOK_URL.replace('/webhooks/outboxy', ''));
+    sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
+    await waitForService(WORKER_URL);
   }, 30_000);
 
   afterAll(async () => {
@@ -167,7 +81,7 @@ describe('Worker error handling', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: createWebhookPayload('run.start', crypto.randomUUID(), {}),
+        body: createWebhookEventPayload('run.start', crypto.randomUUID(), {}),
       });
 
       expect(response.status).toBe(401);
@@ -183,7 +97,7 @@ describe('Worker error handling', () => {
           'Content-Type': 'application/json',
           'x-webhook-secret': 'incorrect-secret-value',
         },
-        body: createWebhookPayload('run.start', crypto.randomUUID(), {}),
+        body: createWebhookEventPayload('run.start', crypto.randomUUID(), {}),
       });
 
       expect(response.status).toBe(401);
@@ -311,7 +225,7 @@ describe('Worker error handling', () => {
       });
 
       // Wait for first suite to be created
-      await waitForRow(sql, 'suites', suiteId1);
+      await waitForRow(() => sql`SELECT * FROM suites WHERE id = ${suiteId1}`);
 
       // Try to create second suite with same name in same run
       const result = await sendWebhookEvent('suite.start', runId, {
@@ -319,9 +233,8 @@ describe('Worker error handling', () => {
         suiteName,
       });
 
-      // The webhook returns 500 because the unique constraint on (run_id, name) is violated
-      // This is correct behavior - constraint violations should be surfaced to the caller
-      expect(result.status).toBe(500);
+      // The handler uses onConflictDoNothing() so duplicate suite names are silently ignored
+      expect(result.status).toBe(200);
 
       // Wait to ensure processing completes
       await new Promise((resolve) => setTimeout(resolve, 1000));

@@ -1,6 +1,5 @@
 import { AllExceptionsFilter, IS_PRODUCTION, S3Service } from '@assertly/nestjs-common';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { ExecutionContext } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -9,15 +8,10 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
+import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
 import { ProjectTokenGuard } from '../src/guards/project-token.guard';
-import type { ProjectContext } from '../src/guards/project-token.guard';
 import { ArtifactsController } from '../src/modules/artifacts/artifacts.controller';
 import { ArtifactsService } from '../src/modules/artifacts/artifacts.service';
-
-const MOCK_PROJECT_CONTEXT: ProjectContext = {
-  projectId: 'project-abc' as ProjectContext['projectId'],
-  organizationId: '00000000-0000-4000-a000-000000000099' as ProjectContext['organizationId'],
-};
 
 describe('ArtifactsController', () => {
   let app: NestFastifyApplication;
@@ -25,20 +19,6 @@ describe('ArtifactsController', () => {
 
   beforeAll(async () => {
     mockGetPresignedUploadUrl = vi.fn().mockResolvedValue('https://s3.example.com/presigned-url');
-
-    class MockProjectTokenGuard {
-      canActivate(context: ExecutionContext): boolean {
-        const request = context.switchToHttp().getRequest();
-        request.projectContext = MOCK_PROJECT_CONTEXT;
-        return true;
-      }
-    }
-
-    class MockThrottlerGuard {
-      canActivate(): boolean {
-        return true;
-      }
-    }
 
     const mockConfigService = {
       get: vi.fn().mockReturnValue('development'),
