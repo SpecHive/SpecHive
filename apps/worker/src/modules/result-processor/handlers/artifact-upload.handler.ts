@@ -15,7 +15,8 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
   constructor(private readonly s3: S3Service) {}
 
   async handle(event: ArtifactUploadEvent, ctx: EventHandlerContext): Promise<void> {
-    const { artifactId, storagePath, testId, artifactType, name, mimeType } = event.payload;
+    const { artifactId, storagePath, testId, artifactType, name, mimeType, retryIndex } =
+      event.payload;
     const expectedPrefix = `${ctx.organizationId}/${ctx.projectId}/`;
 
     if (!storagePath.startsWith(expectedPrefix)) {
@@ -38,6 +39,7 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
       name,
       storagePath,
       sizeBytes: head.contentLength ?? 0,
+      retryIndex: retryIndex ?? null,
       mimeType: mimeType ?? null,
     });
 

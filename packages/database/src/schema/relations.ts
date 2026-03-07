@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm';
 
 import { refreshTokens } from './auth.js';
-import { runs, suites, tests, artifacts } from './execution.js';
+import { runs, suites, tests, artifacts, testAttempts } from './execution.js';
 import { projects, projectTokens } from './project.js';
 import { organizations, users, memberships } from './tenant.js';
 
@@ -91,6 +91,22 @@ export const testsRelations = relations(tests, ({ one, many }) => ({
     references: [runs.id],
   }),
   artifacts: many(artifacts),
+  attempts: many(testAttempts),
+}));
+
+export const testAttemptsRelations = relations(testAttempts, ({ one }) => ({
+  test: one(tests, {
+    fields: [testAttempts.testId],
+    references: [tests.id],
+  }),
+  run: one(runs, {
+    fields: [testAttempts.runId],
+    references: [runs.id],
+  }),
+  organization: one(organizations, {
+    fields: [testAttempts.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const artifactsRelations = relations(artifacts, ({ one }) => ({

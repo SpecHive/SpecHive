@@ -67,17 +67,29 @@ export interface TestSummary {
   createdAt: string | null;
 }
 
+export interface TestAttemptSummary {
+  retryIndex: number;
+  status: string;
+  durationMs: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  stackTrace: string | null;
+}
+
 export interface TestDetail extends TestSummary {
   updatedAt: string | null;
   artifacts: ArtifactSummary[];
+  attempts: TestAttemptSummary[];
 }
 
 export interface ArtifactSummary {
   id: ArtifactId;
   type: string;
   name: string;
-  sizeBytes: number;
+  sizeBytes: number | null;
   mimeType: string;
+  retryIndex: number | null;
   createdAt: string | null;
 }
 
@@ -112,6 +124,7 @@ export interface ProjectAnalyticsSummary {
   flakyTests: number;
   passRate: number;
   avgDurationMs: number;
+  retriedTests: number;
 }
 
 export interface PassRateTrendPoint {
@@ -133,6 +146,7 @@ export interface FlakyTestSummary {
   testName: string;
   flakyCount: number;
   totalRuns: number;
+  avgRetries: number;
 }
 
 export interface CreateProjectRequest {

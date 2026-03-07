@@ -4,6 +4,7 @@ import {
   type ProjectId,
   type RunId,
   type SuiteId,
+  type TestAttemptId,
   type TestId,
   ArtifactType,
   RunStatus,
@@ -160,11 +161,45 @@ export const artifacts = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     storagePath: varchar('storage_path', { length: 1000 }).notNull(),
     sizeBytes: integer('size_bytes'),
+    retryIndex: integer('retry_index'),
     mimeType: varchar('mime_type', { length: 100 }),
     ...timestamps,
   },
   (table) => [
     index('artifacts_test_idx').on(table.testId),
     index('artifacts_organization_id_idx').on(table.organizationId),
+  ],
+);
+
+export const testAttempts = pgTable(
+  'test_attempts',
+  {
+    id: uuidv7PK<TestAttemptId>(),
+    testId: uuid('test_id')
+      .$type<TestId>()
+      .notNull()
+      .references(() => tests.id, { onDelete: 'cascade' }),
+    runId: uuid('run_id')
+      .$type<RunId>()
+      .notNull()
+      .references(() => runs.id, { onDelete: 'cascade' }),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    retryIndex: integer('retry_index').notNull(),
+    // test_status enum reused; only passed/failed/skipped used for attempts
+    status: testStatusEnum('status').notNull(),
+    durationMs: integer('duration_ms'),
+    errorMessage: text('error_message'),
+    stackTrace: text('stack_trace'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('test_attempts_test_retry_idx').on(table.testId, table.retryIndex),
+    index('test_attempts_organization_id_idx').on(table.organizationId),
+    index('test_attempts_run_id_idx').on(table.runId),
   ],
 );

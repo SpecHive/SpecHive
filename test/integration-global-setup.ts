@@ -150,7 +150,7 @@ export async function teardown(): Promise<void> {
   const postgres = (await import('postgres')).default;
   const sql = postgres(superuserUrl, { max: 1 });
   try {
-    await sql`TRUNCATE artifacts, tests, suites, runs, project_tokens,
+    await sql`TRUNCATE test_attempts, artifacts, tests, suites, runs, project_tokens,
               memberships, projects, refresh_tokens, users, organizations CASCADE`;
   } finally {
     await sql.end();

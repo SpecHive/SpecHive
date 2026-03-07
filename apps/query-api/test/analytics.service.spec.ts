@@ -38,7 +38,9 @@ describe('AnalyticsService', () => {
 
   describe('getProjectSummary', () => {
     it('returns default values when no data exists', async () => {
+      // Summary query returns empty, retried query returns 0
       mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([{ retriedTests: 0 }]);
 
       const result = await service.getProjectSummary(orgId, projectId);
 
@@ -51,11 +53,12 @@ describe('AnalyticsService', () => {
         flakyTests: 0,
         passRate: 0,
         avgDurationMs: 0,
+        retriedTests: 0,
       });
     });
 
     it('returns summary when data exists', async () => {
-      const mockSummary = {
+      const mockSummaryRow = {
         totalRuns: 5,
         totalTests: 100,
         passedTests: 90,
@@ -65,16 +68,18 @@ describe('AnalyticsService', () => {
         passRate: 90.0,
         avgDurationMs: 5000,
       };
-      mockExecute.mockResolvedValueOnce([mockSummary]);
+      mockExecute.mockResolvedValueOnce([mockSummaryRow]);
+      mockExecute.mockResolvedValueOnce([{ retriedTests: 3 }]);
 
       const result = await service.getProjectSummary(orgId, projectId);
 
-      expect(result).toEqual(mockSummary);
+      expect(result).toEqual({ ...mockSummaryRow, retriedTests: 3 });
     });
 
     it('calls setTenantContext with correct organizationId', async () => {
       const { setTenantContext } = await import('@assertly/database');
       mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([{ retriedTests: 0 }]);
 
       await service.getProjectSummary(orgId, projectId);
 
@@ -118,8 +123,8 @@ describe('AnalyticsService', () => {
   describe('getFlakyTests', () => {
     it('returns typed array of FlakyTestSummary', async () => {
       const mockData = [
-        { testName: 'should login', flakyCount: 5, totalRuns: 10 },
-        { testName: 'should logout', flakyCount: 2, totalRuns: 10 },
+        { testName: 'should login', flakyCount: 5, totalRuns: 10, avgRetries: 2.5 },
+        { testName: 'should logout', flakyCount: 2, totalRuns: 10, avgRetries: 1.0 },
       ];
       mockExecute.mockResolvedValueOnce(mockData);
 

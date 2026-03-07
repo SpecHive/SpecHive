@@ -28,6 +28,7 @@ const projectAnalyticsSummarySchema = z.object({
   flakyTests: z.number(),
   passRate: z.number(),
   avgDurationMs: z.number(),
+  retriedTests: z.number(),
 });
 
 const passRateTrendPointSchema = z.object({
@@ -49,6 +50,7 @@ const flakyTestSummarySchema = z.object({
   testName: z.string(),
   flakyCount: z.number(),
   totalRuns: z.number(),
+  avgRetries: z.number(),
 });
 
 @Injectable()
@@ -68,29 +70,42 @@ export class AnalyticsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const result = await tx.execute(sql`
-        SELECT
-          COUNT(*)::int AS "totalRuns",
-          COALESCE(SUM(${runs.totalTests}), 0)::int AS "totalTests",
-          COALESCE(SUM(${runs.passedTests}), 0)::int AS "passedTests",
-          COALESCE(SUM(${runs.failedTests}), 0)::int AS "failedTests",
-          COALESCE(SUM(${runs.skippedTests}), 0)::int AS "skippedTests",
-          COALESCE(SUM(${runs.flakyTests}), 0)::int AS "flakyTests",
-          CASE
-            WHEN SUM(${runs.totalTests}) > 0
-            THEN ROUND((SUM(${runs.passedTests})::numeric / SUM(${runs.totalTests})::numeric) * 100, 2)
-            ELSE 0
-          END::float AS "passRate",
-          COALESCE(AVG(
-            EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000
-          ), 0)::float AS "avgDurationMs"
-        FROM ${runs}
-        WHERE ${runs.projectId} = ${projectId}
-          AND ${runs.finishedAt} IS NOT NULL
-          AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-      `);
+      const finishedRunsFilter = sql`
+        ${runs.projectId} = ${projectId}
+        AND ${runs.finishedAt} IS NOT NULL
+        AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
+      `;
 
-      if (result.length === 0) {
+      const [summaryResult, retriedResult] = await Promise.all([
+        tx.execute(sql`
+          SELECT
+            COUNT(*)::int AS "totalRuns",
+            COALESCE(SUM(${runs.totalTests}), 0)::int AS "totalTests",
+            COALESCE(SUM(${runs.passedTests}), 0)::int AS "passedTests",
+            COALESCE(SUM(${runs.failedTests}), 0)::int AS "failedTests",
+            COALESCE(SUM(${runs.skippedTests}), 0)::int AS "skippedTests",
+            COALESCE(SUM(${runs.flakyTests}), 0)::int AS "flakyTests",
+            CASE
+              WHEN SUM(${runs.totalTests}) > 0
+              THEN ROUND((SUM(${runs.passedTests})::numeric / SUM(${runs.totalTests})::numeric) * 100, 2)
+              ELSE 0
+            END::float AS "passRate",
+            COALESCE(AVG(
+              EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000
+            ), 0)::float AS "avgDurationMs"
+          FROM ${runs}
+          WHERE ${finishedRunsFilter}
+        `),
+        tx.execute(sql`
+          SELECT COUNT(*)::int AS "retriedTests"
+          FROM ${tests}
+            INNER JOIN ${runs} ON ${runs.id} = ${tests.runId}
+          WHERE ${finishedRunsFilter}
+            AND ${tests.retryCount} > 0
+        `),
+      ]);
+
+      if (summaryResult.length === 0) {
         return {
           totalRuns: 0,
           totalTests: 0,
@@ -100,10 +115,14 @@ export class AnalyticsService {
           flakyTests: 0,
           passRate: 0,
           avgDurationMs: 0,
+          retriedTests: 0,
         };
       }
 
-      return projectAnalyticsSummarySchema.parse(result[0]);
+      const summary = summaryResult[0] as Record<string, unknown>;
+      const retriedTests = (retriedResult[0] as Record<string, unknown>)?.retriedTests ?? 0;
+
+      return projectAnalyticsSummarySchema.parse({ ...summary, retriedTests });
     });
   }
 
@@ -185,22 +204,15 @@ export class AnalyticsService {
         SELECT
           ${tests.name} AS "testName",
           COUNT(*) FILTER (WHERE ${tests.status} = 'flaky')::int AS "flakyCount",
-          COUNT(DISTINCT ${tests.runId})::int AS "totalRuns"
+          COUNT(DISTINCT ${tests.runId})::int AS "totalRuns",
+          COALESCE(AVG(${tests.retryCount}) FILTER (WHERE ${tests.status} = 'flaky'), 0)::float AS "avgRetries"
         FROM ${tests}
           INNER JOIN ${runs} ON ${runs.id} = ${tests.runId}
         WHERE ${runs.projectId} = ${projectId}
           AND ${runs.finishedAt} IS NOT NULL
           AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-          AND ${tests.name} IN (
-            SELECT DISTINCT t2.name
-            FROM ${tests} t2
-              INNER JOIN ${runs} r2 ON r2.id = t2.run_id
-            WHERE r2.project_id = ${projectId}
-              AND t2.status = 'flaky'
-              AND r2.finished_at IS NOT NULL
-              AND r2.finished_at >= NOW() - INTERVAL '1 day' * ${clampedDays}
-          )
         GROUP BY ${tests.name}
+        HAVING COUNT(*) FILTER (WHERE ${tests.status} = 'flaky') > 0
         ORDER BY (COUNT(*) FILTER (WHERE ${tests.status} = 'flaky'))::float / COUNT(DISTINCT ${tests.runId}) DESC
         LIMIT ${clampedLimit}
       `);

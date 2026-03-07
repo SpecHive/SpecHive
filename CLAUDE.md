@@ -123,8 +123,8 @@ Without `setTenantContext`, queries return zero rows (fail-closed).
 
 ```
 organizations ─→ projects ─→ runs ─→ suites ─→ tests ─→ artifacts
-                  │
-                  └─→ project_tokens
+                  │                               │
+                  └─→ project_tokens               └─→ test_attempts
 
 users ─→ memberships ←─ organizations
 
@@ -132,6 +132,13 @@ auth: refresh_tokens
 ```
 
 Tenant boundary is at the organization level. RLS propagates down through foreign key joins.
+
+### Test attempts & retry model
+
+- `test_attempts` stores per-retry-attempt data (status, error, duration); always one row per attempt including the first
+- `artifacts.retryIndex` associates artifacts with specific attempts; joined to `test_attempts` via `(testId, retryIndex)` compound match (not FK)
+- `tests` table retains summary fields as a denormalized cache; `errorMessage` = "representative error" (last failed attempt for flaky, final attempt otherwise)
+- `test_status` enum is shared: attempts only use `passed`/`failed`/`skipped` values
 
 ## Environment variables
 

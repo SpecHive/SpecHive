@@ -85,6 +85,19 @@ export const TestEndSchema = z.object({
     errorMessage: z.string().max(10_000).optional(),
     stackTrace: z.string().max(50_000).optional(),
     retryCount: z.number().nonnegative().int().optional(),
+    attempts: z
+      .array(
+        z.object({
+          retryIndex: z.number().nonnegative().int(),
+          status: z.nativeEnum(TestStatus),
+          durationMs: z.number().nonnegative().optional(),
+          startedAt: z.string().datetime().optional(),
+          finishedAt: z.string().datetime().optional(),
+          errorMessage: z.string().max(10_000).optional(),
+          stackTrace: z.string().max(50_000).optional(),
+        }),
+      )
+      .optional(),
   }),
 });
 
@@ -98,6 +111,7 @@ export const ArtifactUploadSchema = z.object({
     name: z.string().max(500),
     storagePath: z.string().max(1000),
     mimeType: z.string().optional(),
+    retryIndex: z.number().nonnegative().int().optional(),
   }),
 });
 

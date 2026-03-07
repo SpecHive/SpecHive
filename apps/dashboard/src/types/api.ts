@@ -6,6 +6,7 @@ export type {
   SuiteSummary,
   TestSummary,
   TestDetail,
+  TestAttemptSummary,
   ArtifactSummary,
   LoginResponse,
   ArtifactDownloadResponse,

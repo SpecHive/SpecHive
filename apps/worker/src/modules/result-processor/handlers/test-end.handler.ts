@@ -1,4 +1,4 @@
-import { runs, tests } from '@assertly/database';
+import { runs, tests, testAttempts } from '@assertly/database';
 import type { TestEndEvent } from '@assertly/reporter-core-protocol';
 import { TestStatus, stripAnsi } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
@@ -14,7 +14,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
   private readonly logger = new Logger(TestEndHandler.name);
 
   async handle(event: TestEndEvent, ctx: EventHandlerContext): Promise<void> {
-    const { testId, status, durationMs, errorMessage, stackTrace, retryCount } = event.payload;
+    const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
+      event.payload;
 
     await ctx.tx
       .update(tests)
@@ -27,6 +28,26 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
         finishedAt: new Date(event.timestamp),
       })
       .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
+
+    if (attempts?.length) {
+      await ctx.tx
+        .insert(testAttempts)
+        .values(
+          attempts.map((a) => ({
+            testId,
+            runId: event.runId,
+            organizationId: ctx.organizationId,
+            retryIndex: a.retryIndex,
+            status: a.status,
+            durationMs: a.durationMs ?? null,
+            errorMessage: a.errorMessage ? stripAnsi(a.errorMessage) : null,
+            stackTrace: a.stackTrace ? stripAnsi(a.stackTrace) : null,
+            startedAt: a.startedAt ? new Date(a.startedAt) : null,
+            finishedAt: a.finishedAt ? new Date(a.finishedAt) : null,
+          })),
+        )
+        .onConflictDoNothing();
+    }
 
     const counterUpdates =
       status === TestStatus.Passed

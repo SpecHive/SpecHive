@@ -78,10 +78,15 @@ function makeTestResult(overrides: Partial<TestResult> = {}): TestResult {
     status: 'passed',
     duration: 150,
     retry: 0,
+    startTime: new Date('2026-01-01T00:00:00Z'),
     error: undefined,
     attachments: [],
     ...overrides,
   } as unknown as TestResult;
+}
+
+function mockOutcome(test: TestCase, outcome: string): void {
+  (test as { outcome: () => string }).outcome = () => outcome;
 }
 
 async function flushQueue(): Promise<void> {
@@ -138,25 +143,29 @@ describe('AssertlyReporter', () => {
       expect(runStart!.payload.runName).toBe('Playwright Run');
     });
 
-    it('sends suite.start for each child suite with parent relationships', async () => {
-      const grandchild = makeSuite('grandchild');
-      const child = makeSuite('child', [grandchild]);
-      const root = makeSuite('', [child]);
+    it('skips project suite and makes test files root level', async () => {
+      // Playwright hierarchy: root -> project suite -> test file -> describe block
+      const describeBlock = makeSuite('describe block');
+      const testFile = makeSuite('tests/auth.spec.ts', [describeBlock]);
+      const projectSuite = makeSuite('my-project', [testFile]);
+      const root = makeSuite('', [projectSuite]);
 
       await reporter.onBegin({} as FullConfig, root);
       await flushQueue();
 
       const events = sentEvents();
       const suiteEvents = events.filter((e) => e.eventType === 'suite.start');
-      expect(suiteEvents).toHaveLength(2);
+      expect(suiteEvents).toHaveLength(2); // Project suite is skipped
 
-      const childEvent = suiteEvents[0]!;
-      expect(childEvent.payload.suiteName).toBe('child');
-      expect(childEvent.payload.parentSuiteId).toBeUndefined();
+      // Test file becomes root (no parentSuiteId)
+      const testFileEvent = suiteEvents[0]!;
+      expect(testFileEvent.payload.suiteName).toBe('tests/auth.spec.ts');
+      expect(testFileEvent.payload.parentSuiteId).toBeUndefined();
 
-      const grandchildEvent = suiteEvents[1]!;
-      expect(grandchildEvent.payload.suiteName).toBe('grandchild');
-      expect(grandchildEvent.payload.parentSuiteId).toBe(childEvent.payload.suiteId);
+      // Describe block is nested under test file
+      const describeEvent = suiteEvents[1]!;
+      expect(describeEvent.payload.suiteName).toBe('describe block');
+      expect(describeEvent.payload.parentSuiteId).toBe(testFileEvent.payload.suiteId);
     });
 
     it('does nothing when disabled', async () => {
@@ -232,8 +241,7 @@ describe('AssertlyReporter', () => {
       mockSendEvent.mockClear();
 
       const test = makeTest('test', child);
-      (test as { outcome: () => string }).outcome = () =>
-        pwStatus === 'skipped' ? 'skipped' : 'unexpected';
+      mockOutcome(test, pwStatus === 'skipped' ? 'skipped' : 'unexpected');
       reporter.onTestEnd(test, makeTestResult({ status: pwStatus }));
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
@@ -252,7 +260,7 @@ describe('AssertlyReporter', () => {
       const longMessage = 'x'.repeat(20_000);
       const longStack = 'y'.repeat(100_000);
       const test = makeTest('test', child);
-      (test as { outcome: () => string }).outcome = () => 'unexpected';
+      mockOutcome(test, 'unexpected');
       reporter.onTestEnd(
         test,
         makeTestResult({
@@ -282,6 +290,82 @@ describe('AssertlyReporter', () => {
       const events = sentEvents();
       const testEnd = events.find((e) => e.eventType === 'test.end');
       expect(testEnd!.payload.retryCount).toBe(2);
+    });
+
+    it('always includes attempts array in test.end even for single-attempt tests', async () => {
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+      mockSendEvent.mockClear();
+
+      const test = makeTest('test', child);
+      reporter.onTestEnd(test, makeTestResult({ status: 'passed', duration: 150, retry: 0 }));
+      await reporter.onEnd({ status: 'passed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.attempts).toBeDefined();
+      expect(testEnd!.payload.attempts).toHaveLength(1);
+      expect(testEnd!.payload.attempts[0]).toEqual(
+        expect.objectContaining({
+          retryIndex: 0,
+          status: TestStatus.Passed,
+          durationMs: 150,
+          startedAt: expect.any(String),
+          finishedAt: expect.any(String),
+          errorMessage: undefined,
+          stackTrace: undefined,
+        }),
+      );
+    });
+
+    it('includes per-attempt data in attempts array for retried test', async () => {
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+      mockSendEvent.mockClear();
+
+      const test = makeTest('test', child);
+      mockOutcome(test, 'flaky');
+      reporter.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          retry: 0,
+          duration: 100,
+          error: { message: 'fail 1', stack: 'stack-1' } as TestResult['error'],
+        }),
+      );
+      reporter.onTestEnd(test, makeTestResult({ status: 'passed', retry: 1, duration: 200 }));
+      await reporter.onEnd({ status: 'passed' } as FullResult);
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.attempts).toHaveLength(2);
+      expect(testEnd!.payload.attempts[0]).toEqual(
+        expect.objectContaining({
+          retryIndex: 0,
+          status: TestStatus.Failed,
+          durationMs: 100,
+          startedAt: expect.any(String),
+          finishedAt: expect.any(String),
+          errorMessage: 'fail 1',
+          stackTrace: 'stack-1',
+        }),
+      );
+      expect(testEnd!.payload.attempts[1]).toEqual(
+        expect.objectContaining({
+          retryIndex: 1,
+          status: TestStatus.Passed,
+          durationMs: 200,
+          startedAt: expect.any(String),
+          finishedAt: expect.any(String),
+          errorMessage: undefined,
+          stackTrace: undefined,
+        }),
+      );
     });
 
     it('does nothing when disabled', async () => {
@@ -318,7 +402,7 @@ describe('AssertlyReporter', () => {
     it('reports failed when test fails all retries', async () => {
       const { reporter: r } = await beginReporter();
       const test = makeTest('fails-all', undefined);
-      (test as { outcome: () => string }).outcome = () => 'unexpected';
+      mockOutcome(test, 'unexpected');
 
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 1 }));
@@ -334,7 +418,7 @@ describe('AssertlyReporter', () => {
     it('reports flaky when test fails then passes', async () => {
       const { reporter: r } = await beginReporter();
       const test = makeTest('flaky-test', undefined);
-      (test as { outcome: () => string }).outcome = () => 'flaky';
+      mockOutcome(test, 'flaky');
 
       const failError = { message: 'assertion failed', stack: 'at test.ts:10' };
       r.onTestEnd(
@@ -367,7 +451,7 @@ describe('AssertlyReporter', () => {
     it('sends test.start only once regardless of retries', async () => {
       const { reporter: r } = await beginReporter();
       const test = makeTest('retried-test', undefined);
-      (test as { outcome: () => string }).outcome = () => 'flaky';
+      mockOutcome(test, 'flaky');
 
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
       r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 1 }));
@@ -397,7 +481,7 @@ describe('AssertlyReporter', () => {
     it('preserves error from failed attempt in flaky test', async () => {
       const { reporter: r } = await beginReporter();
       const test = makeTest('flaky-error', undefined);
-      (test as { outcome: () => string }).outcome = () => 'flaky';
+      mockOutcome(test, 'flaky');
 
       r.onTestEnd(
         test,
@@ -457,12 +541,41 @@ describe('AssertlyReporter', () => {
       expect(artifacts[0]!.payload.artifactType).toBe(ArtifactType.Screenshot);
       expect(artifacts[0]!.payload.name).toBe('screenshot.png');
       expect(artifacts[0]!.payload.mimeType).toBe('image/png');
+      expect(artifacts[0]!.payload.retryIndex).toBe(0);
       expect(mockPresignArtifact).toHaveBeenCalled();
       expect(mockUploadToPresignedUrl).toHaveBeenCalledWith(
         'https://s3.example.com/presigned',
         content,
         'image/png',
       );
+    });
+
+    it('includes retryIndex from the test attempt in artifact.upload event', async () => {
+      const r = await setupReporter();
+      mockReadFile.mockResolvedValue(Buffer.from('data'));
+
+      const test = makeTest('test');
+      mockOutcome(test, 'flaky');
+
+      // First attempt (retry 0) — no artifacts
+      r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
+
+      // Second attempt (retry 1) — with artifact
+      r.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'passed',
+          retry: 1,
+          attachments: [
+            { name: 'screenshot.png', contentType: 'image/png', path: '/tmp/screenshot.png' },
+          ],
+        }),
+      );
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      const artifacts = collectArtifactEvents();
+      expect(artifacts).toHaveLength(1);
+      expect(artifacts[0]!.payload.retryIndex).toBe(1);
     });
 
     it('sends artifact.upload for attachment with body', async () => {

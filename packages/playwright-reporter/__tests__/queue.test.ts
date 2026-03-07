@@ -38,8 +38,8 @@ function makeSuite(title: string, children: Suite[] = []): Suite {
 
 describe('Event queue', () => {
   beforeEach(() => {
-    mockSendEvent.mockClear();
-    mockCheckHealth.mockClear();
+    mockSendEvent.mockReset().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 });
+    mockCheckHealth.mockReset().mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -102,7 +102,9 @@ describe('Event queue', () => {
     await reporter.onBegin({} as FullConfig, root);
 
     const testParent = root.suites[0]!;
-    for (let i = 0; i < 10_000; i++) {
+    // run.start is consumed by the drain loop before it blocks, so we need
+    // 10,001 test.start events to exceed MAX_QUEUE_SIZE (10,000)
+    for (let i = 0; i <= 10_000; i++) {
       reporter.onTestEnd(
         {
           title: `test-${i}`,

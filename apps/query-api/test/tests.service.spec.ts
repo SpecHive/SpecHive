@@ -92,6 +92,15 @@ describe('TestsService', () => {
         }),
       });
 
+      // Attempts query (runs in parallel via Promise.all)
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+
       await expect(
         service.getTestById('org-1' as OrganizationId, 'run-1' as RunId, 'non-existent' as TestId),
       ).rejects.toThrow(NotFoundException);
@@ -134,9 +143,27 @@ describe('TestsService', () => {
               name: 'failure.png',
               sizeBytes: 1024,
               mimeType: 'image/png',
+              retryIndex: null,
               createdAt: new Date(),
             },
           ]),
+        }),
+      });
+
+      // Third select: attempts
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            orderBy: vi.fn().mockResolvedValue([
+              {
+                retryIndex: 0,
+                status: 'failed',
+                durationMs: 300,
+                errorMessage: 'Expected true to be false',
+                stackTrace: 'Error: ...',
+              },
+            ]),
+          }),
         }),
       });
 
@@ -149,6 +176,8 @@ describe('TestsService', () => {
       expect(result.name).toBe('should fail');
       expect(result.artifacts).toHaveLength(1);
       expect(result.artifacts[0]!.name).toBe('failure.png');
+      expect(result.attempts).toHaveLength(1);
+      expect(result.attempts[0]!.retryIndex).toBe(0);
     });
   });
 });

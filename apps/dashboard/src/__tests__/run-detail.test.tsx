@@ -140,7 +140,7 @@ describe('RunDetailPage', () => {
       mockUseApi.mockImplementation((path: string) => {
         if (path && path.match(/\/tests\/test-1$/)) {
           return {
-            data: { ...testDetail, updatedAt: null, artifacts: [] },
+            data: { ...testDetail, updatedAt: null, artifacts: [], attempts: [] },
             loading: false,
             error: null,
             refetch: vi.fn(),
@@ -224,13 +224,14 @@ describe('RunDetailPage', () => {
         name: 'fail.png',
         sizeBytes: 1024,
         mimeType: 'image/png',
+        retryIndex: null,
         createdAt: '2026-01-01',
       };
 
       mockUseApi.mockImplementation((path: string) => {
         if (path && path.match(/\/tests\/test-1$/)) {
           return {
-            data: { ...mockTest, updatedAt: null, artifacts: [artifact] },
+            data: { ...mockTest, updatedAt: null, artifacts: [artifact], attempts: [] },
             loading: false,
             error: null,
             refetch: vi.fn(),

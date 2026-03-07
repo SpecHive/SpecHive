@@ -1,4 +1,12 @@
-import { AlertTriangle, CheckCircle, Clock, PlayCircle, Plus, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  PlayCircle,
+  Plus,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
@@ -73,8 +81,8 @@ function LoadingSkeleton() {
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
         <div className="mt-2 h-4 w-72 animate-pulse rounded bg-muted" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {Array.from({ length: 5 }, (_, i) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="h-32 animate-pulse rounded-lg border bg-muted" />
         ))}
       </div>
@@ -152,8 +160,8 @@ export function DashboardPage() {
       {summaryError && <p className="text-sm text-destructive">Failed to load analytics data</p>}
 
       {summaryLoading && !summary ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }, (_, i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="h-32 animate-pulse rounded-lg border bg-muted" />
           ))}
         </div>
@@ -164,7 +172,7 @@ export function DashboardPage() {
               <h2 id="stats-heading" className="sr-only">
                 Key metrics
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Runs</CardTitle>
@@ -266,6 +274,24 @@ export function DashboardPage() {
                     <div className="text-2xl font-bold">{summary.flakyTests}</div>
                   </CardContent>
                 </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Retried Tests</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <RefreshCw className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Tests that required at least one retry during the selected period.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{summary.retriedTests}</div>
+                  </CardContent>
+                </Card>
               </div>
             </section>
           </TooltipProvider>
@@ -356,6 +382,11 @@ export function DashboardPage() {
                       <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                         {test.flakyCount} flaky
                       </span>
+                      {test.avgRetries > 0 && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          avg {test.avgRetries.toFixed(1)} retries
+                        </span>
+                      )}
                       <span className="text-muted-foreground">
                         {(test.totalRuns > 0
                           ? (test.flakyCount / test.totalRuns) * 100

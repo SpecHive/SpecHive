@@ -130,7 +130,9 @@ export default class AssertlyReporter implements Reporter {
     }
 
     entry.attempts.push(result);
-    this.artifactPromises.push(this.processArtifacts(entry.testId, result.attachments));
+    this.artifactPromises.push(
+      this.processArtifacts(entry.testId, result.attachments, result.retry),
+    );
   }
 
   async onEnd(result: FullResult): Promise<void> {
@@ -170,6 +172,16 @@ export default class AssertlyReporter implements Reporter {
       const errorMessage = errorAttempt?.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
       const stackTrace = errorAttempt?.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
 
+      const attempts = entry.attempts.map((attempt) => ({
+        retryIndex: attempt.retry,
+        status: mapTestStatus(attempt.status),
+        durationMs: attempt.duration,
+        startedAt: attempt.startTime.toISOString(),
+        finishedAt: new Date(attempt.startTime.getTime() + attempt.duration).toISOString(),
+        errorMessage: attempt.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH),
+        stackTrace: attempt.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH),
+      }));
+
       this.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
@@ -182,6 +194,7 @@ export default class AssertlyReporter implements Reporter {
           errorMessage,
           stackTrace,
           retryCount: finalAttempt.retry,
+          attempts,
         },
       });
     }
@@ -209,26 +222,33 @@ export default class AssertlyReporter implements Reporter {
     }
   }
 
-  private walkSuites(suite: Suite, parentSuiteId?: SuiteId): void {
+  private walkSuites(suite: Suite, depth: number = 0, parentSuiteId?: SuiteId): void {
     for (const child of suite.suites) {
-      const suiteId = asSuiteId(crypto.randomUUID());
-      this.suiteMap.set(child, suiteId);
+      // Depth 0 = root's children (project suites) - skip sending, recurse with same parent
+      if (depth === 0) {
+        this.walkSuites(child, depth + 1, undefined); // Test files become roots
+      } else {
+        // Depth 1+ = test files and describe blocks - send normally
+        const suiteId = asSuiteId(crypto.randomUUID());
+        this.suiteMap.set(child, suiteId);
 
-      this.enqueue({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: this.runId,
-        eventType: 'suite.start',
-        payload: { suiteId, suiteName: child.title, parentSuiteId },
-      });
+        this.enqueue({
+          version: '1',
+          timestamp: new Date().toISOString(),
+          runId: this.runId,
+          eventType: 'suite.start',
+          payload: { suiteId, suiteName: child.title, parentSuiteId },
+        });
 
-      this.walkSuites(child, suiteId);
+        this.walkSuites(child, depth + 1, suiteId);
+      }
     }
   }
 
   private async processArtifacts(
     testId: TestId,
     attachments: TestResult['attachments'],
+    retryIndex: number,
   ): Promise<void> {
     if (!this.config.captureArtifacts) return;
 
@@ -298,6 +318,7 @@ export default class AssertlyReporter implements Reporter {
           name,
           storagePath: presign.storagePath,
           mimeType: attachment.contentType,
+          retryIndex,
         },
       });
     }

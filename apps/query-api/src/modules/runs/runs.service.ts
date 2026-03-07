@@ -4,7 +4,7 @@ import { DATABASE_CONNECTION, escapeLikePattern } from '@assertly/nestjs-common'
 import type { OrganizationId, ProjectId, RunId } from '@assertly/shared-types';
 import { RunStatus } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, isNotNull } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import type { PaginationParams } from '../../common/pagination';
@@ -106,7 +106,11 @@ export class RunsService {
           .from(runs)
           .where(eq(runs.id, runId))
           .limit(1),
-        tx.select({ count: count() }).from(suites).where(eq(suites.runId, runId)),
+        // Exclude root-level suites (file suites with no parent) — project suites are skipped by the reporter
+        tx
+          .select({ count: count() })
+          .from(suites)
+          .where(and(eq(suites.runId, runId), isNotNull(suites.parentSuiteId))),
       ]);
 
       const row = rowResult[0];

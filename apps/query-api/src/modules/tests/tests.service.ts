@@ -1,5 +1,5 @@
 import type { Database } from '@assertly/database';
-import { artifacts, setTenantContext, tests } from '@assertly/database';
+import { artifacts, setTenantContext, testAttempts, tests } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { TestStatus } from '@assertly/shared-types';
@@ -102,7 +102,7 @@ export class TestsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const [rowResult, testArtifacts] = await Promise.all([
+      const [rowResult, testArtifacts, testAttemptRows] = await Promise.all([
         tx
           .select()
           .from(tests)
@@ -115,10 +115,22 @@ export class TestsService {
             name: artifacts.name,
             sizeBytes: artifacts.sizeBytes,
             mimeType: artifacts.mimeType,
+            retryIndex: artifacts.retryIndex,
             createdAt: artifacts.createdAt,
           })
           .from(artifacts)
           .where(eq(artifacts.testId, testId)),
+        tx
+          .select({
+            retryIndex: testAttempts.retryIndex,
+            status: testAttempts.status,
+            durationMs: testAttempts.durationMs,
+            errorMessage: testAttempts.errorMessage,
+            stackTrace: testAttempts.stackTrace,
+          })
+          .from(testAttempts)
+          .where(eq(testAttempts.testId, testId))
+          .orderBy(asc(testAttempts.retryIndex)),
       ]);
 
       const row = rowResult[0];
@@ -129,6 +141,7 @@ export class TestsService {
       return {
         ...row,
         artifacts: testArtifacts,
+        attempts: testAttemptRows,
       };
     });
   }

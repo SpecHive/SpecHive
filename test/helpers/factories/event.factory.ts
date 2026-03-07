@@ -12,6 +12,7 @@ import type {
   TestEndEvent,
   ArtifactUploadEvent,
 } from '@assertly/reporter-core-protocol';
+import type { TestStatus } from '@assertly/shared-types';
 
 /** Typed partial overrides for an event — envelope fields + nested payload. */
 type EventOverrides<T extends { payload: unknown }> = Partial<Omit<T, 'payload'>> & {
@@ -103,6 +104,16 @@ export function createArtifactUploadEvent(overrides?: EventOverrides<ArtifactUpl
   );
 }
 
+interface AttemptOverride {
+  retryIndex: number;
+  status: TestStatus;
+  durationMs?: number;
+  startedAt?: string;
+  finishedAt?: string;
+  errorMessage?: string;
+  stackTrace?: string;
+}
+
 interface FullRunOptions {
   runId?: string;
   suiteId?: string;
@@ -169,6 +180,86 @@ export function createFullRunEvents(options?: FullRunOptions) {
       runId,
       eventType: 'run.end' as const,
       payload: { status: 'passed' },
+    },
+  ];
+
+  return { runId, suiteId, testId, events };
+}
+
+interface FullRunWithRetriesOptions {
+  runId?: string;
+  suiteId?: string;
+  testId?: string;
+  suiteName?: string;
+  testName?: string;
+  runName?: string;
+  /** Per-attempt overrides; last attempt determines the test-level status. */
+  attempts: AttemptOverride[];
+}
+
+/**
+ * Create a lifecycle with retry attempts: run.start → suite.start → test.start → test.end (with attempts) → suite.end → run.end.
+ * The test.end payload includes an `attempts` array and derives the final status from the last attempt.
+ */
+export function createFullRunWithRetriesEvents(options: FullRunWithRetriesOptions) {
+  const runId = options.runId ?? randomUUID();
+  const suiteId = options.suiteId ?? randomUUID();
+  const testId = options.testId ?? randomUUID();
+  const finalAttempt = options.attempts[options.attempts.length - 1]!;
+
+  // Determine test-level status: if final passed and any prior failed → flaky, else final status
+  const hasPriorFailure = options.attempts.slice(0, -1).some((a) => a.status === 'failed');
+  const testStatus =
+    finalAttempt.status === 'passed' && hasPriorFailure ? 'flaky' : finalAttempt.status;
+
+  const events = [
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'run.start' as const,
+      payload: options.runName ? { runName: options.runName } : {},
+    },
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'suite.start' as const,
+      payload: { suiteId, suiteName: options.suiteName ?? 'Test Suite' },
+    },
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'test.start' as const,
+      payload: { testId, suiteId, testName: options.testName ?? 'test case' },
+    },
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId,
+        status: testStatus,
+        durationMs: finalAttempt.durationMs ?? 100,
+        retryCount: options.attempts.length - 1,
+        attempts: options.attempts,
+      },
+    },
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'suite.end' as const,
+      payload: { suiteId },
+    },
+    {
+      version: '1' as const,
+      timestamp: nowISO(),
+      runId,
+      eventType: 'run.end' as const,
+      payload: { status: testStatus === 'failed' ? 'failed' : 'passed' },
     },
   ];
 
