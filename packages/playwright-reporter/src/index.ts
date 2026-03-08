@@ -31,8 +31,51 @@ const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
 const ARTIFACT_SIZE_WARNING = 5 * 1024 * 1024;
 const MAX_QUEUE_SIZE = 10_000;
 
+interface ResolvedConfig {
+  apiUrl: string;
+  projectToken: string;
+  enabled: boolean;
+  timeout: number;
+  captureArtifacts: boolean;
+  maxRetries: number;
+  flushTimeout: number;
+  failOnConnectionError: boolean;
+}
+
+function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
+  if (value === undefined) return defaultValue;
+  const normalized = value.toLowerCase().trim();
+  return normalized === 'true' || normalized === '1';
+}
+
+function resolveConfig(config: AssertlyReporterConfig): ResolvedConfig {
+  const apiUrl = config.apiUrl ?? process.env.ASSERTLY_API_URL;
+  const projectToken = config.projectToken ?? process.env.ASSERTLY_PROJECT_TOKEN;
+  const enabled = config.enabled ?? parseBoolean(process.env.ASSERTLY_ENABLED, true);
+
+  const base = {
+    timeout: config.timeout ?? 30_000,
+    captureArtifacts: config.captureArtifacts ?? true,
+    maxRetries: config.maxRetries ?? 3,
+    flushTimeout: config.flushTimeout ?? 30_000,
+    failOnConnectionError: config.failOnConnectionError ?? false,
+  };
+
+  if (!apiUrl || !projectToken) {
+    if (enabled) {
+      console.warn(
+        '[assertly] Reporter disabled: missing apiUrl or projectToken. ' +
+          'Set ASSERTLY_API_URL and ASSERTLY_PROJECT_TOKEN env vars, or pass them in reporter config.',
+      );
+    }
+    return { ...base, apiUrl: '', projectToken: '', enabled: false };
+  }
+
+  return { ...base, apiUrl, projectToken, enabled };
+}
+
 export default class AssertlyReporter implements Reporter {
-  private readonly config: AssertlyReporterConfig;
+  private readonly config: ResolvedConfig;
   private readonly client: AssertlyClient;
   private runId!: RunId;
   private readonly suiteMap = new Map<Suite, SuiteId>();
@@ -54,16 +97,8 @@ export default class AssertlyReporter implements Reporter {
   private eventsFailed = 0;
   private retriesTotal = 0;
 
-  constructor(config: AssertlyReporterConfig) {
-    this.config = {
-      enabled: true,
-      timeout: 30_000,
-      captureArtifacts: true,
-      maxRetries: 3,
-      flushTimeout: 30_000,
-      failOnConnectionError: false,
-      ...config,
-    };
+  constructor(config: AssertlyReporterConfig = {}) {
+    this.config = resolveConfig(config);
     this.client = new AssertlyClient(
       this.config.apiUrl,
       this.config.projectToken,
@@ -73,7 +108,7 @@ export default class AssertlyReporter implements Reporter {
   }
 
   get isEnabled(): boolean {
-    return this.config.enabled ?? true;
+    return this.config.enabled;
   }
 
   async onBegin(_config: FullConfig, suite: Suite): Promise<void> {

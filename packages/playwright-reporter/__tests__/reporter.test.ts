@@ -748,6 +748,126 @@ describe('AssertlyReporter', () => {
       expect(warnSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('config resolution', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('picks up apiUrl and projectToken from env vars', async () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://env-api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'env-tok-456');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(true);
+
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      expect(mockCheckHealth).toHaveBeenCalledOnce();
+      expect(sentEvents().some((e) => e.eventType === 'run.start')).toBe(true);
+    });
+
+    it('inline config overrides env vars', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://env-api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'env-tok');
+
+      const r = new AssertlyReporter({ apiUrl: 'https://inline.test', projectToken: 'inline-tok' });
+      expect(r.isEnabled).toBe(true);
+    });
+
+    it('auto-disables with warning when apiUrl is missing', () => {
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const r = new AssertlyReporter();
+
+      expect(r.isEnabled).toBe(false);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('missing apiUrl or projectToken'),
+      );
+    });
+
+    it('auto-disables with warning when projectToken is missing', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const r = new AssertlyReporter();
+
+      expect(r.isEnabled).toBe(false);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('missing apiUrl or projectToken'),
+      );
+    });
+
+    it('auto-disables silently when both are missing and enabled is false', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const r = new AssertlyReporter({ enabled: false });
+
+      expect(r.isEnabled).toBe(false);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('ASSERTLY_ENABLED=false disables reporter', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', 'false');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(false);
+    });
+
+    it('ASSERTLY_ENABLED=0 disables reporter', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', '0');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(false);
+    });
+
+    it('ASSERTLY_ENABLED=true keeps reporter enabled', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', 'true');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(true);
+    });
+
+    it('ASSERTLY_ENABLED=1 keeps reporter enabled', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', '1');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(true);
+    });
+
+    it('ASSERTLY_ENABLED is case-insensitive', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', 'TRUE');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(true);
+    });
+
+    it('auto-disables when ASSERTLY_API_URL is empty string', () => {
+      vi.stubEnv('ASSERTLY_API_URL', '');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const r = new AssertlyReporter();
+
+      expect(r.isEnabled).toBe(false);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('missing apiUrl or projectToken'),
+      );
+    });
+  });
 });
 
 function sentEvents(): V1Event[] {

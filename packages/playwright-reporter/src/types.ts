@@ -1,6 +1,6 @@
 export interface AssertlyReporterConfig {
-  apiUrl: string;
-  projectToken: string;
+  apiUrl?: string;
+  projectToken?: string;
   timeout?: number;
   enabled?: boolean;
   captureArtifacts?: boolean;

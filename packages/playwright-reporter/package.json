@@ -13,23 +13,22 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsup",
     "typecheck": "tsc --project tsconfig.json --noEmit",
-    "dev": "tsc --project tsconfig.json --watch",
+    "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "peerDependencies": {
     "@playwright/test": ">=1.40.0"
   },
-  "dependencies": {
-    "@assertly/reporter-core-protocol": "workspace:*",
-    "@assertly/shared-types": "workspace:*"
-  },
   "devDependencies": {
+    "@assertly/reporter-core-protocol": "workspace:*",
+    "@assertly/shared-types": "workspace:*",
     "@assertly/typescript-config": "workspace:*",
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"
   }
