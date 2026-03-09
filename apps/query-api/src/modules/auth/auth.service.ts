@@ -3,17 +3,25 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Database } from '@assertly/database';
 import { setTenantContext } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import { MembershipRole } from '@assertly/shared-types';
+import { MembershipRole, asOrganizationId, asUserId } from '@assertly/shared-types';
 import type { OrganizationId, UserId } from '@assertly/shared-types';
-import { ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { verify } from 'argon2';
+import { hash, verify } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { SignJWT } from 'jose';
+import { uuidv7 } from 'uuidv7';
 import { z } from 'zod';
 
 import type { EnvConfig } from '../config/env.validation';
 
+import { generateSlug } from './generate-slug';
 import type { JwtPayload } from './types';
 
 type AuthenticatedUser = {
@@ -53,7 +61,67 @@ export class AuthService {
     this.refreshExpiresIn = config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
   }
 
+  async register(email: string, password: string, name: string, organizationName: string) {
+    email = this.normalizeEmail(email);
+    const passwordHash = await hash(password, { type: 2 });
+    const baseSlug = generateSlug(organizationName);
+    let slug = baseSlug;
+    const orgId = uuidv7();
+    const userId = uuidv7();
+    const membershipId = uuidv7();
+
+    const MAX_SLUG_RETRIES = 3;
+    for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
+      try {
+        await this.executeRegister(
+          orgId,
+          userId,
+          membershipId,
+          email,
+          passwordHash,
+          name,
+          organizationName,
+          slug,
+        );
+        break;
+      } catch (err: unknown) {
+        if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+          const detail = (err as { detail?: string }).detail ?? '';
+          if (detail.includes('email')) {
+            throw new ConflictException('An account with this email already exists');
+          }
+          if (detail.includes('slug')) {
+            if (attempt === MAX_SLUG_RETRIES - 1) {
+              throw new ConflictException(
+                'Unable to generate a unique organization slug. Please try a different organization name.',
+              );
+            }
+            slug = `${baseSlug}-${randomBytes(2).toString('hex')}`;
+            continue;
+          }
+        }
+        throw err;
+      }
+    }
+
+    const token = await this.signToken({
+      sub: userId,
+      organizationId: orgId,
+      role: MembershipRole.Owner,
+    });
+
+    const refreshToken = await this.createAndStoreRefreshToken(userId);
+
+    return {
+      token,
+      refreshToken,
+      user: { id: asUserId(userId), email, name },
+      organization: { id: asOrganizationId(orgId), name: organizationName, slug },
+    };
+  }
+
   async login(email: string, password: string, organizationId?: string) {
+    email = this.normalizeEmail(email);
     const users = await this.db.execute<AuthenticatedUser>(
       sql`SELECT * FROM authenticate_user_by_email(${email})`,
     );
@@ -246,6 +314,28 @@ export class AuthService {
       slug: o.organization_slug,
       role: o.role as MembershipRole,
     }));
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.toLowerCase().trim();
+  }
+
+  private async executeRegister(
+    orgId: string,
+    userId: string,
+    membershipId: string,
+    email: string,
+    passwordHash: string,
+    name: string,
+    orgName: string,
+    slug: string,
+  ) {
+    await this.db.execute(
+      sql`SELECT * FROM register_user(
+        ${orgId}::uuid, ${userId}::uuid, ${membershipId}::uuid,
+        ${email}, ${passwordHash}, ${name}, ${orgName}, ${slug}
+      )`,
+    );
   }
 
   private async signToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): Promise<string> {

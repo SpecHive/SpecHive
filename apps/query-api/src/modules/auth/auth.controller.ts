@@ -11,6 +11,13 @@ import { AuthService } from './auth.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
 import type { UserContext } from './types';
 
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8).max(128),
+  name: z.string().trim().min(1).max(100),
+  organizationName: z.string().trim().min(1).max(255),
+});
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -36,6 +43,15 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly loginRateLimit: LoginRateLimitService,
   ) {}
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Public()
+  @Post('register')
+  async register(
+    @Body(new ZodValidationPipe(registerSchema)) body: z.infer<typeof registerSchema>,
+  ) {
+    return this.authService.register(body.email, body.password, body.name, body.organizationName);
+  }
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()

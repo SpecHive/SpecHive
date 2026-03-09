@@ -16,13 +16,17 @@ export function useApi<T>(
   options?: { toastId?: string },
 ): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(path !== null);
   const [error, setError] = useState<string | null>(null);
 
   const serializedParams = params ? JSON.stringify(params) : '';
+  const toastId = options?.toastId;
 
   const fetchData = useCallback(async () => {
-    if (!path) return;
+    if (!path) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -36,12 +40,11 @@ export function useApi<T>(
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An error occurred';
       setError(message);
-      if (message !== 'Unauthorized')
-        toast.error(message, { id: options?.toastId ?? `api-error:${path}` });
+      if (message !== 'Unauthorized') toast.error(message, { id: toastId ?? `api-error:${path}` });
     } finally {
       setLoading(false);
     }
-  }, [path, serializedParams]);
+  }, [path, serializedParams, toastId]);
 
   useEffect(() => {
     fetchData();

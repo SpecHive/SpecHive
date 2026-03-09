@@ -10,6 +10,8 @@ interface LoginOptions {
 interface LoginResponse {
   token: string;
   refreshToken?: string;
+  user?: { id: string; email: string; name: string };
+  organization?: { id: string; name: string; slug: string };
 }
 
 interface MeResponse {
@@ -52,6 +54,16 @@ export class AuthClient extends BaseClient {
         password,
         ...(options?.organizationId ? { organizationId: options.organizationId } : {}),
       },
+    });
+  }
+
+  async register(
+    body: { email: string; password: string; name: string; organizationName: string },
+    forwardedIp?: string,
+  ): Promise<ApiResponse<LoginResponse>> {
+    return this.request<LoginResponse>('POST', '/v1/auth/register', {
+      headers: { 'X-Forwarded-For': forwardedIp ?? this.randomIp() },
+      body,
     });
   }
 

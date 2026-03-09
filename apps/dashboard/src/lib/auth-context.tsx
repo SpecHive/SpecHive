@@ -25,6 +25,12 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    organizationName: string,
+  ) => Promise<void>;
   logout: () => void;
   switchOrganization: (organizationId: string) => Promise<void>;
 }
@@ -98,13 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(sessionState.refreshToken);
   const navigate = useNavigate();
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const response = await apiClient.post<LoginResponse>('/v1/auth/login', {
-        email,
-        password,
-      });
-
+  const handleAuthSuccess = useCallback(
+    (response: LoginResponse) => {
       setUser(response.user);
       setOrganization(response.organization);
       setToken(response.token);
@@ -117,21 +118,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [navigate],
   );
 
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const response = await apiClient.post<LoginResponse>('/v1/auth/login', {
+        email,
+        password,
+      });
+      handleAuthSuccess(response);
+    },
+    [handleAuthSuccess],
+  );
+
+  const register = useCallback(
+    async (name: string, email: string, password: string, organizationName: string) => {
+      const response = await apiClient.post<LoginResponse>('/v1/auth/register', {
+        name,
+        email,
+        password,
+        organizationName,
+      });
+      handleAuthSuccess(response);
+    },
+    [handleAuthSuccess],
+  );
+
   const switchOrganization = useCallback(
     async (organizationId: string) => {
       const response = await apiClient.post<LoginResponse>('/v1/auth/switch-organization', {
         organizationId,
       });
-      setUser(response.user);
-      setOrganization(response.organization);
-      setToken(response.token);
-      setRefreshToken(response.refreshToken);
-      apiClient.setToken(response.token);
-      apiClient.setRefreshToken(response.refreshToken);
-      persistSession(response.token, response.refreshToken, response.user, response.organization);
-      navigate('/');
+      handleAuthSuccess(response);
     },
-    [navigate],
+    [handleAuthSuccess],
   );
 
   const logout = useCallback(() => {
@@ -176,10 +194,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       isAuthenticated: token !== null,
       login,
+      register,
       logout,
       switchOrganization,
     }),
-    [user, organization, token, login, logout, switchOrganization],
+    [user, organization, token, login, register, logout, switchOrganization],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

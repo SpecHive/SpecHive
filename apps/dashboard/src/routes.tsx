@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/layout/protected-route';
 import { DashboardPage } from '@/pages/dashboard';
 import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
+import { RegisterPage } from '@/pages/register';
 import { RunDetailPage } from '@/pages/run-detail';
 import { RunsPage } from '@/pages/runs';
 import { TokensPage } from '@/pages/tokens';
@@ -13,6 +14,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />

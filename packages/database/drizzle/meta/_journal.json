@@ -120,6 +120,13 @@
       "when": 1773048397766,
       "tag": "0016_hard_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1773134797766,
+      "tag": "0017_register_user_functions",
+      "breakpoints": true
     }
   ]
 }

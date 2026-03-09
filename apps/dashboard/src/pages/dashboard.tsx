@@ -7,13 +7,14 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
 
 import { LineChart, type LineChartLine } from '@/components/charts';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
 import { PageHeader } from '@/components/layout/page-header';
+import { OnboardingCard } from '@/components/onboarding-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -93,6 +94,7 @@ function LoadingSkeleton() {
 
 export function DashboardPage() {
   const {
+    projects,
     selectedProjectId,
     loading: projectsLoading,
     refetchProjects,
@@ -101,6 +103,13 @@ export function DashboardPage() {
 
   const [trendDays, setTrendDays] = useState<number>(30);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [onboardingActive, setOnboardingActive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!projectsLoading && onboardingActive === null) {
+      setOnboardingActive(projects.length === 0);
+    }
+  }, [projectsLoading, projects.length, onboardingActive]);
 
   const projectId = selectedProjectId;
 
@@ -141,6 +150,31 @@ export function DashboardPage() {
 
   if (loading && !runsData) {
     return <LoadingSkeleton />;
+  }
+
+  if (onboardingActive) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Welcome! Let's get you set up."
+          description="Follow the steps below to start reporting test results."
+        />
+        <OnboardingCard
+          onCreateProject={() => setCreateProjectOpen(true)}
+          projectCreated={projects.length > 0}
+          selectedProjectId={selectedProjectId}
+          onComplete={() => setOnboardingActive(false)}
+        />
+        <CreateProjectDialog
+          open={createProjectOpen}
+          onClose={() => setCreateProjectOpen(false)}
+          onCreated={(project) => {
+            refetchProjects();
+            setSelectedProjectId(project.id);
+          }}
+        />
+      </div>
+    );
   }
 
   const runs = runsData?.data || [];

@@ -1,6 +1,6 @@
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { OrganizationId, UserId } from '@assertly/shared-types';
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { verify } from 'argon2';
@@ -11,6 +11,11 @@ import { AuthService } from '../src/modules/auth/auth.service';
 
 vi.mock('argon2', () => ({
   verify: vi.fn(),
+  hash: vi.fn().mockResolvedValue('$argon2id$mocked-hash'),
+}));
+
+vi.mock('uuidv7', () => ({
+  uuidv7: vi.fn().mockReturnValue('00000000-0000-7000-8000-000000000099'),
 }));
 
 vi.mock('@assertly/database', async (importOriginal) => {
@@ -178,6 +183,89 @@ describe('AuthService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]!.id).toBe(MOCK_ORG.organization_id);
       expect(result[0]!.role).toBe('owner');
+    });
+  });
+
+  describe('register', () => {
+    it('returns token, user, and organization on success', async () => {
+      // register_user SQL call + store_refresh_token
+      mockExecute
+        .mockResolvedValueOnce([]) // register_user
+        .mockResolvedValueOnce([]); // store_refresh_token
+
+      const result = await service.register('new@test.com', 'password123', 'New User', 'New Org');
+
+      expect(result.token).toBeDefined();
+      expect(result.refreshToken).toBeDefined();
+      expect(result.user.email).toBe('new@test.com');
+      expect(result.user.name).toBe('New User');
+      expect(result.organization.name).toBe('New Org');
+      expect(result.organization.slug).toBe('new-org');
+
+      const { payload } = await jwtVerify(result.token, secret);
+      expect(payload.role).toBe('owner');
+    });
+
+    it('throws ConflictException on duplicate email', async () => {
+      const dbError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+        detail: 'Key (email)=(test@test.com) already exists.',
+      });
+      mockExecute.mockRejectedValueOnce(dbError);
+
+      await expect(service.register('test@test.com', 'password123', 'Test', 'Org')).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('retries with slug suffix on slug collision', async () => {
+      const dbError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+        detail: 'Key (slug)=(test-org) already exists.',
+      });
+      mockExecute
+        .mockRejectedValueOnce(dbError) // first attempt fails on slug
+        .mockResolvedValueOnce([]) // retry succeeds
+        .mockResolvedValueOnce([]); // store_refresh_token
+
+      const result = await service.register('new2@test.com', 'password123', 'New User', 'Test Org');
+
+      expect(result.token).toBeDefined();
+      // Slug should have random suffix
+      expect(result.organization.slug).toMatch(/^test-org-[0-9a-f]{4}$/);
+    });
+
+    it('throws ConflictException on email conflict during slug retry', async () => {
+      const slugError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+        detail: 'Key (slug)=(test-org) already exists.',
+      });
+      const emailError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+        detail: 'Key (email)=(new@test.com) already exists.',
+      });
+      mockExecute
+        .mockRejectedValueOnce(slugError) // first attempt fails on slug
+        .mockRejectedValueOnce(emailError); // retry fails on email
+
+      await expect(
+        service.register('new@test.com', 'password123', 'Test', 'Test Org'),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException after max slug retries exhausted', async () => {
+      const slugError = Object.assign(new Error('unique violation'), {
+        code: '23505',
+        detail: 'Key (slug)=(test-org) already exists.',
+      });
+      mockExecute
+        .mockRejectedValueOnce(slugError)
+        .mockRejectedValueOnce(slugError)
+        .mockRejectedValueOnce(slugError);
+
+      await expect(
+        service.register('new@test.com', 'password123', 'Test', 'Test Org'),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });
