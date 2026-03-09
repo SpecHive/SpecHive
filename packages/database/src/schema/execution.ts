@@ -68,6 +68,10 @@ export const runs = pgTable(
     metadata: jsonb('metadata')
       .notNull()
       .default(sql`'{}'::jsonb`),
+    branch: varchar('branch', { length: 500 }),
+    commitSha: varchar('commit_sha', { length: 40 }),
+    ciProvider: varchar('ci_provider', { length: 50 }),
+    ciUrl: text('ci_url'),
     ...timestamps,
   },
   (table) => [
@@ -77,6 +81,7 @@ export const runs = pgTable(
     index('runs_project_finished_idx')
       .on(table.projectId, sql`${table.finishedAt} DESC`)
       .where(sql`${table.finishedAt} IS NOT NULL`),
+    index('runs_project_branch_idx').on(table.projectId, table.branch),
   ],
 );
 

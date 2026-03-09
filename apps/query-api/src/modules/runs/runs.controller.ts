@@ -14,6 +14,7 @@ const listRunsSchema = paginationSchema.extend({
   projectId: z.string().uuid(),
   status: z.nativeEnum(RunStatus).optional(),
   search: z.string().max(200).optional(),
+  branch: z.string().max(500).optional(),
   sortBy: z
     .enum(['status', 'name', 'totalTests', 'startedAt', 'finishedAt', 'createdAt'])
     .default('createdAt'),
@@ -37,6 +38,7 @@ export class RunsController {
       query.search,
       query.sortBy,
       query.sortOrder,
+      query.branch,
     );
   }
 

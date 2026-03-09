@@ -867,6 +867,113 @@ describe('AssertlyReporter', () => {
         expect.stringContaining('missing apiUrl or projectToken'),
       );
     });
+
+    it('ASSERTLY_ENABLED with whitespace is trimmed', () => {
+      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('ASSERTLY_ENABLED', ' true ');
+
+      const r = new AssertlyReporter();
+      expect(r.isEnabled).toBe(true);
+    });
+  });
+
+  describe('CI metadata in run.start', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('includes CI info when in CI environment', async () => {
+      vi.stubEnv('GITHUB_ACTIONS', 'true');
+      vi.stubEnv('GITHUB_REF_NAME', 'main');
+      vi.stubEnv('GITHUB_SHA', 'abc1234567890def1234567890abcdef12345678');
+      vi.stubEnv('GITHUB_SERVER_URL', 'https://github.com');
+      vi.stubEnv('GITHUB_REPOSITORY', 'org/repo');
+      vi.stubEnv('GITHUB_RUN_ID', '12345');
+
+      const r = new AssertlyReporter(makeConfig());
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart).toBeDefined();
+      expect(runStart!.payload).toHaveProperty('ci');
+      const ci = (runStart!.payload as { ci?: Record<string, unknown> }).ci;
+      expect(ci).toEqual(
+        expect.objectContaining({
+          branch: 'main',
+          commitSha: 'abc1234567890def1234567890abcdef12345678',
+          ciProvider: 'github-actions',
+        }),
+      );
+    });
+
+    it('includes user metadata when config.metadata is set', async () => {
+      const r = new AssertlyReporter({
+        ...makeConfig(),
+        metadata: { environment: 'staging', version: '1.2.3' },
+      });
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload).toHaveProperty('metadata');
+      const metadata = (runStart!.payload as { metadata?: Record<string, unknown> }).metadata;
+      expect(metadata).toEqual({ environment: 'staging', version: '1.2.3' });
+    });
+
+    it('does not include metadata key when config.metadata is empty', async () => {
+      const r = new AssertlyReporter(makeConfig());
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload).not.toHaveProperty('metadata');
+    });
+
+    it('includes both CI and metadata when both present', async () => {
+      vi.stubEnv('GITHUB_ACTIONS', 'true');
+      vi.stubEnv('GITHUB_REF_NAME', 'develop');
+      vi.stubEnv('GITHUB_SHA', 'def4567890abcdef1234567890abcdef12345678');
+      vi.stubEnv('GITHUB_SERVER_URL', 'https://github.com');
+      vi.stubEnv('GITHUB_REPOSITORY', 'org/repo');
+      vi.stubEnv('GITHUB_RUN_ID', '99999');
+
+      const r = new AssertlyReporter({
+        ...makeConfig(),
+        metadata: { custom: 'value' },
+      });
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload).toHaveProperty('ci');
+      expect(runStart!.payload).toHaveProperty('metadata');
+    });
+
+    it('omits ci key when not in CI environment', async () => {
+      // Ensure no CI env vars are set
+      vi.stubEnv('CI', '');
+      vi.stubEnv('GITHUB_ACTIONS', '');
+      vi.stubEnv('GITLAB_CI', '');
+
+      const r = new AssertlyReporter(makeConfig());
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload).not.toHaveProperty('ci');
+    });
   });
 });
 

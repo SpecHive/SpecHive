@@ -7,4 +7,5 @@ export interface AssertlyReporterConfig {
   maxRetries?: number;
   flushTimeout?: number;
   failOnConnectionError?: boolean;
+  metadata?: Record<string, unknown>;
 }

@@ -22,6 +22,7 @@ import type {
   Reporter,
 } from '@playwright/test/reporter';
 
+import { detectCi } from './ci-detect.js';
 import { AssertlyClient } from './client.js';
 import type { AssertlyReporterConfig } from './types.js';
 
@@ -40,6 +41,7 @@ interface ResolvedConfig {
   maxRetries: number;
   flushTimeout: number;
   failOnConnectionError: boolean;
+  metadata: Record<string, unknown>;
 }
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
@@ -59,6 +61,7 @@ function resolveConfig(config: AssertlyReporterConfig): ResolvedConfig {
     maxRetries: config.maxRetries ?? 3,
     flushTimeout: config.flushTimeout ?? 30_000,
     failOnConnectionError: config.failOnConnectionError ?? false,
+    metadata: config.metadata ?? {},
   };
 
   if (!apiUrl || !projectToken) {
@@ -126,13 +129,18 @@ export default class AssertlyReporter implements Reporter {
 
     this.runId = asRunId(crypto.randomUUID());
     const runName = suite.suites[0]?.title || 'Playwright Run';
+    const ci = detectCi();
 
     this.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
       eventType: 'run.start',
-      payload: { runName },
+      payload: {
+        runName,
+        ...(ci ? { ci } : {}),
+        ...(Object.keys(this.config.metadata).length > 0 ? { metadata: this.config.metadata } : {}),
+      },
     });
 
     this.walkSuites(suite);

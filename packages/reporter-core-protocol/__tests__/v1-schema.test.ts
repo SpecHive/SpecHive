@@ -53,6 +53,62 @@ describe('RunStartSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('parses run.start with full ci object', () => {
+    const result = RunStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.start',
+      payload: {
+        runName: 'CI Run',
+        ci: {
+          branch: 'main',
+          commitSha: 'abc1234567890def1234567890abcdef12345678',
+          ciUrl: 'https://github.com/org/repo/actions/runs/123',
+          ciProvider: 'github-actions',
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('parses run.start with partial ci (only branch)', () => {
+    const result = RunStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.start',
+      payload: {
+        ci: {
+          branch: 'feature/add-ci-info',
+        },
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid commitSha (not hex)', () => {
+    const result = RunStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.start',
+      payload: {
+        ci: {
+          commitSha: 'not-hex-value',
+        },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects commitSha that is too short', () => {
+    const result = RunStartSchema.safeParse({
+      ...BASE_ENVELOPE,
+      eventType: 'run.start',
+      payload: {
+        ci: {
+          commitSha: 'abc',
+        },
+      },
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('RunEndSchema', () => {

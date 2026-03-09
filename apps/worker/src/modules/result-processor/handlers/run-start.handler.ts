@@ -13,6 +13,8 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
   private readonly logger = new Logger(RunStartHandler.name);
 
   async handle(event: RunStartEvent, ctx: EventHandlerContext): Promise<void> {
+    const ci = event.payload.ci;
+
     const result = await ctx.tx
       .insert(runs)
       .values({
@@ -23,6 +25,10 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
         status: RunStatus.Pending,
         startedAt: new Date(event.timestamp),
         metadata: (event.payload.metadata ?? {}) as Record<string, unknown>,
+        branch: ci?.branch ?? null,
+        commitSha: ci?.commitSha ?? null,
+        ciProvider: ci?.ciProvider ?? null,
+        ciUrl: ci?.ciUrl ?? null,
       })
       .onConflictDoNothing()
       .returning({ id: runs.id });

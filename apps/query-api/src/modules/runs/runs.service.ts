@@ -33,6 +33,7 @@ export class RunsService {
     search?: string,
     sortBy: keyof typeof RunsService.runsSortColumns = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc',
+    branch?: string,
   ) {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -45,6 +46,9 @@ export class RunsService {
       }
       if (search) {
         conditions.push(ilike(runs.name, `%${escapeLikePattern(search)}%`));
+      }
+      if (branch) {
+        conditions.push(eq(runs.branch, branch));
       }
 
       const where = and(...conditions);
@@ -66,6 +70,8 @@ export class RunsService {
             startedAt: runs.startedAt,
             finishedAt: runs.finishedAt,
             createdAt: runs.createdAt,
+            branch: runs.branch,
+            commitSha: runs.commitSha,
           })
           .from(runs)
           .where(where)
@@ -100,6 +106,10 @@ export class RunsService {
             startedAt: runs.startedAt,
             finishedAt: runs.finishedAt,
             metadata: runs.metadata,
+            branch: runs.branch,
+            commitSha: runs.commitSha,
+            ciProvider: runs.ciProvider,
+            ciUrl: runs.ciUrl,
             createdAt: runs.createdAt,
             updatedAt: runs.updatedAt,
           })

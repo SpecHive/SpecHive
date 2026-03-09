@@ -37,11 +37,15 @@ export interface RunSummary {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string | null;
+  branch: string | null;
+  commitSha: string | null;
 }
 
 export interface RunDetail extends RunSummary {
   suiteCount: number;
-  metadata: unknown;
+  metadata: Record<string, unknown>;
+  ciProvider: string | null;
+  ciUrl: string | null;
   updatedAt: string | null;
 }
 

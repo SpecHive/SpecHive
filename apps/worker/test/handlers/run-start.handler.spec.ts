@@ -41,6 +41,10 @@ describe('RunStartHandler', () => {
       status: RunStatus.Pending,
       startedAt: new Date('2025-01-01T00:00:00.000Z'),
       metadata: { ci: true },
+      branch: null,
+      commitSha: null,
+      ciProvider: null,
+      ciUrl: null,
     });
   });
 
@@ -72,6 +76,60 @@ describe('RunStartHandler', () => {
     await handler.handle(event, ctx);
 
     expect(mocks.insert.values).toHaveBeenCalledWith(expect.objectContaining({ metadata: {} }));
+  });
+
+  it('populates promoted CI columns from ci object', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-ci' as RunId,
+      eventType: 'run.start' as const,
+      payload: {
+        runName: 'CI Run',
+        ci: {
+          branch: 'main',
+          commitSha: 'abc1234567890def1234567890abcdef12345678',
+          ciProvider: 'github-actions',
+          ciUrl: 'https://github.com/org/repo/actions/runs/123',
+        },
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.insert.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branch: 'main',
+        commitSha: 'abc1234567890def1234567890abcdef12345678',
+        ciProvider: 'github-actions',
+        ciUrl: 'https://github.com/org/repo/actions/runs/123',
+      }),
+    );
+  });
+
+  it('populates only branch when partial ci is provided', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-partial-ci' as RunId,
+      eventType: 'run.start' as const,
+      payload: {
+        ci: {
+          branch: 'feature/test',
+        },
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.insert.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        branch: 'feature/test',
+        commitSha: null,
+        ciProvider: null,
+        ciUrl: null,
+      }),
+    );
   });
 
   it('logs debug when duplicate is skipped', async () => {

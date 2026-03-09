@@ -66,7 +66,7 @@ function generateTimestamp(daysAgo: number, hourOffset = 0): Date {
 }
 
 function generateCommitSha(): string {
-  return randomBytes(20).toString('hex').slice(0, 7);
+  return randomBytes(20).toString('hex');
 }
 
 /** Returns a daily pass rate with deliberate variation to simulate regressions */
@@ -592,6 +592,16 @@ export async function seed(dbUrl: string, password?: string) {
 
         const runName = RUN_NAMES[runIndex % RUN_NAMES.length] ?? null;
 
+        const seedBranch = rng.pick([
+          'main',
+          'develop',
+          'feature/auth',
+          'fix/login',
+          'release/v1.0',
+        ]);
+        const seedCommitSha = generateCommitSha();
+        const seedCiProvider = rng.pick(['github-actions', 'gitlab-ci', 'jenkins', 'circleci']);
+
         const [run] = await db
           .insert(runs)
           .values({
@@ -605,9 +615,11 @@ export async function seed(dbUrl: string, password?: string) {
             skippedTests: 0,
             startedAt,
             finishedAt,
+            branch: seedBranch,
+            commitSha: seedCommitSha,
+            ciProvider: seedCiProvider,
+            ciUrl: `https://ci.example.com/builds/${1000 + runIndex}`,
             metadata: {
-              branch: rng.pick(['main', 'develop', 'feature/auth', 'fix/login', 'release/v1.0']),
-              commitSha: generateCommitSha(),
               buildNumber: 1000 + runIndex,
               triggeredBy: rng.pick(['push', 'schedule', 'manual', 'webhook']),
             },

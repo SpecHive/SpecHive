@@ -176,8 +176,15 @@ export function RunsPage() {
                       <td className="py-3 pr-4">
                         <StatusBadge status={run.status} variant="dot" />
                       </td>
-                      <td className={`py-3 pr-4 ${run.name ? '' : 'font-mono text-xs'}`}>
-                        {run.name ?? truncateId(run.id)}
+                      <td className="py-3 pr-4">
+                        <span className={run.name ? '' : 'font-mono text-xs'}>
+                          {run.name ?? truncateId(run.id)}
+                        </span>
+                        {run.branch && (
+                          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                            {run.branch}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         {run.passedTests}/{run.totalTests}

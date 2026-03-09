@@ -22,6 +22,17 @@ export const RunStartSchema = z.object({
   eventType: z.literal('run.start'),
   payload: z.object({
     runName: z.string().optional(),
+    ci: z
+      .object({
+        branch: z.string().max(500).optional(),
+        commitSha: z
+          .string()
+          .regex(/^[0-9a-f]{7,40}$/i)
+          .optional(),
+        ciUrl: z.string().url().max(2000).optional(),
+        ciProvider: z.string().max(50).optional(),
+      })
+      .optional(),
     metadata: z
       .record(z.string(), z.unknown())
       .optional()

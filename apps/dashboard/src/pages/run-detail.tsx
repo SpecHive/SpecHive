@@ -117,6 +117,28 @@ export function RunDetailPage() {
             <span>{run.skippedTests} skipped</span>
             <span>{run.suiteCount} suites</span>
           </div>
+          {(run.branch || run.commitSha || run.ciUrl) && (
+            <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
+              {run.branch && (
+                <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">
+                  {run.branch}
+                </span>
+              )}
+              {run.commitSha && (
+                <span className="font-mono text-xs">{run.commitSha.slice(0, 7)}</span>
+              )}
+              {run.ciUrl && (
+                <a
+                  href={run.ciUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  CI Build ↗
+                </a>
+              )}
+            </div>
+          )}
         </div>
         <div className="text-right text-sm text-muted-foreground">
           <div>Duration: {formatDuration(run.startedAt, run.finishedAt)}</div>

@@ -2,6 +2,7 @@
   "name": "@assertly/playwright-reporter",
   "version": "0.0.1",
   "description": "Playwright reporter for Assertly test reporting platform",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,6 +12,26 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "playwright",
+    "reporter",
+    "test-reporting",
+    "assertly",
+    "e2e"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "packages/playwright-reporter"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",
