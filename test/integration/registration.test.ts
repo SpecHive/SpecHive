@@ -27,7 +27,7 @@ describe('Registration', () => {
 
   it('registers a new user and returns token, user, and organization (201)', async () => {
     const email = uniqueEmail();
-    const { status, body } = await queryApi.auth.register({
+    const { status, body, refreshCookie } = await queryApi.auth.register({
       email,
       password: 'securepass1',
       name: 'New User',
@@ -36,7 +36,7 @@ describe('Registration', () => {
 
     expect(status).toBe(201);
     expect(body.token).toBeDefined();
-    expect(body.refreshToken).toBeDefined();
+    expect(refreshCookie).toBeDefined();
     expect(body.user?.email).toBe(email);
     expect(body.user?.name).toBe('New User');
     expect(body.organization?.name).toBe('New Org');

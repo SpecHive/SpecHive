@@ -9,7 +9,6 @@ interface LoginOptions {
 
 interface LoginResponse {
   token: string;
-  refreshToken?: string;
   user?: { id: string; email: string; name: string };
   organization?: { id: string; name: string; slug: string };
 }
@@ -17,18 +16,38 @@ interface LoginResponse {
 interface MeResponse {
   id: string;
   email: string;
+  name: string;
   organizationId: string;
   role: string;
 }
 
+export interface AuthResponse<T> extends ApiResponse<T> {
+  refreshCookie: string | null;
+}
+
+/** Extract the `assertly_rt` cookie value from Set-Cookie headers. */
+function extractRefreshCookie(response: Response): string | null {
+  const cookies = response.headers.getSetCookie();
+  for (const cookie of cookies) {
+    const match = cookie.match(/^assertly_rt=([^;]+)/);
+    if (match) return match[1]!;
+  }
+  return null;
+}
+
+/** Build a Cookie header string from a raw cookie value. */
+function cookieHeader(refreshCookie: string): string {
+  return `assertly_rt=${refreshCookie}`;
+}
+
 export class AuthClient extends BaseClient {
-  /** Login and return parsed response. */
+  /** Login and return parsed response with refresh cookie. */
   async login(
     email: string,
     password: string,
     options?: LoginOptions,
-  ): Promise<ApiResponse<LoginResponse>> {
-    return this.request<LoginResponse>('POST', '/v1/auth/login', {
+  ): Promise<AuthResponse<LoginResponse>> {
+    const res = await this.requestRaw('POST', '/v1/auth/login', {
       headers: { 'X-Forwarded-For': options?.forwardedIp ?? this.randomIp() },
       body: {
         email,
@@ -36,6 +55,8 @@ export class AuthClient extends BaseClient {
         ...(options?.organizationId ? { organizationId: options.organizationId } : {}),
       },
     });
+    const body = (await res.json()) as LoginResponse;
+    return { status: res.status, body, refreshCookie: extractRefreshCookie(res) };
   }
 
   /** Login and return just the JWT token. Throws if login fails. */
@@ -60,11 +81,13 @@ export class AuthClient extends BaseClient {
   async register(
     body: { email: string; password: string; name: string; organizationName: string },
     forwardedIp?: string,
-  ): Promise<ApiResponse<LoginResponse>> {
-    return this.request<LoginResponse>('POST', '/v1/auth/register', {
+  ): Promise<AuthResponse<LoginResponse>> {
+    const res = await this.requestRaw('POST', '/v1/auth/register', {
       headers: { 'X-Forwarded-For': forwardedIp ?? this.randomIp() },
       body,
     });
+    const parsed = (await res.json()) as LoginResponse;
+    return { status: res.status, body: parsed, refreshCookie: extractRefreshCookie(res) };
   }
 
   async me(token: string, forwardedIp?: string): Promise<ApiResponse<MeResponse>> {
@@ -80,14 +103,16 @@ export class AuthClient extends BaseClient {
     token: string,
     organizationId: string,
     forwardedIp?: string,
-  ): Promise<ApiResponse<{ token: string; organization: { id: string } }>> {
-    return this.request('POST', '/v1/auth/switch-organization', {
+  ): Promise<AuthResponse<LoginResponse>> {
+    const res = await this.requestRaw('POST', '/v1/auth/switch-organization', {
       headers: {
         Authorization: `Bearer ${token}`,
         'X-Forwarded-For': forwardedIp ?? this.randomIp(),
       },
       body: { organizationId },
     });
+    const body = (await res.json()) as LoginResponse;
+    return { status: res.status, body, refreshCookie: extractRefreshCookie(res) };
   }
 
   async organizations(
@@ -100,6 +125,52 @@ export class AuthClient extends BaseClient {
         'X-Forwarded-For': forwardedIp ?? this.randomIp(),
       },
     });
+  }
+
+  async updateProfile(
+    token: string,
+    body: { name: string },
+    forwardedIp?: string,
+  ): Promise<ApiResponse<MeResponse>> {
+    return this.request<MeResponse>('PATCH', '/v1/auth/profile', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Forwarded-For': forwardedIp ?? this.randomIp(),
+      },
+      body,
+    });
+  }
+
+  async changePassword(
+    token: string,
+    body: { currentPassword: string; newPassword: string },
+    forwardedIp?: string,
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>('POST', '/v1/auth/change-password', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Forwarded-For': forwardedIp ?? this.randomIp(),
+      },
+      body,
+    });
+  }
+
+  async refresh(refreshCookie: string, forwardedIp?: string): Promise<AuthResponse<LoginResponse>> {
+    const res = await this.requestRaw('POST', '/v1/auth/refresh', {
+      headers: { 'X-Forwarded-For': forwardedIp ?? this.randomIp() },
+      cookies: cookieHeader(refreshCookie),
+      body: {},
+    });
+    const body = (await res.json()) as LoginResponse;
+    return { status: res.status, body, refreshCookie: extractRefreshCookie(res) };
+  }
+
+  async logout(refreshCookie: string, forwardedIp?: string): Promise<ApiResponse<void>> {
+    const res = await this.requestRaw('POST', '/v1/auth/logout', {
+      headers: { 'X-Forwarded-For': forwardedIp ?? this.randomIp() },
+      cookies: cookieHeader(refreshCookie),
+    });
+    return { status: res.status, body: undefined as void };
   }
 
   private randomIp(): string {

@@ -11,7 +11,6 @@ vi.mock('@/lib/api-client', () => ({
   apiClient: {
     post: vi.fn(),
     setToken: vi.fn(),
-    setRefreshToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
     setOnTokenRefresh: vi.fn(),
   },
@@ -70,7 +69,6 @@ describe('LoginPage', () => {
   it('calls login on valid submit', async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({
       token: 'jwt',
-      refreshToken: 'refresh-jwt',
       user: { id: '1', email: 'a@b.com', name: 'User' },
       organization: { id: '1', name: 'Org', slug: 'org' },
     });

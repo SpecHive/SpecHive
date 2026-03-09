@@ -1,15 +1,32 @@
+import '@fastify/cookie';
+
 import { ZodValidationPipe } from '@assertly/nestjs-common';
 import type { OrganizationId } from '@assertly/shared-types';
-import { Body, Controller, Get, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { Public } from '../../decorators/public.decorator';
+import type { EnvConfig } from '../config/env.validation';
 
 import { AuthService } from './auth.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
 import type { UserContext } from './types';
+
+const COOKIE_NAME = 'assertly_rt';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -29,35 +46,65 @@ const switchOrgSchema = z.object({
 });
 
 const refreshSchema = z.object({
-  refreshToken: z.string().min(1),
   organizationId: z.string().uuid().optional(),
 });
 
-const logoutSchema = z.object({
-  refreshToken: z.string().min(1),
+const updateProfileSchema = z.object({
+  name: z.string().trim().min(1).max(100),
 });
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8).max(128),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from current password',
+    path: ['newPassword'],
+  });
 
 @Controller('v1/auth')
 export class AuthController {
+  private readonly isProduction: boolean;
+  private readonly refreshMaxAgeSec: number;
+
   constructor(
     private readonly authService: AuthService,
     private readonly loginRateLimit: LoginRateLimitService,
-  ) {}
+    config: ConfigService<EnvConfig>,
+  ) {
+    this.isProduction = config.get<string>('NODE_ENV') === 'production';
+    this.refreshMaxAgeSec = this.parseExpirySeconds(
+      config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
+    );
+  }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('register')
   async register(
     @Body(new ZodValidationPipe(registerSchema)) body: z.infer<typeof registerSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.authService.register(body.email, body.password, body.name, body.organizationName);
+    const result = await this.authService.register(
+      body.email,
+      body.password,
+      body.name,
+      body.organizationName,
+    );
+    this.setRefreshCookie(reply, result.refreshToken);
+    const { refreshToken: _, ...rest } = result;
+    return rest;
   }
 
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
   @HttpCode(200)
-  async login(@Body(new ZodValidationPipe(loginSchema)) body: z.infer<typeof loginSchema>) {
+  async login(
+    @Body(new ZodValidationPipe(loginSchema)) body: z.infer<typeof loginSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
     const { email, password, organizationId } = body;
 
     if (this.loginRateLimit.isBlocked(email)) {
@@ -65,9 +112,11 @@ export class AuthController {
     }
 
     try {
-      const response = await this.authService.login(email, password, organizationId);
+      const result = await this.authService.login(email, password, organizationId);
       this.loginRateLimit.recordSuccess(email);
-      return response;
+      this.setRefreshCookie(reply, result.refreshToken);
+      const { refreshToken: _, ...rest } = result;
+      return rest;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         this.loginRateLimit.recordFailure(email);
@@ -97,21 +146,101 @@ export class AuthController {
   async switchOrganization(
     @CurrentUser() user: UserContext,
     @Body(new ZodValidationPipe(switchOrgSchema)) body: z.infer<typeof switchOrgSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    return this.authService.switchOrganization(user.userId, body.organizationId as OrganizationId);
+    const result = await this.authService.switchOrganization(
+      user.userId,
+      body.organizationId as OrganizationId,
+    );
+    this.setRefreshCookie(reply, result.refreshToken);
+    const { refreshToken: _, ...rest } = result;
+    return rest;
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(200)
-  async refresh(@Body(new ZodValidationPipe(refreshSchema)) body: z.infer<typeof refreshSchema>) {
-    return this.authService.refreshAccessToken(body.refreshToken, body.organizationId);
+  async refresh(
+    @Req() request: FastifyRequest,
+    @Body(new ZodValidationPipe(refreshSchema)) body: z.infer<typeof refreshSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    const refreshToken = request.cookies[COOKIE_NAME];
+    if (!refreshToken) {
+      throw new UnauthorizedException('Missing refresh token');
+    }
+
+    const result = await this.authService.refreshAccessToken(refreshToken, body.organizationId);
+    this.setRefreshCookie(reply, result.refreshToken);
+    const { refreshToken: _, ...rest } = result;
+    return rest;
   }
 
   @Public()
   @Post('logout')
   @HttpCode(204)
-  async logout(@Body(new ZodValidationPipe(logoutSchema)) body: z.infer<typeof logoutSchema>) {
-    await this.authService.logout(body.refreshToken);
+  async logout(@Req() request: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const refreshToken = request.cookies[COOKIE_NAME];
+    if (refreshToken) {
+      await this.authService.logout(refreshToken);
+    }
+    this.clearRefreshCookie(reply);
+  }
+
+  @Patch('profile')
+  @HttpCode(200)
+  async updateProfile(
+    @CurrentUser() user: UserContext,
+    @Body(new ZodValidationPipe(updateProfileSchema)) body: z.infer<typeof updateProfileSchema>,
+  ) {
+    await this.authService.updateProfile(user.userId, user.organizationId, body.name);
+    return this.me(user);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('change-password')
+  @HttpCode(200)
+  async changePassword(
+    @CurrentUser() user: UserContext,
+    @Body(new ZodValidationPipe(changePasswordSchema))
+    body: z.infer<typeof changePasswordSchema>,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ) {
+    await this.authService.changePassword(
+      user.userId,
+      user.organizationId,
+      body.currentPassword,
+      body.newPassword,
+    );
+    this.clearRefreshCookie(reply);
+    return { message: 'Password changed successfully' };
+  }
+
+  private setRefreshCookie(reply: FastifyReply, token: string): void {
+    reply.setCookie(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      path: '/v1/auth',
+      maxAge: this.refreshMaxAgeSec,
+    });
+  }
+
+  private clearRefreshCookie(reply: FastifyReply): void {
+    reply.clearCookie(COOKIE_NAME, {
+      httpOnly: true,
+      secure: this.isProduction,
+      sameSite: 'lax',
+      path: '/v1/auth',
+    });
+  }
+
+  private parseExpirySeconds(str: string): number {
+    const match = str.match(/^(\d+)([smhd])$/);
+    if (!match) throw new Error(`Invalid expiry format: ${str}`);
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!;
+    const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+    return value * multipliers[unit]!;
   }
 }

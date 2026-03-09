@@ -33,24 +33,23 @@ interface AuthContextValue {
   ) => Promise<void>;
   logout: () => void;
   switchOrganization: (organizationId: string) => Promise<void>;
+  updateUser: (updates: Partial<AuthUser>) => void;
 }
 
 const STORAGE_KEYS = {
   token: 'assertly_token',
-  refreshToken: 'assertly_refresh_token',
   user: 'assertly_user',
   org: 'assertly_org',
 } as const;
 
 function loadSessionState(): {
   token: string | null;
-  refreshToken: string | null;
   user: AuthUser | null;
   organization: AuthOrganization | null;
 } {
   try {
     const token = sessionStorage.getItem(STORAGE_KEYS.token);
-    if (!token) return { token: null, refreshToken: null, user: null, organization: null };
+    if (!token) return { token: null, user: null, organization: null };
 
     const user = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.user) ?? 'null') as AuthUser | null;
     const organization = JSON.parse(
@@ -59,35 +58,25 @@ function loadSessionState(): {
 
     if (!user || !organization) {
       clearSessionStorage();
-      return { token: null, refreshToken: null, user: null, organization: null };
+      return { token: null, user: null, organization: null };
     }
 
-    const refreshToken = sessionStorage.getItem(STORAGE_KEYS.refreshToken);
-
     apiClient.setToken(token);
-    apiClient.setRefreshToken(refreshToken);
-    return { token, refreshToken, user, organization };
+    return { token, user, organization };
   } catch {
     clearSessionStorage();
-    return { token: null, refreshToken: null, user: null, organization: null };
+    return { token: null, user: null, organization: null };
   }
 }
 
-function persistSession(
-  token: string,
-  refreshToken: string,
-  user: AuthUser,
-  organization: AuthOrganization,
-): void {
+function persistSession(token: string, user: AuthUser, organization: AuthOrganization): void {
   sessionStorage.setItem(STORAGE_KEYS.token, token);
-  sessionStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
   sessionStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
   sessionStorage.setItem(STORAGE_KEYS.org, JSON.stringify(organization));
 }
 
 function clearSessionStorage(): void {
   sessionStorage.removeItem(STORAGE_KEYS.token);
-  sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
   sessionStorage.removeItem(STORAGE_KEYS.user);
   sessionStorage.removeItem(STORAGE_KEYS.org);
 }
@@ -101,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionState.organization,
   );
   const [token, setToken] = useState<string | null>(sessionState.token);
-  const [refreshToken, setRefreshToken] = useState<string | null>(sessionState.refreshToken);
   const navigate = useNavigate();
 
   const handleAuthSuccess = useCallback(
@@ -109,10 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       setOrganization(response.organization);
       setToken(response.token);
-      setRefreshToken(response.refreshToken);
       apiClient.setToken(response.token);
-      apiClient.setRefreshToken(response.refreshToken);
-      persistSession(response.token, response.refreshToken, response.user, response.organization);
+      persistSession(response.token, response.user, response.organization);
       navigate('/');
     },
     [navigate],
@@ -152,29 +138,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [handleAuthSuccess],
   );
 
+  const updateUser = useCallback((updates: Partial<AuthUser>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updates };
+      sessionStorage.setItem(STORAGE_KEYS.user, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const logout = useCallback(() => {
-    // Fire-and-forget server-side revocation
-    if (refreshToken) {
-      apiClient.post('/v1/auth/logout', { refreshToken }).catch(() => {});
-    }
+    // Fire-and-forget server-side revocation (cookie sent automatically)
+    apiClient.post('/v1/auth/logout', {}).catch(() => {});
 
     setUser(null);
     setOrganization(null);
     setToken(null);
-    setRefreshToken(null);
     apiClient.setToken(null);
-    apiClient.setRefreshToken(null);
     clearSessionStorage();
     navigate('/login');
-  }, [navigate, refreshToken]);
+  }, [navigate]);
 
-  // Persist tokens after silent refresh
+  // Persist token after silent refresh
   useEffect(() => {
-    apiClient.setOnTokenRefresh((newToken, newRefreshToken) => {
+    apiClient.setOnTokenRefresh((newToken) => {
       setToken(newToken);
-      setRefreshToken(newRefreshToken);
       sessionStorage.setItem(STORAGE_KEYS.token, newToken);
-      sessionStorage.setItem(STORAGE_KEYS.refreshToken, newRefreshToken);
     });
     return () => apiClient.setOnTokenRefresh(null);
   }, []);
@@ -197,8 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       switchOrganization,
+      updateUser,
     }),
-    [user, organization, token, login, register, logout, switchOrganization],
+    [user, organization, token, login, register, logout, switchOrganization, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -12,6 +12,7 @@ export interface BootstrapOptions {
   module: Type;
   bodyLimit?: number;
   cors?: boolean;
+  cookies?: boolean;
 }
 
 export async function bootstrapNestApp(options: BootstrapOptions): Promise<void> {
@@ -23,14 +24,27 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   );
   app.enableShutdownHooks();
 
-  await app.register(helmet);
+  // Type casts needed: @fastify/cookie augments FastifyInstance which creates
+  // type incompatibility with other Fastify plugins. This is a known Fastify issue.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(helmet as any);
+
+  if (options.cookies) {
+    const cookie = await import('@fastify/cookie');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await app.register(cookie.default as any);
+  }
 
   const config = app.get(ConfigService);
   const port = config.getOrThrow<number>('PORT');
 
   if (options.cors) {
     const corsOrigin = config.getOrThrow<string>('CORS_ORIGIN');
-    app.enableCors({ origin: corsOrigin });
+    app.enableCors({
+      origin: corsOrigin,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+      credentials: true,
+    });
   }
 
   app.useGlobalFilters(new AllExceptionsFilter(config as ConfigService<BaseEnvConfig>));

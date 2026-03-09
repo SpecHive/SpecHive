@@ -1,4 +1,5 @@
 import { DATABASE_CONNECTION, IS_PRODUCTION } from '@assertly/nestjs-common';
+import cookie from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
@@ -64,6 +65,8 @@ describe('AuthController', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await app.register(cookie as any);
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });

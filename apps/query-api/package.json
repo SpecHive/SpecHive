@@ -15,6 +15,7 @@
     "@assertly/database": "workspace:*",
     "@assertly/nestjs-common": "workspace:*",
     "@assertly/shared-types": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
@@ -35,6 +36,7 @@
     "@nestjs/testing": "^11.0.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "fastify": "^5.8.2",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"
   }

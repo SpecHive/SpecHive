@@ -1,20 +1,15 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
-type OnTokenRefreshCallback = (token: string, refreshToken: string) => void;
+type OnTokenRefreshCallback = (token: string) => void;
 
 class ApiClient {
   private token: string | null = null;
-  private refreshToken: string | null = null;
   private onUnauthorized: (() => void) | null = null;
   private onTokenRefresh: OnTokenRefreshCallback | null = null;
   private refreshPromise: Promise<boolean> | null = null;
 
   setToken(token: string | null): void {
     this.token = token;
-  }
-
-  setRefreshToken(refreshToken: string | null): void {
-    this.refreshToken = refreshToken;
   }
 
   setOnUnauthorized(callback: (() => void) | null): void {
@@ -45,6 +40,14 @@ class ApiClient {
     });
   }
 
+  async patch<T>(path: string, body: unknown): Promise<T> {
+    return this.request<T>(`${API_BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
   async delete<T>(path: string): Promise<T> {
     return this.request<T>(`${API_BASE_URL}${path}`, { method: 'DELETE' });
   }
@@ -55,7 +58,7 @@ class ApiClient {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
 
-    const response = await fetch(url, { ...init, headers });
+    const response = await fetch(url, { ...init, headers, credentials: 'include' });
 
     if (response.status === 401 && !isRetry) {
       const refreshed = await this.tryRefresh();
@@ -99,8 +102,6 @@ class ApiClient {
   }
 
   private async tryRefresh(): Promise<boolean> {
-    if (!this.refreshToken) return false;
-
     // Mutex: if refresh already in progress, await the same promise
     if (this.refreshPromise) {
       return this.refreshPromise;
@@ -119,17 +120,17 @@ class ApiClient {
       const response = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
+        body: JSON.stringify({}),
+        credentials: 'include',
       });
 
       if (!response.ok) return false;
 
-      const data = (await response.json()) as { token: string; refreshToken: string };
+      const data = (await response.json()) as { token: string };
       this.token = data.token;
-      this.refreshToken = data.refreshToken;
 
       if (this.onTokenRefresh) {
-        this.onTokenRefresh(data.token, data.refreshToken);
+        this.onTokenRefresh(data.token);
       }
 
       return true;

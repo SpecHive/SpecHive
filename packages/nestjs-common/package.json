@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@assertly/typescript-config": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
     "@nestjs/testing": "^11.0.0",
     "@types/node": "^22.0.0",
     "drizzle-orm": "^0.45.0",

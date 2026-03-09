@@ -17,6 +17,11 @@ export function LoginPage() {
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [successMessage] = useState(() => {
+    const msg = sessionStorage.getItem('assertly_flash_message');
+    if (msg) sessionStorage.removeItem('assertly_flash_message');
+    return msg;
+  });
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -51,6 +56,11 @@ export function LoginPage() {
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>
+          {successMessage && (
+            <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
+              {successMessage}
+            </div>
+          )}
           <Form onSubmit={handleSubmit}>
             <FormItem>
               <FormLabel htmlFor="email">Email</FormLabel>

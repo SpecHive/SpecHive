@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import type { Database } from '@assertly/database';
+import type { Database, Transaction } from '@assertly/database';
 import { setTenantContext } from '@assertly/database';
 import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { MembershipRole, asOrganizationId, asUserId } from '@assertly/shared-types';
@@ -200,6 +200,44 @@ export class AuthService {
     });
   }
 
+  async updateProfile(userId: UserId, organizationId: OrganizationId, name: string): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+      const result = await tx.execute<{ id: string }>(
+        sql`UPDATE users SET name = ${name} WHERE id = ${userId}::uuid RETURNING id`,
+      );
+      if (result.length === 0) {
+        throw new UnauthorizedException('User not found');
+      }
+    });
+  }
+
+  async changePassword(
+    userId: UserId,
+    organizationId: OrganizationId,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+      const rows = await tx.execute<{ password_hash: string }>(
+        sql`SELECT password_hash FROM users WHERE id = ${userId}::uuid FOR UPDATE`,
+      );
+      if (rows.length === 0) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      const isValid = await verify(rows[0]!.password_hash, currentPassword);
+      if (!isValid) {
+        throw new UnauthorizedException('Current password is incorrect');
+      }
+
+      const newHash = await hash(newPassword, { type: 2 });
+      await tx.execute(sql`UPDATE users SET password_hash = ${newHash} WHERE id = ${userId}::uuid`);
+      await this.revokeAllUserTokens(userId, tx);
+    });
+  }
+
   async switchOrganization(userId: UserId, targetOrgId: OrganizationId) {
     const orgs = await this.db.execute<UserOrganization>(
       sql`SELECT * FROM get_user_organizations(${userId}::uuid)`,
@@ -299,8 +337,8 @@ export class AuthService {
     await this.db.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
   }
 
-  async revokeAllUserTokens(userId: string): Promise<void> {
-    await this.db.execute(sql`SELECT revoke_all_user_refresh_tokens(${userId}::uuid)`);
+  async revokeAllUserTokens(userId: string, tx: Transaction): Promise<void> {
+    await tx.execute(sql`SELECT revoke_all_user_refresh_tokens(${userId}::uuid)`);
   }
 
   async getOrganizations(userId: UserId) {

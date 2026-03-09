@@ -1,13 +1,15 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 
 import { AppLayout } from '@/components/layout/app-layout';
 import { ProtectedRoute } from '@/components/layout/protected-route';
+import { SettingsLayout } from '@/components/layout/settings-layout';
 import { DashboardPage } from '@/pages/dashboard';
 import { LoginPage } from '@/pages/login';
 import { NotFoundPage } from '@/pages/not-found';
 import { RegisterPage } from '@/pages/register';
 import { RunDetailPage } from '@/pages/run-detail';
 import { RunsPage } from '@/pages/runs';
+import { ProfilePage } from '@/pages/settings/profile';
 import { TokensPage } from '@/pages/tokens';
 
 export function AppRoutes() {
@@ -21,6 +23,10 @@ export function AppRoutes() {
           <Route path="/runs" element={<RunsPage />} />
           <Route path="/runs/:id" element={<RunDetailPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="profile" replace />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<NotFoundPage />} />

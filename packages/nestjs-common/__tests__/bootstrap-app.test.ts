@@ -92,7 +92,11 @@ describe('bootstrapNestApp', () => {
 
     await bootstrapNestApp({ module: FakeModule, cors: true });
 
-    expect(mockEnableCors).toHaveBeenCalledWith({ origin: corsOrigin });
+    expect(mockEnableCors).toHaveBeenCalledWith({
+      origin: corsOrigin,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+      credentials: true,
+    });
   });
 
   it('does not enable CORS when cors option is false', async () => {

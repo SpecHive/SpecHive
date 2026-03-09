@@ -7,6 +7,7 @@ interface RequestOptions {
   headers?: Record<string, string>;
   body?: unknown;
   signal?: AbortSignal;
+  cookies?: string;
 }
 
 export class BaseClient {
@@ -33,6 +34,7 @@ export class BaseClient {
       ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...this.defaultHeaders,
       ...options?.headers,
+      ...(options?.cookies ? { Cookie: options.cookies } : {}),
     };
 
     return fetch(`${this.baseUrl}${path}`, {

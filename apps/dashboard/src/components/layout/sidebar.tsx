@@ -6,6 +6,7 @@ import {
   LogOut,
   Moon,
   PlayCircle,
+  Settings,
   Sun,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Runs', href: '/runs', icon: PlayCircle },
   { label: 'Tokens', href: '/tokens', icon: Key },
+  { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
