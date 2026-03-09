@@ -23,6 +23,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   organization: AuthOrganization | null;
   token: string | null;
+  role: string | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (
@@ -30,6 +31,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     organizationName: string,
+    inviteToken?: string,
   ) => Promise<void>;
   logout: () => void;
   switchOrganization: (organizationId: string) => Promise<void>;
@@ -40,45 +42,55 @@ const STORAGE_KEYS = {
   token: 'assertly_token',
   user: 'assertly_user',
   org: 'assertly_org',
+  role: 'assertly_role',
 } as const;
 
 function loadSessionState(): {
   token: string | null;
   user: AuthUser | null;
   organization: AuthOrganization | null;
+  role: string | null;
 } {
   try {
     const token = sessionStorage.getItem(STORAGE_KEYS.token);
-    if (!token) return { token: null, user: null, organization: null };
+    if (!token) return { token: null, user: null, organization: null, role: null };
 
     const user = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.user) ?? 'null') as AuthUser | null;
     const organization = JSON.parse(
       sessionStorage.getItem(STORAGE_KEYS.org) ?? 'null',
     ) as AuthOrganization | null;
+    const role = sessionStorage.getItem(STORAGE_KEYS.role);
 
     if (!user || !organization) {
       clearSessionStorage();
-      return { token: null, user: null, organization: null };
+      return { token: null, user: null, organization: null, role: null };
     }
 
     apiClient.setToken(token);
-    return { token, user, organization };
+    return { token, user, organization, role };
   } catch {
     clearSessionStorage();
-    return { token: null, user: null, organization: null };
+    return { token: null, user: null, organization: null, role: null };
   }
 }
 
-function persistSession(token: string, user: AuthUser, organization: AuthOrganization): void {
+function persistSession(
+  token: string,
+  user: AuthUser,
+  organization: AuthOrganization,
+  role: string,
+): void {
   sessionStorage.setItem(STORAGE_KEYS.token, token);
   sessionStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
   sessionStorage.setItem(STORAGE_KEYS.org, JSON.stringify(organization));
+  sessionStorage.setItem(STORAGE_KEYS.role, role);
 }
 
 function clearSessionStorage(): void {
   sessionStorage.removeItem(STORAGE_KEYS.token);
   sessionStorage.removeItem(STORAGE_KEYS.user);
   sessionStorage.removeItem(STORAGE_KEYS.org);
+  sessionStorage.removeItem(STORAGE_KEYS.role);
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -90,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionState.organization,
   );
   const [token, setToken] = useState<string | null>(sessionState.token);
+  const [role, setRole] = useState<string | null>(sessionState.role);
   const navigate = useNavigate();
 
   const handleAuthSuccess = useCallback(
@@ -97,8 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       setOrganization(response.organization);
       setToken(response.token);
+      setRole(response.role);
       apiClient.setToken(response.token);
-      persistSession(response.token, response.user, response.organization);
+      persistSession(response.token, response.user, response.organization, response.role);
       navigate('/');
     },
     [navigate],
@@ -116,13 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const register = useCallback(
-    async (name: string, email: string, password: string, organizationName: string) => {
-      const response = await apiClient.post<LoginResponse>('/v1/auth/register', {
-        name,
-        email,
-        password,
-        organizationName,
-      });
+    async (
+      name: string,
+      email: string,
+      password: string,
+      organizationName: string,
+      inviteToken?: string,
+    ) => {
+      const body = inviteToken
+        ? { name, email, password, inviteToken }
+        : { name, email, password, organizationName };
+      const response = await apiClient.post<LoginResponse>('/v1/auth/register', body);
       handleAuthSuccess(response);
     },
     [handleAuthSuccess],
@@ -154,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setOrganization(null);
     setToken(null);
+    setRole(null);
     apiClient.setToken(null);
     clearSessionStorage();
     navigate('/login');
@@ -181,6 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       organization,
       token,
+      role,
       isAuthenticated: token !== null,
       login,
       register,
@@ -188,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       switchOrganization,
       updateUser,
     }),
-    [user, organization, token, login, register, logout, switchOrganization, updateUser],
+    [user, organization, token, role, login, register, logout, switchOrganization, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

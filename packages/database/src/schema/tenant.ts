@@ -1,10 +1,12 @@
 import {
+  type InvitationId,
   type MembershipId,
   type OrganizationId,
   type UserId,
+  InvitationStatus,
   MembershipRole,
 } from '@assertly/shared-types';
-import { pgEnum, pgTable, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import { index, pgEnum, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
 
@@ -44,4 +46,31 @@ export const memberships = pgTable(
     ...timestamps,
   },
   (table) => [uniqueIndex('memberships_org_user_idx').on(table.organizationId, table.userId)],
+);
+
+export const invitationStatusEnum = pgEnum(
+  'invitation_status',
+  Object.values(InvitationStatus) as [string, ...string[]],
+);
+
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: uuidv7PK<InvitationId>(),
+    organizationId: uuid('organization_id')
+      .$type<OrganizationId>()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    email: varchar('email', { length: 255 }),
+    token: varchar('token', { length: 255 }).notNull().unique(),
+    role: membershipRoleEnum('role').notNull(),
+    status: invitationStatusEnum('status').default('pending').notNull(),
+    invitedBy: uuid('invited_by')
+      .$type<UserId>()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (table) => [index('invitations_org_status_idx').on(table.organizationId, table.status)],
 );

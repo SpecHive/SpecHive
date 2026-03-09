@@ -19,6 +19,8 @@ import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from './modules/config/config.module';
 import type { EnvConfig } from './modules/config/env.validation';
+import { InvitationsModule } from './modules/invitations/invitations.module';
+import { MembersModule } from './modules/members/members.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RunsModule } from './modules/runs/runs.module';
 import { SuitesModule } from './modules/suites/suites.module';
@@ -46,6 +48,8 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
     }),
     AnalyticsModule,
     AuthModule,
+    InvitationsModule,
+    MembersModule,
     ProjectsModule,
     RunsModule,
     SuitesModule,

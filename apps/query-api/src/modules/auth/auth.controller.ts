@@ -28,12 +28,18 @@ import type { UserContext } from './types';
 
 const COOKIE_NAME = 'assertly_rt';
 
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).max(128),
-  name: z.string().trim().min(1).max(100),
-  organizationName: z.string().trim().min(1).max(255),
-});
+const registerSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8).max(128),
+    name: z.string().trim().min(1).max(100),
+    organizationName: z.string().trim().min(1).max(255).optional(),
+    inviteToken: z.string().min(1).optional(),
+  })
+  .refine((data) => data.inviteToken || data.organizationName, {
+    message: 'Organization name is required',
+    path: ['organizationName'],
+  });
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -86,12 +92,19 @@ export class AuthController {
     @Body(new ZodValidationPipe(registerSchema)) body: z.infer<typeof registerSchema>,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    const result = await this.authService.register(
-      body.email,
-      body.password,
-      body.name,
-      body.organizationName,
-    );
+    const result = body.inviteToken
+      ? await this.authService.registerWithInvite(
+          body.email,
+          body.password,
+          body.name,
+          body.inviteToken,
+        )
+      : await this.authService.register(
+          body.email,
+          body.password,
+          body.name,
+          body.organizationName!,
+        );
     this.setRefreshCookie(reply, result.refreshToken);
     const { refreshToken: _, ...rest } = result;
     return rest;

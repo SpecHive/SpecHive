@@ -10,24 +10,24 @@ export function formatRelativeTime(dateString: string | null): string {
 
   const now = Date.now();
   const then = new Date(dateString).getTime();
-  const diffMs = now - then;
+  const diffMs = then - now;
+  const isFuture = diffMs > 0;
+  const absDiffMs = Math.abs(diffMs);
 
-  if (diffMs < 0) return 'just now';
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return 'just now';
+  const seconds = Math.floor(absDiffMs / 1000);
+  if (seconds < 60) return isFuture ? 'less than 1 min' : 'just now';
 
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 60) return isFuture ? `in ${minutes} min` : `${minutes} min ago`;
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return isFuture ? `in ${hours}h` : `${hours}h ago`;
 
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
+  if (days < 30) return isFuture ? `in ${days}d` : `${days}d ago`;
 
   const months = Math.floor(days / 30);
-  return `${months}mo ago`;
+  return isFuture ? `in ${months}mo` : `${months}mo ago`;
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat('en-US', {

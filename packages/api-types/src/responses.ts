@@ -110,6 +110,7 @@ export interface LoginResponse {
     name: string;
     slug: string;
   };
+  role: string;
 }
 
 export interface UserProfile {
@@ -186,3 +187,40 @@ export interface TokenListItem {
 }
 
 export type TokenListResponse = PaginatedResponse<TokenListItem>;
+
+export interface InvitationCreatedResponse {
+  id: string;
+  token: string;
+  inviteUrl: string;
+  role: string;
+  email: string | null;
+  expiresAt: string;
+}
+
+export interface InvitationListItem {
+  id: string;
+  email: string | null;
+  role: string;
+  status: string;
+  invitedByName: string;
+  expiresAt: string;
+  createdAt: string | null;
+}
+
+export interface InvitationValidation {
+  valid: boolean;
+  organizationName?: string;
+  role?: string;
+}
+
+export interface MemberListItem {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  joinedAt: string | null;
+}
+
+export type InvitationListResponse = PaginatedResponse<InvitationListItem>;
+export type MemberListResponse = PaginatedResponse<MemberListItem>;

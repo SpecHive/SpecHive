@@ -79,7 +79,13 @@ export class AuthClient extends BaseClient {
   }
 
   async register(
-    body: { email: string; password: string; name: string; organizationName: string },
+    body: {
+      email: string;
+      password: string;
+      name: string;
+      organizationName?: string;
+      inviteToken?: string;
+    },
     forwardedIp?: string,
   ): Promise<AuthResponse<LoginResponse>> {
     const res = await this.requestRaw('POST', '/v1/auth/register', {

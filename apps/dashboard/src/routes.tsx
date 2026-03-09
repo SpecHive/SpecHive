@@ -9,6 +9,7 @@ import { NotFoundPage } from '@/pages/not-found';
 import { RegisterPage } from '@/pages/register';
 import { RunDetailPage } from '@/pages/run-detail';
 import { RunsPage } from '@/pages/runs';
+import { MembersPage } from '@/pages/settings/members';
 import { ProfilePage } from '@/pages/settings/profile';
 import { TokensPage } from '@/pages/tokens';
 
@@ -26,6 +27,7 @@ export function AppRoutes() {
           <Route path="/settings" element={<SettingsLayout />}>
             <Route index element={<Navigate to="profile" replace />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="members" element={<MembersPage />} />
           </Route>
         </Route>
       </Route>

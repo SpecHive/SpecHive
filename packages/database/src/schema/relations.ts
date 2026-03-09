@@ -3,12 +3,13 @@ import { relations } from 'drizzle-orm';
 import { refreshTokens } from './auth.js';
 import { runs, suites, tests, artifacts, testAttempts } from './execution.js';
 import { projects, projectTokens } from './project.js';
-import { organizations, users, memberships } from './tenant.js';
+import { organizations, users, memberships, invitations } from './tenant.js';
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   memberships: many(memberships),
   projects: many(projects),
   runs: many(runs),
+  invitations: many(invitations),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -113,5 +114,16 @@ export const artifactsRelations = relations(artifacts, ({ one }) => ({
   test: one(tests, {
     fields: [artifacts.testId],
     references: [tests.id],
+  }),
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [invitations.organizationId],
+    references: [organizations.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [invitations.invitedBy],
+    references: [users.id],
   }),
 }));

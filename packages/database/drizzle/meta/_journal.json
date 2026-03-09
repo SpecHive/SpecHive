@@ -127,6 +127,13 @@
       "when": 1773134797766,
       "tag": "0017_register_user_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1773135000000,
+      "tag": "0018_odd_triton",
+      "breakpoints": true
     }
   ]
 }

@@ -29,3 +29,10 @@ export enum MembershipRole {
   Member = 'member',
   Viewer = 'viewer',
 }
+
+export enum InvitationStatus {
+  Pending = 'pending',
+  Accepted = 'accepted',
+  Revoked = 'revoked',
+  Expired = 'expired',
+}

@@ -6,6 +6,7 @@ import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { MembershipRole, asOrganizationId, asUserId } from '@assertly/shared-types';
 import type { OrganizationId, UserId } from '@assertly/shared-types';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -36,6 +37,23 @@ type UserOrganization = {
   organization_name: string;
   organization_slug: string;
   role: MembershipRole;
+};
+
+type InvitationTokenRow = {
+  invitation_id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  email: string | null;
+  role: string;
+  status: string;
+  expires_at: Date;
+};
+
+type RegisterWithInviteRow = {
+  user_id: string;
+  membership_id: string;
+  organization_id: string;
 };
 
 type RefreshTokenRow = {
@@ -117,6 +135,82 @@ export class AuthService {
       refreshToken,
       user: { id: asUserId(userId), email, name },
       organization: { id: asOrganizationId(orgId), name: organizationName, slug },
+      role: MembershipRole.Owner,
+    };
+  }
+
+  async registerWithInvite(email: string, password: string, name: string, inviteToken: string) {
+    email = this.normalizeEmail(email);
+    const passwordHash = await hash(password, { type: 2 });
+
+    // Validate the invitation token
+    const rows = await this.db.execute<InvitationTokenRow>(
+      sql`SELECT * FROM validate_invitation_token(${inviteToken})`,
+    );
+
+    if (rows.length === 0) {
+      throw new BadRequestException('Invalid invitation token');
+    }
+
+    const inv = rows[0]!;
+    if (inv.status !== 'pending') {
+      throw new BadRequestException('Invitation is no longer valid');
+    }
+    if (new Date(inv.expires_at) < new Date()) {
+      throw new BadRequestException('Invitation has expired');
+    }
+    if (inv.email && inv.email.toLowerCase() !== email) {
+      throw new BadRequestException('This invitation was sent to a different email address');
+    }
+
+    // Block accepting invitations with privileged roles (defense-in-depth)
+    const REGISTRABLE_ROLES: string[] = [MembershipRole.Member, MembershipRole.Viewer];
+    if (!REGISTRABLE_ROLES.includes(inv.role)) {
+      throw new BadRequestException('This invitation has an invalid role and cannot be used');
+    }
+
+    const userId = uuidv7();
+    const membershipId = uuidv7();
+
+    try {
+      await this.db.execute<RegisterWithInviteRow>(
+        sql`SELECT * FROM register_user_with_invite(
+          ${userId}::uuid, ${membershipId}::uuid, ${email},
+          ${passwordHash}, ${name}, ${inv.invitation_id}::uuid
+        )`,
+      );
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+        const detail = (err as { detail?: string }).detail ?? '';
+        if (detail.includes('email')) {
+          throw new ConflictException('An account with this email already exists. Please log in.');
+        }
+      }
+      // Re-throw RAISE EXCEPTION messages from the PL/pgSQL function
+      if (err instanceof Error && err.message) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+
+    const token = await this.signToken({
+      sub: userId,
+      organizationId: inv.organization_id,
+      role: inv.role as MembershipRole,
+    });
+
+    const refreshToken = await this.createAndStoreRefreshToken(userId);
+
+    return {
+      token,
+      refreshToken,
+      user: { id: asUserId(userId), email, name },
+      organization: {
+        id: asOrganizationId(inv.organization_id),
+        name: inv.organization_name,
+        slug: inv.organization_slug,
+      },
+      role: inv.role,
     };
   }
 
@@ -179,6 +273,7 @@ export class AuthService {
         name: selectedOrg.organization_name,
         slug: selectedOrg.organization_slug,
       },
+      role: selectedOrg.role,
     };
   }
 
@@ -267,6 +362,7 @@ export class AuthService {
         name: targetOrg.organization_name,
         slug: targetOrg.organization_slug,
       },
+      role: targetOrg.role,
     };
   }
 
@@ -329,6 +425,7 @@ export class AuthService {
         name: selectedOrg.organization_name,
         slug: selectedOrg.organization_slug,
       },
+      role: selectedOrg.role,
     };
   }
 

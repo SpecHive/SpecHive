@@ -10,6 +10,7 @@ export type UserId = string & { readonly __brand: 'UserId' };
 export type MembershipId = string & { readonly __brand: 'MembershipId' };
 export type ProjectTokenId = string & { readonly __brand: 'ProjectTokenId' };
 export type TestAttemptId = string & { readonly __brand: 'TestAttemptId' };
+export type InvitationId = string & { readonly __brand: 'InvitationId' };
 
 // Type-safe casting helpers - callers must explicitly opt into the cast
 export const asOrganizationId = (id: string) => id as OrganizationId;
@@ -22,3 +23,4 @@ export const asUserId = (id: string) => id as UserId;
 export const asMembershipId = (id: string) => id as MembershipId;
 export const asProjectTokenId = (id: string) => id as ProjectTokenId;
 export const asTestAttemptId = (id: string) => id as TestAttemptId;
+export const asInvitationId = (id: string) => id as InvitationId;
