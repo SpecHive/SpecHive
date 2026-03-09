@@ -11,10 +11,12 @@ import {
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PostgreSqlDialect, PostgreSqlInboxDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 
+import { ArtifactCleanupModule } from './modules/artifact-cleanup/artifact-cleanup.module';
 import { ConfigModule } from './modules/config/config.module';
 import type { EnvConfig } from './modules/config/env.validation';
 import { ResultProcessorModule } from './modules/result-processor/result-processor.module';
@@ -26,6 +28,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
 @Module({
   imports: [
     ConfigModule,
+    ScheduleModule.forRoot(),
     IsProductionModule,
     ThrottlerModule.forRoot([
       {
@@ -54,6 +57,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     WebhookReceiverModule,
     ResultProcessorModule,
     RunCleanupModule,
+    ArtifactCleanupModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })

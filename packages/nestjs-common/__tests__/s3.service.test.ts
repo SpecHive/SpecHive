@@ -1,4 +1,9 @@
-import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+} from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -29,6 +34,12 @@ vi.mock('@aws-sdk/client-s3', () => ({
     input: Record<string, unknown>,
   ) {
     Object.assign(this, input, { _type: 'DeleteObject' });
+  }),
+  DeleteObjectsCommand: vi.fn().mockImplementation(function (
+    this: Record<string, unknown>,
+    input: Record<string, unknown>,
+  ) {
+    Object.assign(this, input, { _type: 'DeleteObjects' });
   }),
 }));
 
@@ -125,6 +136,66 @@ describe('S3Service', () => {
         Key: 'artifacts/old-file.txt',
       });
       expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('deleteMany', () => {
+    it('does not call send for empty array', async () => {
+      await service.deleteMany([]);
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('sends single DeleteObjectsCommand for 3 keys', async () => {
+      mockSend.mockResolvedValueOnce({ Errors: [] });
+      const keys = ['file1.txt', 'file2.txt', 'file3.txt'];
+
+      await service.deleteMany(keys);
+
+      expect(DeleteObjectsCommand).toHaveBeenCalledWith({
+        Bucket: TEST_BUCKET,
+        Delete: {
+          Objects: [{ Key: 'file1.txt' }, { Key: 'file2.txt' }, { Key: 'file3.txt' }],
+          Quiet: true,
+        },
+      });
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
+    it('batches into chunks of 1000', async () => {
+      mockSend.mockResolvedValue({ Errors: [] });
+      const keys = Array.from({ length: 1001 }, (_, i) => `file-${i}.txt`);
+
+      await service.deleteMany(keys);
+
+      expect(mockSend).toHaveBeenCalledTimes(2);
+      const firstCall = vi.mocked(DeleteObjectsCommand).mock.calls[0][0];
+      const secondCall = vi.mocked(DeleteObjectsCommand).mock.calls[1][0];
+      expect(firstCall.Delete!.Objects).toHaveLength(1000);
+      expect(secondCall.Delete!.Objects).toHaveLength(1);
+    });
+
+    it('throws when response contains errors with failed key names', async () => {
+      mockSend.mockResolvedValueOnce({
+        Errors: [{ Key: 'file1.txt', Code: 'AccessDenied' }],
+      });
+
+      await expect(service.deleteMany(['file1.txt'])).rejects.toThrow(
+        'Failed to delete 1 object(s) from S3: file1.txt',
+      );
+    });
+
+    it('includes all failed keys in error message', async () => {
+      mockSend.mockResolvedValueOnce({
+        Errors: [
+          { Key: 'a.txt', Code: 'AccessDenied' },
+          { Key: 'b.txt', Code: 'InternalError' },
+        ],
+      });
+
+      await expect(service.deleteMany(['a.txt', 'b.txt'])).rejects.toThrow(
+        'Failed to delete 2 object(s) from S3: a.txt, b.txt',
+      );
     });
   });
 });

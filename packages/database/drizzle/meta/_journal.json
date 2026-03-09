@@ -113,6 +113,13 @@
       "when": 1773000136205,
       "tag": "0015_flaky_wind_dancer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1773048397766,
+      "tag": "0016_hard_magdalene",
+      "breakpoints": true
     }
   ]
 }

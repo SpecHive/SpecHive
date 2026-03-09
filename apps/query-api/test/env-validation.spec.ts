@@ -4,7 +4,7 @@ import { envSchema } from '../src/modules/config/env.validation';
 
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
-  JWT_SECRET: 'dev-secret',
+  JWT_SECRET: 'dev-secret-min-16!',
 };
 
 const VALID_PRODUCTION_ENV = {
@@ -15,6 +15,7 @@ const VALID_PRODUCTION_ENV = {
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
   MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
   JWT_SECRET: 'a'.repeat(64),
+  DASHBOARD_URL: 'https://app.assertly.dev',
 };
 
 describe('query-api envSchema', () => {
@@ -25,7 +26,7 @@ describe('query-api envSchema', () => {
   });
 
   it('requires DATABASE_URL', () => {
-    expect(() => envSchema.parse({ JWT_SECRET: 'test' })).toThrow();
+    expect(() => envSchema.parse({ JWT_SECRET: 'test-min-16-chars!' })).toThrow();
   });
 
   it('requires JWT_SECRET', () => {
@@ -55,14 +56,18 @@ describe('query-api envSchema', () => {
 
   describe('JWT_SECRET length in production', () => {
     it('rejects JWT_SECRET under 64 chars in production', () => {
-      expect(() => envSchema.parse({ ...VALID_PRODUCTION_ENV, JWT_SECRET: 'too-short' })).toThrow(
-        'JWT_SECRET must be at least 64 characters in production',
-      );
+      expect(() =>
+        envSchema.parse({ ...VALID_PRODUCTION_ENV, JWT_SECRET: 'too-short-for-prod' }),
+      ).toThrow('JWT_SECRET must be at least 64 characters in production');
+    });
+
+    it('rejects JWT_SECRET under 16 chars in any environment', () => {
+      expect(() => envSchema.parse({ ...VALID_ENV, JWT_SECRET: 'short' })).toThrow();
     });
 
     it('allows short JWT_SECRET in development', () => {
       const result = envSchema.parse(VALID_ENV);
-      expect(result.JWT_SECRET).toBe('dev-secret');
+      expect(result.JWT_SECRET).toBe('dev-secret-min-16!');
     });
 
     it('allows JWT_SECRET of 64+ chars in production', () => {
@@ -105,5 +110,24 @@ describe('query-api envSchema', () => {
   it('inherits PORT default from base schema', () => {
     const result = envSchema.parse(VALID_ENV);
     expect(result.PORT).toBe(3000);
+  });
+
+  describe('DASHBOARD_URL', () => {
+    it('is optional in development', () => {
+      const result = envSchema.parse(VALID_ENV);
+      expect(result.DASHBOARD_URL).toBeUndefined();
+    });
+
+    it('is required in production', () => {
+      const envWithout = Object.fromEntries(
+        Object.entries(VALID_PRODUCTION_ENV).filter(([k]) => k !== 'DASHBOARD_URL'),
+      );
+      expect(() => envSchema.parse(envWithout)).toThrow('DASHBOARD_URL is required in production');
+    });
+
+    it('accepts valid URL in production', () => {
+      const result = envSchema.parse(VALID_PRODUCTION_ENV);
+      expect(result.DASHBOARD_URL).toBe('https://app.assertly.dev');
+    });
   });
 });

@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -69,5 +70,29 @@ export class S3Service {
       Key: key,
     });
     await this.client.send(command);
+  }
+
+  async deleteMany(keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+
+    const BATCH_SIZE = 1000;
+    for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+      const batch = keys.slice(i, i + BATCH_SIZE);
+      const command = new DeleteObjectsCommand({
+        Bucket: this.bucket,
+        Delete: {
+          Objects: batch.map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      });
+
+      const response = await this.client.send(command);
+      if (response.Errors && response.Errors.length > 0) {
+        const failedKeys = response.Errors.map((e) => e.Key ?? 'unknown').join(', ');
+        throw new Error(
+          `Failed to delete ${response.Errors.length} object(s) from S3: ${failedKeys}`,
+        );
+      }
+    }
   }
 }

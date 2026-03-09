@@ -28,6 +28,10 @@ export const envSchema = baseEnvSchema
       message: 'TOKEN_HASH_KEY is required and must be at least 32 characters in production',
       path: ['TOKEN_HASH_KEY'],
     },
-  );
+  )
+  .refine((env) => env.NODE_ENV !== 'production' || !!env.OUTBOXY_API_URL, {
+    message: 'OUTBOXY_API_URL is required in production',
+    path: ['OUTBOXY_API_URL'],
+  });
 
 export type EnvConfig = z.infer<typeof envSchema>;

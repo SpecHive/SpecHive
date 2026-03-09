@@ -144,6 +144,7 @@ export const tests = pgTable(
     index('tests_run_status_idx').on(table.runId, table.status),
     index('tests_organization_id_idx').on(table.organizationId),
     index('tests_run_created_idx').on(table.runId, table.createdAt),
+    index('tests_run_name_idx').on(table.runId, table.name),
     index('tests_flaky_run_idx')
       .on(table.runId)
       .where(sql`status = 'flaky'`),
@@ -173,6 +174,7 @@ export const artifacts = pgTable(
   (table) => [
     index('artifacts_test_idx').on(table.testId),
     index('artifacts_organization_id_idx').on(table.organizationId),
+    index('artifacts_created_at_idx').on(table.createdAt),
   ],
 );
 

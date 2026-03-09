@@ -123,4 +123,30 @@ describe('worker envSchema', () => {
       expect(result.MINIO_USE_SSL).toBe('false');
     });
   });
+
+  describe('ARTIFACT_RETENTION_DAYS', () => {
+    it('defaults to 90 when omitted', () => {
+      const result = envSchema.parse(VALID_WORKER_ENV);
+      expect(result.ARTIFACT_RETENTION_DAYS).toBe(90);
+    });
+
+    it('coerces string to number', () => {
+      const result = envSchema.parse({ ...VALID_WORKER_ENV, ARTIFACT_RETENTION_DAYS: '30' });
+      expect(result.ARTIFACT_RETENTION_DAYS).toBe(30);
+    });
+
+    it('rejects 0', () => {
+      expect(() => envSchema.parse({ ...VALID_WORKER_ENV, ARTIFACT_RETENTION_DAYS: 0 })).toThrow();
+    });
+
+    it('rejects negative values', () => {
+      expect(() => envSchema.parse({ ...VALID_WORKER_ENV, ARTIFACT_RETENTION_DAYS: -1 })).toThrow();
+    });
+
+    it('rejects fractional values', () => {
+      expect(() =>
+        envSchema.parse({ ...VALID_WORKER_ENV, ARTIFACT_RETENTION_DAYS: 1.5 }),
+      ).toThrow();
+    });
+  });
 });
