@@ -1,6 +1,7 @@
 {
   "name": "@assertly/typescript-config",
   "version": "0.0.1",
+  "license": "MIT",
   "description": "Shared TypeScript configurations for Assertly",
   "exports": {
     "./base.json": "./base.json",

@@ -1,6 +1,7 @@
 {
   "name": "@assertly/api-types",
   "version": "0.0.1",
+  "license": "AGPL-3.0-only",
   "description": "Typed API response interfaces for Assertly",
   "type": "module",
   "main": "./dist/index.js",

@@ -2,6 +2,7 @@
   "name": "assertly",
   "version": "0.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
   "packageManager": "pnpm@9.15.9",
   "description": "Assertly monorepo",
   "engines": {

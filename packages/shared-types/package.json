@@ -1,6 +1,7 @@
 {
   "name": "@assertly/shared-types",
   "version": "0.0.1",
+  "license": "MIT",
   "description": "Shared TypeScript types for Assertly",
   "type": "module",
   "main": "./dist/index.js",

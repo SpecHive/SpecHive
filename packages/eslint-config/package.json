@@ -1,6 +1,7 @@
 {
   "name": "@assertly/eslint-config",
   "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
   "description": "Shared ESLint configuration for Assertly",
   "main": "index.mjs",

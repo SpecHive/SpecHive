@@ -13,6 +13,7 @@ out
 # Environment files
 .env.*
 !.env.example
+!.env.production
 .env
 
 # Coverage
@@ -39,8 +40,9 @@ Thumbs.db
 
 # Editor
 .idea
-.vscode/!.vscode/settings.json
-.vscode/!.vscode/extensions.json
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.suo
 *.ntvs*
 *.njsproj

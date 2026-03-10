@@ -1,6 +1,7 @@
 {
   "name": "@assertly/nestjs-common",
   "version": "0.0.1",
+  "license": "AGPL-3.0-only",
   "description": "Shared NestJS utilities for Assertly services",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

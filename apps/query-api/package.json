@@ -2,6 +2,7 @@
   "name": "@assertly/query-api",
   "version": "0.0.1",
   "private": true,
+  "license": "AGPL-3.0-only",
   "description": "Assertly query API for dashboard read endpoints with JWT authentication",
   "scripts": {
     "build": "nest build",
