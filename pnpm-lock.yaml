@@ -154,6 +154,21 @@ importers:
       '@fastify/helmet':
         specifier: ^13.0.0
         version: 13.0.2
+      '@nestjs/common':
+        specifier: ^11.0.0
+        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.0
+        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@nestjs/throttler':
+        specifier: ^6.0.0
+        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@outboxy/dialect-postgres':
         specifier: ^1.1.4
         version: 1.1.4
@@ -175,6 +190,15 @@ importers:
       argon2:
         specifier: ^0.44.0
         version: 0.44.0
+      drizzle-orm:
+        specifier: ^0.45.0
+        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
       uuidv7:
         specifier: ^1.0.2
         version: 1.1.0
@@ -185,24 +209,9 @@ importers:
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.16(@swc/core@1.15.17)(@types/node@22.19.11)
-      '@nestjs/common':
-        specifier: ^11.0.0
-        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/config':
-        specifier: ^4.0.0
-        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
-      '@nestjs/core':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/platform-fastify':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@nestjs/testing':
         specifier: ^11.0.0
         version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@nestjs/throttler':
-        specifier: ^6.0.0
-        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@spechive/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -212,15 +221,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
-      drizzle-orm:
-        specifier: ^0.45.0
-        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rxjs:
-        specifier: ^7.8.1
-        version: 7.8.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -236,6 +236,21 @@ importers:
       '@fastify/helmet':
         specifier: ^13.0.0
         version: 13.0.2
+      '@nestjs/common':
+        specifier: ^11.0.0
+        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.0
+        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@nestjs/throttler':
+        specifier: ^6.0.0
+        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@spechive/api-types':
         specifier: workspace:*
         version: link:../../packages/api-types
@@ -251,9 +266,18 @@ importers:
       argon2:
         specifier: ^0.44.0
         version: 0.44.0
+      drizzle-orm:
+        specifier: ^0.45.0
+        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
       jose:
         specifier: ^6.0.0
         version: 6.1.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
       uuidv7:
         specifier: ^1.0.2
         version: 1.1.0
@@ -264,24 +288,9 @@ importers:
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.16(@swc/core@1.15.17)(@types/node@22.19.11)
-      '@nestjs/common':
-        specifier: ^11.0.0
-        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/config':
-        specifier: ^4.0.0
-        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
-      '@nestjs/core':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/platform-fastify':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@nestjs/testing':
         specifier: ^11.0.0
         version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@nestjs/throttler':
-        specifier: ^6.0.0
-        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@spechive/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -291,18 +300,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
-      drizzle-orm:
-        specifier: ^0.45.0
-        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
       fastify:
         specifier: ^5.8.2
         version: 5.8.2
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rxjs:
-        specifier: ^7.8.1
-        version: 7.8.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -315,6 +315,24 @@ importers:
       '@fastify/helmet':
         specifier: ^13.0.0
         version: 13.0.2
+      '@nestjs/common':
+        specifier: ^11.0.0
+        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.0
+        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-fastify':
+        specifier: ^11.0.0
+        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@nestjs/schedule':
+        specifier: ^6.1.1
+        version: 6.1.1(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@nestjs/throttler':
+        specifier: ^6.0.0
+        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@outboxy/dialect-postgres':
         specifier: ^1.1.4
         version: 1.1.4
@@ -333,6 +351,15 @@ importers:
       '@spechive/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      drizzle-orm:
+        specifier: ^0.45.0
+        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
       uuidv7:
         specifier: ^1.0.2
         version: 1.1.0
@@ -343,27 +370,9 @@ importers:
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.16(@swc/core@1.15.17)(@types/node@22.19.11)
-      '@nestjs/common':
-        specifier: ^11.0.0
-        version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/config':
-        specifier: ^4.0.0
-        version: 4.0.3(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
-      '@nestjs/core':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/platform-fastify':
-        specifier: ^11.0.0
-        version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@nestjs/schedule':
-        specifier: ^6.1.1
-        version: 6.1.1(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@nestjs/testing':
         specifier: ^11.0.0
         version: 11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))
-      '@nestjs/throttler':
-        specifier: ^6.0.0
-        version: 6.5.0(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.14(@nestjs/common@11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)
       '@spechive/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -373,15 +382,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
-      drizzle-orm:
-        specifier: ^0.45.0
-        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
-      rxjs:
-        specifier: ^7.8.1
-        version: 7.8.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -501,12 +501,12 @@ importers:
       '@spechive/shared-types':
         specifier: workspace:*
         version: link:../shared-types
+      drizzle-orm:
+        specifier: '>=0.45.0'
+        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
       jose:
         specifier: ^6.0.0
         version: 6.1.3
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
       zod:
         specifier: ^4.0.0
         version: 4.3.6
@@ -523,9 +523,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
-      drizzle-orm:
-        specifier: ^0.45.0
-        version: 0.45.1(@opentelemetry/api@1.9.0)(pg@8.18.0)(postgres@3.4.8)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

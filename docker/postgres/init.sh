@@ -18,13 +18,18 @@ psql -v ON_ERROR_STOP=1 \
   CREATE EXTENSION IF NOT EXISTS pgcrypto;
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+  -- Pass passwords into GUC variables so DO blocks can access them.
+  -- psql :'var' substitution does not work inside dollar-quoted strings.
+  SET app.spechive_app_pw = :'spechive_app_pw';
+  SET app.outboxy_pw = :'outboxy_pw';
+
   -- Application role (subject to RLS)
   DO $$
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'spechive_app') THEN
-      CREATE ROLE spechive_app LOGIN PASSWORD :'spechive_app_pw';
+      EXECUTE format('CREATE ROLE spechive_app LOGIN PASSWORD %L', current_setting('app.spechive_app_pw'));
     ELSE
-      ALTER ROLE spechive_app PASSWORD :'spechive_app_pw';
+      EXECUTE format('ALTER ROLE spechive_app PASSWORD %L', current_setting('app.spechive_app_pw'));
     END IF;
   END
   $$;
@@ -44,9 +49,9 @@ psql -v ON_ERROR_STOP=1 \
   DO $$
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'outboxy') THEN
-      CREATE ROLE outboxy LOGIN PASSWORD :'outboxy_pw';
+      EXECUTE format('CREATE ROLE outboxy LOGIN PASSWORD %L', current_setting('app.outboxy_pw'));
     ELSE
-      ALTER ROLE outboxy PASSWORD :'outboxy_pw';
+      EXECUTE format('ALTER ROLE outboxy PASSWORD %L', current_setting('app.outboxy_pw'));
     END IF;
   END
   $$;
