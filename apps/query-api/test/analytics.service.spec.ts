@@ -1,11 +1,11 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { AnalyticsService } from '../src/modules/analytics/analytics.service';
 
-vi.mock('@assertly/database', async (importOriginal) => {
+vi.mock('@spechive/database', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as Record<string, unknown>),
@@ -77,7 +77,7 @@ describe('AnalyticsService', () => {
     });
 
     it('calls setTenantContext with correct organizationId', async () => {
-      const { setTenantContext } = await import('@assertly/database');
+      const { setTenantContext } = await import('@spechive/database');
       mockExecute.mockResolvedValueOnce([]);
       mockExecute.mockResolvedValueOnce([{ retriedTests: 0 }]);
 

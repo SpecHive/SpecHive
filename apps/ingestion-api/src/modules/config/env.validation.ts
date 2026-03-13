@@ -1,4 +1,4 @@
-import { baseEnvSchema, minioEnvSchema, minioProductionRefinement } from '@assertly/nestjs-common';
+import { baseEnvSchema, minioEnvSchema, minioProductionRefinement } from '@spechive/nestjs-common';
 import { z } from 'zod';
 
 export const envSchema = baseEnvSchema

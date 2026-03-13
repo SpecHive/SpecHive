@@ -1,6 +1,6 @@
-import { suites } from '@assertly/database';
-import type { SuiteStartEvent } from '@assertly/reporter-core-protocol';
 import { Injectable, Logger } from '@nestjs/common';
+import { suites } from '@spechive/database';
+import type { SuiteStartEvent } from '@spechive/reporter-core-protocol';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';

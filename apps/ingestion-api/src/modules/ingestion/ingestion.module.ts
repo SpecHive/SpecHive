@@ -1,8 +1,8 @@
-import { createOutboxyAdapter } from '@assertly/nestjs-common';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PostgreSqlDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
+import { createOutboxyAdapter } from '@spechive/nestjs-common';
 
 import { type EnvConfig } from '../config/env.validation';
 

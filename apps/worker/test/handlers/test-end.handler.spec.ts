@@ -1,6 +1,6 @@
-import type { OrganizationId, ProjectId, RunId, TestId } from '@assertly/shared-types';
-import { TestStatus } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import type { OrganizationId, ProjectId, RunId, TestId } from '@spechive/shared-types';
+import { TestStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';

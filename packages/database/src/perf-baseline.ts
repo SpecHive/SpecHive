@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MembershipRole, RunStatus, TOKEN_PREFIX_LENGTH, TestStatus } from '@assertly/shared-types';
+import { MembershipRole, RunStatus, TOKEN_PREFIX_LENGTH, TestStatus } from '@spechive/shared-types';
 import { hash } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';

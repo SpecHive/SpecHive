@@ -1,12 +1,12 @@
 import { randomBytes } from 'node:crypto';
 
-import type { Database } from '@assertly/database';
-import { setTenantContext } from '@assertly/database';
-import { projects, projectTokens } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId, ProjectTokenId } from '@assertly/shared-types';
-import { TOKEN_PLAIN_PREFIX, TOKEN_PREFIX_LENGTH } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { setTenantContext } from '@spechive/database';
+import { projects, projectTokens } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId, ProjectTokenId } from '@spechive/shared-types';
+import { TOKEN_PLAIN_PREFIX, TOKEN_PREFIX_LENGTH } from '@spechive/shared-types';
 import { hash } from 'argon2';
 import { and, count, eq, isNull, sql } from 'drizzle-orm';
 

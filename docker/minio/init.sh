@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-BUCKET="${MINIO_BUCKET:-assertly-artifacts}"
+BUCKET="${MINIO_BUCKET:-spechive-artifacts}"
 
 # Wait for MinIO to be ready (also configures the mc alias)
 until mc alias set local http://minio:9000 "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; do
@@ -18,8 +18,8 @@ else
 fi
 
 # Create a scoped service account for application access (PutObject, GetObject, ListBucket, DeleteObject)
-MINIO_APP_ACCESS_KEY="${MINIO_APP_ACCESS_KEY:-assertly-app}"
-MINIO_APP_SECRET_KEY="${MINIO_APP_SECRET_KEY:-assertly-app-secret-key}"
+MINIO_APP_ACCESS_KEY="${MINIO_APP_ACCESS_KEY:-spechive-app}"
+MINIO_APP_SECRET_KEY="${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}"
 
 # Create the policy (inline JSON)
 cat > /tmp/app-policy.json <<POLICY
@@ -58,8 +58,8 @@ run_idempotent() {
     }
 }
 
-run_idempotent "Policy create" mc admin policy create local assertly-app-policy /tmp/app-policy.json
+run_idempotent "Policy create" mc admin policy create local spechive-app-policy /tmp/app-policy.json
 run_idempotent "User create" mc admin user add local "${MINIO_APP_ACCESS_KEY}" "${MINIO_APP_SECRET_KEY}"
-run_idempotent "Policy attach" mc admin policy attach local assertly-app-policy --user "${MINIO_APP_ACCESS_KEY}"
+run_idempotent "Policy attach" mc admin policy attach local spechive-app-policy --user "${MINIO_APP_ACCESS_KEY}"
 
 echo "Scoped MinIO service account configured."

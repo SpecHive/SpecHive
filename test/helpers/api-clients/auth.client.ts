@@ -25,11 +25,11 @@ export interface AuthResponse<T> extends ApiResponse<T> {
   refreshCookie: string | null;
 }
 
-/** Extract the `assertly_rt` cookie value from Set-Cookie headers. */
+/** Extract the `spechive_rt` cookie value from Set-Cookie headers. */
 function extractRefreshCookie(response: Response): string | null {
   const cookies = response.headers.getSetCookie();
   for (const cookie of cookies) {
-    const match = cookie.match(/^assertly_rt=([^;]+)/);
+    const match = cookie.match(/^spechive_rt=([^;]+)/);
     if (match) return match[1]!;
   }
   return null;
@@ -37,7 +37,7 @@ function extractRefreshCookie(response: Response): string | null {
 
 /** Build a Cookie header string from a raw cookie value. */
 function cookieHeader(refreshCookie: string): string {
-  return `assertly_rt=${refreshCookie}`;
+  return `spechive_rt=${refreshCookie}`;
 }
 
 export class AuthClient extends BaseClient {

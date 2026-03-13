@@ -11,8 +11,8 @@ import type {
   TestStartEvent,
   TestEndEvent,
   ArtifactUploadEvent,
-} from '@assertly/reporter-core-protocol';
-import type { TestStatus } from '@assertly/shared-types';
+} from '@spechive/reporter-core-protocol';
+import type { TestStatus } from '@spechive/shared-types';
 
 /** Typed partial overrides for an event — envelope fields + nested payload. */
 type EventOverrides<T extends { payload: unknown }> = Partial<Omit<T, 'payload'>> & {

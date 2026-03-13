@@ -68,7 +68,7 @@ export function ProfilePage() {
     try {
       await apiClient.post('/v1/auth/change-password', { currentPassword, newPassword });
       sessionStorage.setItem(
-        'assertly_flash_message',
+        'spechive_flash_message',
         'Password changed successfully. Please sign in with your new password.',
       );
       logout();

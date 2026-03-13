@@ -152,7 +152,7 @@ export function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Assertly</CardTitle>
+          <CardTitle className="text-2xl font-bold">SpecHive</CardTitle>
           {inviteData?.valid ? (
             <CardDescription>
               You&apos;ve been invited to join <strong>{inviteData.organizationName}</strong>

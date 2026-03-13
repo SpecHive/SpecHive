@@ -21,10 +21,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { buildSuperuserDatabaseUrl } from '../helpers/database';
 
-// Needs the superuser role (not assertly_app) to CREATE DATABASE for temp test DBs.
+// Needs the superuser role (not spechive_app) to CREATE DATABASE for temp test DBs.
 const DATABASE_URL = buildSuperuserDatabaseUrl();
 
-const TEST_DB_NAME = `assertly_migration_test_${Date.now()}`;
+const TEST_DB_NAME = `spechive_migration_test_${Date.now()}`;
 
 describe('Migration correctness', () => {
   let adminSql: ReturnType<typeof postgres>;
@@ -326,7 +326,7 @@ describe('Migration correctness', () => {
     }
   });
 
-  it('SECURITY DEFINER functions are accessible to assertly_app', async () => {
+  it('SECURITY DEFINER functions are accessible to spechive_app', async () => {
     const functions = [
       {
         name: 'validate_project_token_by_prefix',
@@ -339,9 +339,9 @@ describe('Migration correctness', () => {
 
     for (const func of functions) {
       const rows = await testSql`
-        SELECT has_function_privilege('assertly_app', ${func.signature}, 'EXECUTE') AS has_priv
+        SELECT has_function_privilege('spechive_app', ${func.signature}, 'EXECUTE') AS has_priv
       `;
-      expect(rows[0]!.has_priv, `assertly_app should be able to EXECUTE ${func.name}`).toBe(true);
+      expect(rows[0]!.has_priv, `spechive_app should be able to EXECUTE ${func.name}`).toBe(true);
     }
   });
 });

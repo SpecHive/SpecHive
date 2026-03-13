@@ -15,7 +15,7 @@ import {
   asProjectId,
   asRunId,
   asSuiteId,
-} from '@assertly/shared-types';
+} from '@spechive/shared-types';
 import { hash } from 'argon2';
 import { eq } from 'drizzle-orm';
 
@@ -451,14 +451,14 @@ export async function seed(dbUrl: string, password?: string) {
 
     const [org] = await db
       .insert(organizations)
-      .values({ name: 'Assertly', slug: 'assertly' })
+      .values({ name: 'SpecHive', slug: 'spechive' })
       .onConflictDoNothing()
       .returning();
 
     const seedOrg =
       org ??
       (await db.query.organizations.findFirst({
-        where: (orgs, { eq }) => eq(orgs.slug, 'assertly'),
+        where: (orgs, { eq }) => eq(orgs.slug, 'spechive'),
       }));
 
     if (!seedOrg) throw new Error('Failed to seed organization');
@@ -473,7 +473,7 @@ export async function seed(dbUrl: string, password?: string) {
     const [user] = await db
       .insert(users)
       .values({
-        email: 'admin@assertly.dev',
+        email: 'admin@spechive.dev',
         passwordHash,
         name: 'Admin',
       })
@@ -483,7 +483,7 @@ export async function seed(dbUrl: string, password?: string) {
     const seedUser =
       user ??
       (await db.query.users.findFirst({
-        where: (u, { eq }) => eq(u.email, 'admin@assertly.dev'),
+        where: (u, { eq }) => eq(u.email, 'admin@spechive.dev'),
       }));
 
     if (!seedUser) throw new Error('Failed to seed user');
@@ -789,7 +789,7 @@ export async function seed(dbUrl: string, password?: string) {
               organizationId: seedOrg.id,
               type: ArtifactType.Video,
               name: `${test.name}.webm`,
-              storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/video.webm`,
+              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/video.webm`,
               sizeBytes: rng.nextInt(500_000, 5_000_000),
               mimeType: 'video/webm',
             });
@@ -805,7 +805,7 @@ export async function seed(dbUrl: string, password?: string) {
               organizationId: seedOrg.id,
               type: ArtifactType.Screenshot,
               name: `${test.name}.png`,
-              storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/screenshot.png`,
+              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/screenshot.png`,
               sizeBytes: rng.nextInt(50_000, 500_000),
               mimeType: 'image/png',
             });
@@ -821,7 +821,7 @@ export async function seed(dbUrl: string, password?: string) {
               organizationId: seedOrg.id,
               type: ArtifactType.Trace,
               name: `${test.name}.trace`,
-              storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/trace.json`,
+              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/trace.json`,
               sizeBytes: rng.nextInt(100_000, 2_000_000),
               mimeType: 'application/json',
             });
@@ -834,7 +834,7 @@ export async function seed(dbUrl: string, password?: string) {
               organizationId: seedOrg.id,
               type: ArtifactType.Log,
               name: `${test.name}.log`,
-              storagePath: `assertly-artifacts/${projectId}/${run.id}/${test.id}/test.log`,
+              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/test.log`,
               sizeBytes: rng.nextInt(1_000, 50_000),
               mimeType: 'text/plain',
             });

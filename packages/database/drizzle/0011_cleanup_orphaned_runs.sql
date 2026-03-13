@@ -14,4 +14,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION cleanup_orphaned_runs() TO assertly_app;
+GRANT EXECUTE ON FUNCTION cleanup_orphaned_runs() TO spechive_app;

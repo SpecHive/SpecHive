@@ -20,9 +20,9 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const MINIO_ENDPOINT = process.env['MINIO_ENDPOINT'] ?? 'localhost:9000';
-const MINIO_ACCESS_KEY = process.env['MINIO_APP_ACCESS_KEY'] ?? 'assertly-app';
-const MINIO_SECRET_KEY = process.env['MINIO_APP_SECRET_KEY'] ?? 'assertly-app-secret-key';
-const MINIO_BUCKET = process.env['MINIO_BUCKET'] ?? 'assertly-artifacts';
+const MINIO_ACCESS_KEY = process.env['MINIO_APP_ACCESS_KEY'] ?? 'spechive-app';
+const MINIO_SECRET_KEY = process.env['MINIO_APP_SECRET_KEY'] ?? 'spechive-app-secret-key';
+const MINIO_BUCKET = process.env['MINIO_BUCKET'] ?? 'spechive-artifacts';
 const MINIO_USE_SSL = process.env['MINIO_USE_SSL'] === 'true';
 
 describe('MinIO/S3 integration tests', () => {

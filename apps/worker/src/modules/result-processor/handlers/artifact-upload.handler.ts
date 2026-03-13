@@ -1,7 +1,7 @@
-import { artifacts } from '@assertly/database';
-import { S3Service } from '@assertly/nestjs-common';
-import type { ArtifactUploadEvent } from '@assertly/reporter-core-protocol';
 import { Injectable, Logger } from '@nestjs/common';
+import { artifacts } from '@spechive/database';
+import { S3Service } from '@spechive/nestjs-common';
+import type { ArtifactUploadEvent } from '@spechive/reporter-core-protocol';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';

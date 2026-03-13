@@ -28,4 +28,4 @@ export type {
   InvitationValidation,
   MemberListItem,
   MemberListResponse,
-} from '@assertly/api-types';
+} from '@spechive/api-types';

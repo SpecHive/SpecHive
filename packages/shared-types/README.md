@@ -1,6 +1,6 @@
-# @assertly/shared-types
+# @spechive/shared-types
 
-Shared TypeScript types for the [Assertly](https://github.com/assertly-dev/assertly) test reporting platform.
+Shared TypeScript types for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform.
 
 ## What's included
 
@@ -12,7 +12,7 @@ Shared TypeScript types for the [Assertly](https://github.com/assertly-dev/asser
 ## Usage
 
 ```typescript
-import { asProjectId, type ProjectId } from '@assertly/shared-types';
+import { asProjectId, type ProjectId } from '@spechive/shared-types';
 
 const id: ProjectId = asProjectId('0192f6a0-...');
 ```

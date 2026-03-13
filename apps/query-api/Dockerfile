@@ -46,11 +46,11 @@ FROM deps AS build
 COPY . .
 
 # Build workspace deps first (database package must be compiled before the app)
-RUN pnpm --filter @assertly/shared-types run build
-RUN pnpm --filter @assertly/api-types run build
-RUN pnpm --filter @assertly/database run build
-RUN pnpm --filter @assertly/nestjs-common run build
-RUN pnpm --filter @assertly/query-api run build
+RUN pnpm --filter @spechive/shared-types run build
+RUN pnpm --filter @spechive/api-types run build
+RUN pnpm --filter @spechive/database run build
+RUN pnpm --filter @spechive/nestjs-common run build
+RUN pnpm --filter @spechive/query-api run build
 
 # ============================================================
 # Production: minimal final image
@@ -60,7 +60,7 @@ FROM base AS production
 ENV NODE_ENV=production
 
 # Create non-root user
-RUN addgroup -S assertly && adduser -S assertly -G assertly
+RUN addgroup -S spechive && adduser -S spechive -G spechive
 
 WORKDIR /app
 
@@ -89,9 +89,9 @@ COPY --from=build /app/packages/api-types/dist ./packages/api-types/dist
 # Copy NestJS cli config needed by nest start
 COPY apps/query-api/nest-cli.json ./apps/query-api/
 
-RUN chown -R assertly:assertly /app
+RUN chown -R spechive:spechive /app
 
-USER assertly
+USER spechive
 
 EXPOSE 3002
 

@@ -1,7 +1,7 @@
-import { DATABASE_CONNECTION, S3Service } from '@assertly/nestjs-common';
-import type { ArtifactId, OrganizationId } from '@assertly/shared-types';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
+import type { ArtifactId, OrganizationId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { ArtifactsService } from '../src/modules/artifacts/artifacts.service';

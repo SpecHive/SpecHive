@@ -17,7 +17,7 @@ import { waitForService, QueryApiClient, QUERY_API_URL } from '../helpers';
 const queryApi = new QueryApiClient(QUERY_API_URL);
 
 function uniqueEmail() {
-  return `reg-${randomBytes(4).toString('hex')}@test.assertly.dev`;
+  return `reg-${randomBytes(4).toString('hex')}@test.spechive.dev`;
 }
 
 describe('Registration', () => {

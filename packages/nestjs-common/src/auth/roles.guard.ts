@@ -1,7 +1,7 @@
-import type { MembershipRole } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { MembershipRole } from '@spechive/shared-types';
 
 import { ROLES_KEY } from './roles.decorator';
 import type { UserContext } from './types';

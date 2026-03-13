@@ -53,9 +53,9 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: /sign in/i })).toBeEnabled();
   });
 
-  it('renders the Assertly card title', () => {
+  it('renders the SpecHive card title', () => {
     renderLogin();
-    expect(screen.getByText('Assertly')).toBeInTheDocument();
+    expect(screen.getByText('SpecHive')).toBeInTheDocument();
   });
 
   it('shows error when submitting empty form', async () => {

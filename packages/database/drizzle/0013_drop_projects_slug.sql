@@ -13,4 +13,4 @@ AS $$
   WHERE pt.token_prefix = p_token_prefix AND pt.revoked_at IS NULL;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION validate_project_token_by_prefix(text) TO assertly_app;
+GRANT EXECUTE ON FUNCTION validate_project_token_by_prefix(text) TO spechive_app;

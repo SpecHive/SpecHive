@@ -61,7 +61,7 @@ AS $$
   WHERE user_id = p_user_id AND revoked_at IS NULL;
 $$;
 
-GRANT EXECUTE ON FUNCTION store_refresh_token(uuid, uuid, varchar, timestamptz) TO assertly_app;
-GRANT EXECUTE ON FUNCTION find_refresh_token_by_hash(varchar) TO assertly_app;
-GRANT EXECUTE ON FUNCTION revoke_refresh_token(varchar) TO assertly_app;
-GRANT EXECUTE ON FUNCTION revoke_all_user_refresh_tokens(uuid) TO assertly_app;
+GRANT EXECUTE ON FUNCTION store_refresh_token(uuid, uuid, varchar, timestamptz) TO spechive_app;
+GRANT EXECUTE ON FUNCTION find_refresh_token_by_hash(varchar) TO spechive_app;
+GRANT EXECUTE ON FUNCTION revoke_refresh_token(varchar) TO spechive_app;
+GRANT EXECUTE ON FUNCTION revoke_all_user_refresh_tokens(uuid) TO spechive_app;

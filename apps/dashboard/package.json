@@ -1,14 +1,14 @@
 {
-  "name": "@assertly/dashboard",
+  "name": "@spechive/dashboard",
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/lib/assertly-dashboard.d.ts",
-      "import": "./dist/lib/assertly-dashboard.js"
+      "types": "./dist/lib/spechive-dashboard.d.ts",
+      "import": "./dist/lib/spechive-dashboard.js"
     },
-    "./style.css": "./dist/lib/assertly-dashboard.css"
+    "./style.css": "./dist/lib/spechive-dashboard.css"
   },
   "scripts": {
     "dev": "vite",
@@ -28,18 +28,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "apps/dashboard"
   },
   "keywords": [
-    "assertly",
+    "spechive",
     "dashboard",
     "react",
     "test-reporting",
     "ui"
   ],
   "dependencies": {
-    "@assertly/api-types": "workspace:*",
+    "@spechive/api-types": "workspace:*",
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -52,7 +52,7 @@
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

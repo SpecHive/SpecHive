@@ -1,1 +1,1 @@
-export { IS_PUBLIC_KEY, Public } from '@assertly/nestjs-common';
+export { IS_PUBLIC_KEY, Public } from '@spechive/nestjs-common';

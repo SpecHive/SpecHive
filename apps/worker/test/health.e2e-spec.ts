@@ -1,8 +1,8 @@
-import { HealthModule } from '@assertly/nestjs-common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { HealthModule } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('Worker HealthController (e2e)', () => {

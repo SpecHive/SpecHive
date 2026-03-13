@@ -23,7 +23,7 @@ import { waitForService } from '../helpers/wait';
 
 const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://localhost:3100';
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
-const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'assertly-postgres-1';
+const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'spechive-postgres-1';
 
 const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
 
@@ -64,7 +64,7 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void>
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const output = execSync(
-        `docker exec ${POSTGRES_CONTAINER} pg_isready -U assertly -d assertly`,
+        `docker exec ${POSTGRES_CONTAINER} pg_isready -U spechive -d spechive`,
         { timeout: 5_000 },
       );
       if (output.toString().includes('accepting connections')) return;

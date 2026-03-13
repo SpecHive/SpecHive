@@ -1,7 +1,7 @@
 {
-  "name": "@assertly/playwright-reporter",
+  "name": "@spechive/playwright-reporter",
   "version": "0.0.1",
-  "description": "Playwright reporter for Assertly test reporting platform",
+  "description": "Playwright reporter for SpecHive test reporting platform",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,12 +22,12 @@
     "playwright",
     "reporter",
     "test-reporting",
-    "assertly",
+    "spechive",
     "e2e"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "packages/playwright-reporter"
   },
   "publishConfig": {
@@ -44,9 +44,9 @@
     "@playwright/test": ">=1.40.0"
   },
   "devDependencies": {
-    "@assertly/reporter-core-protocol": "workspace:*",
-    "@assertly/shared-types": "workspace:*",
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/reporter-core-protocol": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",

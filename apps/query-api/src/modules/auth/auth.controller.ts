@@ -1,7 +1,5 @@
 import '@fastify/cookie';
 
-import { ZodValidationPipe } from '@assertly/nestjs-common';
-import type { OrganizationId } from '@assertly/shared-types';
 import {
   Body,
   Controller,
@@ -15,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { OrganizationId } from '@spechive/shared-types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -26,7 +26,7 @@ import { AuthService } from './auth.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
 import type { UserContext } from './types';
 
-const COOKIE_NAME = 'assertly_rt';
+const COOKIE_NAME = 'spechive_rt';
 
 const registerSchema = z
   .object({

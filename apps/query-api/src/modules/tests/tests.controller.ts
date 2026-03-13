@@ -1,7 +1,7 @@
-import { ZodValidationPipe } from '@assertly/nestjs-common';
-import { TestStatus } from '@assertly/shared-types';
-import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
 import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
+import { TestStatus } from '@spechive/shared-types';
+import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';

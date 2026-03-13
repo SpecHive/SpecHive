@@ -7,7 +7,7 @@ import type {
 } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AssertlyReporter from '../src/index.js';
+import SpecHiveReporter from '../src/index.js';
 
 const { mockSendEvent, mockCheckHealth } = vi.hoisted(() => ({
   mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 }),
@@ -16,7 +16,7 @@ const { mockSendEvent, mockCheckHealth } = vi.hoisted(() => ({
 
 vi.mock('../src/client.js', () => {
   return {
-    AssertlyClient: class MockAssertlyClient {
+    SpecHiveClient: class MockSpecHiveClient {
       sendEvent = mockSendEvent;
       checkHealth = mockCheckHealth;
     },
@@ -52,7 +52,7 @@ describe('Event queue', () => {
 
     vi.useFakeTimers();
 
-    const reporter = new AssertlyReporter({
+    const reporter = new SpecHiveReporter({
       apiUrl: 'https://api.test',
       projectToken: 'tok-123',
       flushTimeout: 100,
@@ -75,13 +75,13 @@ describe('Event queue', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const root = makeSuite('', [makeSuite('project')]);
 
-    const reporter1 = new AssertlyReporter({
+    const reporter1 = new SpecHiveReporter({
       apiUrl: 'https://api.test',
       projectToken: 'tok-123',
     });
     await expect(reporter1.onBegin({} as FullConfig, root)).resolves.toBeUndefined();
 
-    const reporter2 = new AssertlyReporter({
+    const reporter2 = new SpecHiveReporter({
       apiUrl: 'https://api.test',
       projectToken: 'tok-123',
       failOnConnectionError: true,
@@ -93,7 +93,7 @@ describe('Event queue', () => {
     mockSendEvent.mockImplementation(() => new Promise(() => {}));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const reporter = new AssertlyReporter({
+    const reporter = new SpecHiveReporter({
       apiUrl: 'https://api.test',
       projectToken: 'tok-123',
     });

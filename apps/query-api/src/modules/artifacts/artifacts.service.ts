@@ -1,8 +1,8 @@
-import type { Database } from '@assertly/database';
-import { artifacts, setTenantContext } from '@assertly/database';
-import { DATABASE_CONNECTION, S3Service } from '@assertly/nestjs-common';
-import type { ArtifactId, OrganizationId } from '@assertly/shared-types';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { artifacts, setTenantContext } from '@spechive/database';
+import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
+import type { ArtifactId, OrganizationId } from '@spechive/shared-types';
 import { eq } from 'drizzle-orm';
 
 const PRESIGNED_URL_EXPIRY_SECONDS = 900;

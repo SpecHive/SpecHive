@@ -1,6 +1,6 @@
-import { ZodValidationPipe } from '@assertly/nestjs-common';
-import type { ArtifactId } from '@assertly/shared-types';
 import { Controller, Get, Param } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { ArtifactId } from '@spechive/shared-types';
 
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';

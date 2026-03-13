@@ -1,9 +1,9 @@
-import { DATABASE_CONNECTION, IS_PRODUCTION } from '@assertly/nestjs-common';
 import cookie from '@fastify/cookie';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION, IS_PRODUCTION } from '@spechive/nestjs-common';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
@@ -21,7 +21,7 @@ const JWT_SECRET = 'test-secret-for-unit-tests-only-not-for-production-use';
 
 const MOCK_USER = {
   id: '00000000-0000-4000-a000-000000000001',
-  email: 'test@assertly.dev',
+  email: 'test@spechive.dev',
   password_hash: '$argon2id$hash',
   name: 'Test User',
 };
@@ -85,7 +85,7 @@ describe('AuthController', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/login',
-      payload: { email: 'test@assertly.dev', password: 'password123' },
+      payload: { email: 'test@spechive.dev', password: 'password123' },
     });
 
     expect(response.statusCode).toBe(200);
@@ -110,7 +110,7 @@ describe('AuthController', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/login',
-      payload: { email: 'test@assertly.dev', password: 'wrong' },
+      payload: { email: 'test@spechive.dev', password: 'wrong' },
     });
 
     expect(response.statusCode).toBe(401);

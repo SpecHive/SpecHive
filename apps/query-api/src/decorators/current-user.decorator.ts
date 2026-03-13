@@ -1,1 +1,1 @@
-export { CurrentUser } from '@assertly/nestjs-common';
+export { CurrentUser } from '@spechive/nestjs-common';

@@ -261,7 +261,7 @@ AS $$
   UPDATE public.project_tokens SET last_used_at = now() WHERE token_hash = p_token_hash;
 $$;--> statement-breakpoint
 
--- Requires assertly_app role from init.sh to be created before running this migration
-GRANT EXECUTE ON FUNCTION validate_project_token_by_prefix(text) TO assertly_app;--> statement-breakpoint
--- Requires assertly_app role from init.sh to be created before running this migration
-GRANT EXECUTE ON FUNCTION touch_project_token_usage(text) TO assertly_app;
+-- Requires spechive_app role from init.sh to be created before running this migration
+GRANT EXECUTE ON FUNCTION validate_project_token_by_prefix(text) TO spechive_app;--> statement-breakpoint
+-- Requires spechive_app role from init.sh to be created before running this migration
+GRANT EXECUTE ON FUNCTION touch_project_token_usage(text) TO spechive_app;

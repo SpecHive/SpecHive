@@ -6,7 +6,7 @@ export const SEED_USER_ID = '01970000-0000-7000-8000-000000000004';
 export const SEED_MEMBERSHIP_ID = '01970000-0000-7000-8000-000000000005';
 export const SEED_ORG2_ID = '01970000-0000-7000-8000-000000000006';
 
-export const SEED_EMAIL = 'test-user@assertly.dev';
+export const SEED_EMAIL = 'test-user@spechive.dev';
 export const SEED_PASSWORD = 'test-password';
 export const PROJECT_TOKEN = 'test-token';
 

@@ -1,10 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import type { Database, Transaction } from '@assertly/database';
-import { setTenantContext } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import { MembershipRole, asOrganizationId, asUserId } from '@assertly/shared-types';
-import type { OrganizationId, UserId } from '@assertly/shared-types';
 import {
   BadRequestException,
   ConflictException,
@@ -14,6 +9,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Database, Transaction } from '@spechive/database';
+import { setTenantContext } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { MembershipRole, asOrganizationId, asUserId } from '@spechive/shared-types';
+import type { OrganizationId, UserId } from '@spechive/shared-types';
 import { hash, verify } from 'argon2';
 import { sql } from 'drizzle-orm';
 import { SignJWT } from 'jose';

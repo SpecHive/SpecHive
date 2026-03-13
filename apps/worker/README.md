@@ -1,6 +1,6 @@
-# @assertly/worker
+# @spechive/worker
 
-NestJS worker for processing outbox events for [Assertly](https://github.com/assertly-dev/assertly).
+NestJS worker for processing outbox events for [SpecHive](https://github.com/spechive-dev/spechive).
 
 ## Available modules
 
@@ -11,15 +11,15 @@ NestJS worker for processing outbox events for [Assertly](https://github.com/ass
 
 ## Required infrastructure
 
-- PostgreSQL 16+ with `assertly_app` role
+- PostgreSQL 16+ with `spechive_app` role
 - MinIO/S3-compatible storage
 - Outboxy API (transactional outbox)
 
 ## Usage as a library
 
 ```typescript
-import { ResultProcessorModule } from '@assertly/worker/modules';
-import { envSchema } from '@assertly/worker/config';
+import { ResultProcessorModule } from '@spechive/worker/modules';
+import { envSchema } from '@spechive/worker/config';
 ```
 
 ## License

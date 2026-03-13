@@ -23,7 +23,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/lib-entry.ts'),
       formats: ['es'],
-      fileName: 'assertly-dashboard',
+      fileName: 'spechive-dashboard',
     },
     outDir: 'dist/lib',
     rollupOptions: {
@@ -39,7 +39,7 @@ export default defineConfig({
         'class-variance-authority',
         'clsx',
         'tailwind-merge',
-        '@assertly/api-types',
+        '@spechive/api-types',
       ],
     },
     cssCodeSplit: false,

@@ -1,4 +1,4 @@
-import type { UserId } from '@assertly/shared-types';
+import type { UserId } from '@spechive/shared-types';
 import { index, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';

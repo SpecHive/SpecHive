@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DB="${POSTGRES_DB:-assertly}"
+DB="${POSTGRES_DB:-spechive}"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-'EOSQL'
   -- Revoke access to ALL tables from outboxy, then grant back only its own
@@ -10,8 +10,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$DB" <<-'EOSQL'
   -- Re-grant access to outboxy's own tables
   GRANT SELECT, INSERT, UPDATE, DELETE ON outbox_events, inbox_events TO outboxy;
 
-  -- Allow assertly_app to use Inboxy deduplication
-  GRANT SELECT, INSERT ON TABLE inbox_events TO assertly_app;
+  -- Allow spechive_app to use Inboxy deduplication
+  GRANT SELECT, INSERT ON TABLE inbox_events TO spechive_app;
 
   DO $$
   DECLARE

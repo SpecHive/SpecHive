@@ -1,6 +1,6 @@
-import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
-import { TestStatus } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
+import { TestStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';

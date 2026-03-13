@@ -1,6 +1,6 @@
-# @assertly/dashboard
+# @spechive/dashboard
 
-React dashboard UI for the [Assertly](https://github.com/assertly-dev/assertly) test reporting platform.
+React dashboard UI for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform.
 
 ## Standalone app
 
@@ -11,11 +11,11 @@ pnpm build    # Production build (app + lib)
 
 ## Library usage
 
-The dashboard is also published as a component library for use in downstream applications (e.g., `@assertly-cloud/cloud-dashboard`):
+The dashboard is also published as a component library for use in downstream applications (e.g., `@spechive-cloud/cloud-dashboard`):
 
 ```typescript
-import { DashboardApp } from '@assertly/dashboard';
-import '@assertly/dashboard/style.css';
+import { DashboardApp } from '@spechive/dashboard';
+import '@spechive/dashboard/style.css';
 ```
 
 ### Exports

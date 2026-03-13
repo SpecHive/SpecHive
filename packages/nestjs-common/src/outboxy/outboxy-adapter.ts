@@ -1,5 +1,5 @@
-import type { Transaction } from '@assertly/database';
-import { getRawClient } from '@assertly/database';
+import type { Transaction } from '@spechive/database';
+import { getRawClient } from '@spechive/database';
 
 type QueryFn = (sql: string, params: unknown[]) => Promise<{ id: string }[]>;
 

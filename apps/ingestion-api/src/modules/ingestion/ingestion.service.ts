@@ -1,10 +1,10 @@
-import { type Database, type Transaction } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import { type V1Event } from '@assertly/reporter-core-protocol';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
 import type { OutboxyClient } from '@outboxy/sdk-nestjs';
 import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+import { type Database, type Transaction } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { type V1Event } from '@spechive/reporter-core-protocol';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 
 @Injectable()
 export class IngestionService {

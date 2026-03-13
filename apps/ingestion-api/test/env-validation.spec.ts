@@ -12,10 +12,10 @@ const VALID_ENV = {
 const VALID_PRODUCTION_ENV = {
   ...VALID_ENV,
   NODE_ENV: 'production',
-  CORS_ORIGIN: 'https://app.assertly.dev',
+  CORS_ORIGIN: 'https://app.spechive.dev',
   MINIO_USE_SSL: 'true',
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
-  MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
+  MINIO_PUBLIC_ENDPOINT: 'cdn.spechive.dev:9000',
   TOKEN_HASH_KEY: 'a'.repeat(32),
   OUTBOXY_API_URL: 'http://localhost:3100',
 };
@@ -60,7 +60,7 @@ describe('ingestion-api envSchema', () => {
 
   it('allows a non-localhost CORS_ORIGIN in production', () => {
     const result = envSchema.parse(VALID_PRODUCTION_ENV);
-    expect(result.CORS_ORIGIN).toBe('https://app.assertly.dev');
+    expect(result.CORS_ORIGIN).toBe('https://app.spechive.dev');
   });
 
   it('defaults WORKER_WEBHOOK_URL when omitted', () => {
@@ -253,14 +253,14 @@ describe('ingestion-api envSchema', () => {
   });
 
   describe('MinIO app credentials', () => {
-    it('defaults MINIO_APP_ACCESS_KEY to assertly-app', () => {
+    it('defaults MINIO_APP_ACCESS_KEY to spechive-app', () => {
       const result = envSchema.parse(VALID_ENV);
-      expect(result.MINIO_APP_ACCESS_KEY).toBe('assertly-app');
+      expect(result.MINIO_APP_ACCESS_KEY).toBe('spechive-app');
     });
 
-    it('defaults MINIO_APP_SECRET_KEY to assertly-app-secret-key', () => {
+    it('defaults MINIO_APP_SECRET_KEY to spechive-app-secret-key', () => {
       const result = envSchema.parse(VALID_ENV);
-      expect(result.MINIO_APP_SECRET_KEY).toBe('assertly-app-secret-key');
+      expect(result.MINIO_APP_SECRET_KEY).toBe('spechive-app-secret-key');
     });
   });
 });

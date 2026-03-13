@@ -1,6 +1,6 @@
-# @assertly/ingestion-api
+# @spechive/ingestion-api
 
-NestJS API for receiving test reporter events for [Assertly](https://github.com/assertly-dev/assertly).
+NestJS API for receiving test reporter events for [SpecHive](https://github.com/spechive-dev/spechive).
 
 ## Available modules
 
@@ -9,14 +9,14 @@ NestJS API for receiving test reporter events for [Assertly](https://github.com/
 
 ## Required infrastructure
 
-- PostgreSQL 16+ with `assertly_app` role
+- PostgreSQL 16+ with `spechive_app` role
 - MinIO/S3-compatible storage
 - Outboxy API (transactional outbox)
 
 ## Usage as a library
 
 ```typescript
-import { IngestionModule } from '@assertly/ingestion-api/modules';
+import { IngestionModule } from '@spechive/ingestion-api/modules';
 ```
 
 ## License

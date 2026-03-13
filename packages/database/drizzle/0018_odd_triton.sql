@@ -32,7 +32,7 @@ CREATE POLICY tenant_isolation_policy ON "invitations"
   USING (organization_id = current_setting('app.current_organization_id')::uuid)
   WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
-GRANT ALL ON TABLE "invitations" TO assertly_app;--> statement-breakpoint
+GRANT ALL ON TABLE "invitations" TO spechive_app;--> statement-breakpoint
 
 -- SECURITY DEFINER: validate invite token (public endpoint, bypasses RLS)
 CREATE OR REPLACE FUNCTION validate_invitation_token(p_token text)
@@ -54,7 +54,7 @@ AS $$
   WHERE i.token = p_token;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION validate_invitation_token(text) TO assertly_app;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION validate_invitation_token(text) TO spechive_app;--> statement-breakpoint
 
 -- SECURITY DEFINER: register user via invitation (bypasses RLS)
 CREATE OR REPLACE FUNCTION register_user_with_invite(
@@ -104,4 +104,4 @@ BEGIN
 END;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION register_user_with_invite(uuid, uuid, text, varchar(255), text, uuid) TO assertly_app;
+GRANT EXECUTE ON FUNCTION register_user_with_invite(uuid, uuid, text, varchar(255), text, uuid) TO spechive_app;

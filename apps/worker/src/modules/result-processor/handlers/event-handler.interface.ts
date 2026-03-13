@@ -1,6 +1,6 @@
-import type { Transaction } from '@assertly/database';
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
+import type { Transaction } from '@spechive/database';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 
 export interface EventHandlerContext {
   tx: Transaction;

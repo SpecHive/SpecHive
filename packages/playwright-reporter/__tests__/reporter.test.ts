@@ -1,5 +1,3 @@
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import { ArtifactType, RunStatus, TestStatus } from '@assertly/shared-types';
 import type {
   FullConfig,
   FullResult,
@@ -7,10 +5,12 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import { ArtifactType, RunStatus, TestStatus } from '@spechive/shared-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AssertlyReporter from '../src/index.js';
-import type { AssertlyReporterConfig } from '../src/types.js';
+import SpecHiveReporter from '../src/index.js';
+import type { SpecHiveReporterConfig } from '../src/types.js';
 
 const {
   mockSendEvent,
@@ -33,7 +33,7 @@ const {
 
 vi.mock('../src/client.js', () => {
   return {
-    AssertlyClient: class MockAssertlyClient {
+    SpecHiveClient: class MockSpecHiveClient {
       sendEvent = mockSendEvent;
       checkHealth = mockCheckHealth;
       presignArtifact = mockPresignArtifact;
@@ -44,7 +44,7 @@ vi.mock('../src/client.js', () => {
 
 vi.mock('node:fs/promises', () => ({ readFile: mockReadFile }));
 
-function makeConfig(): AssertlyReporterConfig {
+function makeConfig(): SpecHiveReporterConfig {
   return { apiUrl: 'https://api.test', projectToken: 'tok-123' };
 }
 
@@ -93,14 +93,14 @@ async function flushQueue(): Promise<void> {
   await new Promise((r) => setTimeout(r, 0));
 }
 
-describe('AssertlyReporter', () => {
-  let reporter: AssertlyReporter;
+describe('SpecHiveReporter', () => {
+  let reporter: SpecHiveReporter;
 
   beforeEach(() => {
     mockSendEvent.mockClear();
     mockCheckHealth.mockClear();
     mockReadFile.mockReset();
-    reporter = new AssertlyReporter(makeConfig());
+    reporter = new SpecHiveReporter(makeConfig());
   });
 
   afterEach(() => {
@@ -113,7 +113,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('respects enabled: false', () => {
-      const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
+      const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       expect(r.isEnabled).toBe(false);
     });
   });
@@ -169,7 +169,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('does nothing when disabled', async () => {
-      const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
+      const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
       await r.onBegin({} as FullConfig, makeSuite(''));
       expect(mockSendEvent).not.toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe('AssertlyReporter', () => {
 
     it('throws when health check fails and failOnConnectionError is true', async () => {
       mockCheckHealth.mockResolvedValueOnce(false);
-      const r = new AssertlyReporter({ ...makeConfig(), failOnConnectionError: true });
+      const r = new SpecHiveReporter({ ...makeConfig(), failOnConnectionError: true });
       const rootSuite = makeSuite('', [makeSuite('project')]);
 
       await expect(r.onBegin({} as FullConfig, rootSuite)).rejects.toThrow('Cannot reach');
@@ -369,7 +369,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('does nothing when disabled', async () => {
-      const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
+      const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
       r.onTestEnd(makeTest('test'), makeTestResult());
       expect(mockSendEvent).not.toHaveBeenCalled();
@@ -377,8 +377,8 @@ describe('AssertlyReporter', () => {
   });
 
   describe('flaky detection', () => {
-    async function beginReporter(): Promise<{ reporter: AssertlyReporter; suite: Suite }> {
-      const r = new AssertlyReporter(makeConfig());
+    async function beginReporter(): Promise<{ reporter: SpecHiveReporter; suite: Suite }> {
+      const r = new SpecHiveReporter(makeConfig());
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
       await r.onBegin({} as FullConfig, root);
@@ -503,9 +503,9 @@ describe('AssertlyReporter', () => {
 
   describe('artifact capture', () => {
     async function setupReporter(
-      config?: Partial<AssertlyReporterConfig>,
-    ): Promise<AssertlyReporter> {
-      const r = new AssertlyReporter({ ...makeConfig(), ...config });
+      config?: Partial<SpecHiveReporterConfig>,
+    ): Promise<SpecHiveReporter> {
+      const r = new SpecHiveReporter({ ...makeConfig(), ...config });
       const child = makeSuite('suite');
       const root = makeSuite('', [child]);
       await r.onBegin({} as FullConfig, root);
@@ -733,12 +733,12 @@ describe('AssertlyReporter', () => {
 
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[assertly] Run complete:'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[spechive] Run complete:'));
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('retries'));
     });
 
     it('does nothing when disabled', async () => {
-      const r = new AssertlyReporter({ ...makeConfig(), enabled: false });
+      const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -755,10 +755,10 @@ describe('AssertlyReporter', () => {
     });
 
     it('picks up apiUrl and projectToken from env vars', async () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://env-api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'env-tok-456');
+      vi.stubEnv('SPECHIVE_API_URL', 'https://env-api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'env-tok-456');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
 
       const root = makeSuite('', [makeSuite('project')]);
@@ -770,18 +770,18 @@ describe('AssertlyReporter', () => {
     });
 
     it('inline config overrides env vars', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://env-api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'env-tok');
+      vi.stubEnv('SPECHIVE_API_URL', 'https://env-api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'env-tok');
 
-      const r = new AssertlyReporter({ apiUrl: 'https://inline.test', projectToken: 'inline-tok' });
+      const r = new SpecHiveReporter({ apiUrl: 'https://inline.test', projectToken: 'inline-tok' });
       expect(r.isEnabled).toBe(true);
     });
 
     it('auto-disables with warning when apiUrl is missing', () => {
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
 
       expect(r.isEnabled).toBe(false);
       expect(warnSpy).toHaveBeenCalledWith(
@@ -790,10 +790,10 @@ describe('AssertlyReporter', () => {
     });
 
     it('auto-disables with warning when projectToken is missing', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
 
       expect(r.isEnabled).toBe(false);
       expect(warnSpy).toHaveBeenCalledWith(
@@ -804,63 +804,63 @@ describe('AssertlyReporter', () => {
     it('auto-disables silently when both are missing and enabled is false', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const r = new AssertlyReporter({ enabled: false });
+      const r = new SpecHiveReporter({ enabled: false });
 
       expect(r.isEnabled).toBe(false);
       expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('ASSERTLY_ENABLED=false disables reporter', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', 'false');
+    it('SPECHIVE_ENABLED=false disables reporter', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', 'false');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(false);
     });
 
-    it('ASSERTLY_ENABLED=0 disables reporter', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', '0');
+    it('SPECHIVE_ENABLED=0 disables reporter', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', '0');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(false);
     });
 
-    it('ASSERTLY_ENABLED=true keeps reporter enabled', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', 'true');
+    it('SPECHIVE_ENABLED=true keeps reporter enabled', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', 'true');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
     });
 
-    it('ASSERTLY_ENABLED=1 keeps reporter enabled', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', '1');
+    it('SPECHIVE_ENABLED=1 keeps reporter enabled', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', '1');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
     });
 
-    it('ASSERTLY_ENABLED is case-insensitive', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', 'TRUE');
+    it('SPECHIVE_ENABLED is case-insensitive', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', 'TRUE');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
     });
 
-    it('auto-disables when ASSERTLY_API_URL is empty string', () => {
-      vi.stubEnv('ASSERTLY_API_URL', '');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
+    it('auto-disables when SPECHIVE_API_URL is empty string', () => {
+      vi.stubEnv('SPECHIVE_API_URL', '');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
 
       expect(r.isEnabled).toBe(false);
       expect(warnSpy).toHaveBeenCalledWith(
@@ -868,12 +868,12 @@ describe('AssertlyReporter', () => {
       );
     });
 
-    it('ASSERTLY_ENABLED with whitespace is trimmed', () => {
-      vi.stubEnv('ASSERTLY_API_URL', 'https://api.test');
-      vi.stubEnv('ASSERTLY_PROJECT_TOKEN', 'tok-123');
-      vi.stubEnv('ASSERTLY_ENABLED', ' true ');
+    it('SPECHIVE_ENABLED with whitespace is trimmed', () => {
+      vi.stubEnv('SPECHIVE_API_URL', 'https://api.test');
+      vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'tok-123');
+      vi.stubEnv('SPECHIVE_ENABLED', ' true ');
 
-      const r = new AssertlyReporter();
+      const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
     });
   });
@@ -891,7 +891,7 @@ describe('AssertlyReporter', () => {
       vi.stubEnv('GITHUB_REPOSITORY', 'org/repo');
       vi.stubEnv('GITHUB_RUN_ID', '12345');
 
-      const r = new AssertlyReporter(makeConfig());
+      const r = new SpecHiveReporter(makeConfig());
       const root = makeSuite('', [makeSuite('project')]);
       await r.onBegin({} as FullConfig, root);
       await flushQueue();
@@ -911,7 +911,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('includes user metadata when config.metadata is set', async () => {
-      const r = new AssertlyReporter({
+      const r = new SpecHiveReporter({
         ...makeConfig(),
         metadata: { environment: 'staging', version: '1.2.3' },
       });
@@ -927,7 +927,7 @@ describe('AssertlyReporter', () => {
     });
 
     it('does not include metadata key when config.metadata is empty', async () => {
-      const r = new AssertlyReporter(makeConfig());
+      const r = new SpecHiveReporter(makeConfig());
       const root = makeSuite('', [makeSuite('project')]);
       await r.onBegin({} as FullConfig, root);
       await flushQueue();
@@ -945,7 +945,7 @@ describe('AssertlyReporter', () => {
       vi.stubEnv('GITHUB_REPOSITORY', 'org/repo');
       vi.stubEnv('GITHUB_RUN_ID', '99999');
 
-      const r = new AssertlyReporter({
+      const r = new SpecHiveReporter({
         ...makeConfig(),
         metadata: { custom: 'value' },
       });
@@ -965,7 +965,7 @@ describe('AssertlyReporter', () => {
       vi.stubEnv('GITHUB_ACTIONS', '');
       vi.stubEnv('GITLAB_CI', '');
 
-      const r = new AssertlyReporter(makeConfig());
+      const r = new SpecHiveReporter(makeConfig());
       const root = makeSuite('', [makeSuite('project')]);
       await r.onBegin({} as FullConfig, root);
       await flushQueue();

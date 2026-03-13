@@ -1,8 +1,8 @@
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import { RunStatus, asRunId } from '@assertly/shared-types';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import { RunStatus, asRunId } from '@spechive/shared-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AssertlyClient } from '../src/client.js';
+import { SpecHiveClient } from '../src/client.js';
 
 const MOCK_EVENT: V1Event = {
   version: '1',
@@ -23,7 +23,7 @@ function textResponse(body: string, status: number): Response {
   return new Response(body, { status });
 }
 
-describe('AssertlyClient retry logic', () => {
+describe('SpecHiveClient retry logic', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -43,7 +43,7 @@ describe('AssertlyClient retry logic', () => {
       .mockResolvedValueOnce(jsonResponse({ eventId: 'evt-1' }));
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 3);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3);
     const promise = client.sendEvent(MOCK_EVENT);
 
     await vi.advanceTimersByTimeAsync(2000);
@@ -58,7 +58,7 @@ describe('AssertlyClient retry logic', () => {
     fetchSpy.mockResolvedValueOnce(textResponse('Bad Request', 400));
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 3);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result.ok).toBe(false);
@@ -72,7 +72,7 @@ describe('AssertlyClient retry logic', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const maxRetries = 2;
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, maxRetries);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, maxRetries);
     const promise = client.sendEvent(MOCK_EVENT);
 
     for (let i = 0; i < maxRetries; i++) {

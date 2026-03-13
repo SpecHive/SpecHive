@@ -5,9 +5,9 @@ export const minioEnvSchema = z.object({
   MINIO_PUBLIC_ENDPOINT: z.string().default('localhost:9000'),
   MINIO_USE_SSL: z.enum(['true', 'false']).default('false'),
   MINIO_PUBLIC_USE_SSL: z.enum(['true', 'false']).optional(),
-  MINIO_BUCKET: z.string().default('assertly-artifacts'),
-  MINIO_APP_ACCESS_KEY: z.string().default('assertly-app'),
-  MINIO_APP_SECRET_KEY: z.string().default('assertly-app-secret-key'),
+  MINIO_BUCKET: z.string().default('spechive-artifacts'),
+  MINIO_APP_ACCESS_KEY: z.string().default('spechive-app'),
+  MINIO_APP_SECRET_KEY: z.string().default('spechive-app-secret-key'),
 });
 
 export const minioProductionRefinement = {

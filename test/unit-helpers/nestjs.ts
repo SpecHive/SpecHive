@@ -1,6 +1,6 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import type { Provider } from '@nestjs/common';
 import { Test, type TestingModuleBuilder } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 
 /**
  * Convenience wrapper around NestJS Test.createTestingModule with optional mock DB injection.

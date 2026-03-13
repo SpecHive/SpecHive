@@ -1,7 +1,7 @@
-import { runs } from '@assertly/database';
-import type { RunEndEvent } from '@assertly/reporter-core-protocol';
-import { RunStatus } from '@assertly/shared-types';
 import { Injectable, Logger } from '@nestjs/common';
+import { runs } from '@spechive/database';
+import type { RunEndEvent } from '@spechive/reporter-core-protocol';
+import { RunStatus } from '@spechive/shared-types';
 import { eq } from 'drizzle-orm';
 
 import { EventHandler } from './event-handler.decorator';

@@ -1,1 +1,1 @@
-export { JwtAuthGuard } from '@assertly/nestjs-common';
+export { JwtAuthGuard } from '@spechive/nestjs-common';

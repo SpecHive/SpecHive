@@ -1,4 +1,4 @@
-export interface AssertlyReporterConfig {
+export interface SpecHiveReporterConfig {
   apiUrl?: string;
   projectToken?: string;
   timeout?: number;

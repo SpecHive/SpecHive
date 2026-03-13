@@ -1,11 +1,11 @@
-import { type Database, setTenantContext } from '@assertly/database';
-import type { Transaction } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import { EnrichedEventEnvelopeSchema, type V1Event } from '@assertly/reporter-core-protocol';
-import { type OrganizationId, type ProjectId } from '@assertly/shared-types';
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
+import { type Database, setTenantContext } from '@spechive/database';
+import type { Transaction } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { EnrichedEventEnvelopeSchema, type V1Event } from '@spechive/reporter-core-protocol';
+import { type OrganizationId, type ProjectId } from '@spechive/shared-types';
 
 import type { OutboxyEvent } from '../../types/outboxy-envelope';
 

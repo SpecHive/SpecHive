@@ -1,9 +1,9 @@
-import type { Database } from '@assertly/database';
-import { artifacts, setTenantContext, testAttempts, tests } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, RunId, SuiteId, TestId } from '@assertly/shared-types';
-import { TestStatus } from '@assertly/shared-types';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { artifacts, setTenantContext, testAttempts, tests } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, RunId, SuiteId, TestId } from '@spechive/shared-types';
+import { TestStatus } from '@spechive/shared-types';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import { sql } from 'drizzle-orm/sql';
 

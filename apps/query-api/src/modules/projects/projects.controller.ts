@@ -1,5 +1,5 @@
-import { ZodValidationPipe } from '@assertly/nestjs-common';
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
 import { z } from 'zod';
 
 import { paginationSchema } from '../../common/pagination';

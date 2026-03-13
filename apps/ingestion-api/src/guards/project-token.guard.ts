@@ -1,9 +1,9 @@
-import type { Database } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
-import { TOKEN_PREFIX_LENGTH, asOrganizationId, asProjectId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
+import { TOKEN_PREFIX_LENGTH, asOrganizationId, asProjectId } from '@spechive/shared-types';
 import { verify } from 'argon2';
 import { sql } from 'drizzle-orm';
 

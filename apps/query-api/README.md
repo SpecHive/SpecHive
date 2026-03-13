@@ -1,6 +1,6 @@
-# @assertly/query-api
+# @spechive/query-api
 
-NestJS API serving dashboard read endpoints with JWT authentication for [Assertly](https://github.com/assertly-dev/assertly).
+NestJS API serving dashboard read endpoints with JWT authentication for [SpecHive](https://github.com/spechive-dev/spechive).
 
 ## Available modules
 
@@ -17,7 +17,7 @@ NestJS API serving dashboard read endpoints with JWT authentication for [Assertl
 
 ## Required infrastructure
 
-- PostgreSQL 16+ with `assertly_app` role
+- PostgreSQL 16+ with `spechive_app` role
 - MinIO/S3-compatible storage
 
 ## Usage as a library
@@ -25,8 +25,8 @@ NestJS API serving dashboard read endpoints with JWT authentication for [Assertl
 This package exports reusable modules for composition in downstream NestJS applications:
 
 ```typescript
-import { RunsModule, TestsModule } from '@assertly/query-api/modules';
-import { envSchema } from '@assertly/query-api/config';
+import { RunsModule, TestsModule } from '@spechive/query-api/modules';
+import { envSchema } from '@spechive/query-api/config';
 ```
 
 ## License

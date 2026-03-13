@@ -1,4 +1,3 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
 import {
   Body,
   Controller,
@@ -11,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
 import { OutboxyBatchSchema } from '../../types/outboxy-envelope';

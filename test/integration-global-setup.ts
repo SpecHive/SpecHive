@@ -3,7 +3,7 @@
  *
  * Seeds a known organization, project, project token, and test user into Postgres
  * so that `x-project-token: test-token` is valid for ingestion-api tests and
- * login with `test-user@assertly.dev` / `test-password` works for query-api auth tests.
+ * login with `test-user@spechive.dev` / `test-password` works for query-api auth tests.
  * All inserts use ON CONFLICT DO NOTHING for idempotency.
  */
 
@@ -20,9 +20,9 @@ const INTEGRATION_ORG2_ID = '01970000-0000-7000-8000-000000000006';
 const INTEGRATION_MEMBERSHIP2_ID = '01970000-0000-7000-8000-000000000007';
 
 const TEST_TOKEN = 'test-token';
-const TEST_USER_EMAIL = 'test-user@assertly.dev';
+const TEST_USER_EMAIL = 'test-user@spechive.dev';
 const TEST_USER_PASSWORD = 'test-password';
-const TOKEN_PREFIX_LENGTH = 16; // Synced with @assertly/shared-types — kept inline since globalSetup runs outside Vitest env
+const TOKEN_PREFIX_LENGTH = 16; // Synced with @spechive/shared-types — kept inline since globalSetup runs outside Vitest env
 
 async function computeTestTokenHash(): Promise<string> {
   const { hash } = await import('argon2');

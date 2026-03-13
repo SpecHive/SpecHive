@@ -1,6 +1,6 @@
-# @assertly/database
+# @spechive/database
 
-Database schema, connection helpers, and migrations for [Assertly](https://github.com/assertly-dev/assertly).
+Database schema, connection helpers, and migrations for [SpecHive](https://github.com/spechive-dev/spechive).
 
 ## What's included
 
@@ -12,7 +12,7 @@ Database schema, connection helpers, and migrations for [Assertly](https://githu
 ## Usage
 
 ```typescript
-import { createDbConnection, setTenantContext } from '@assertly/database';
+import { createDbConnection, setTenantContext } from '@spechive/database';
 
 const db = createDbConnection(process.env.DATABASE_URL);
 
@@ -34,7 +34,7 @@ await db.transaction(async (tx) => {
 
 - PostgreSQL 16+
 - Superuser role for migrations (the app role lacks DDL permissions)
-- `assertly_app` role for application queries (subject to RLS)
+- `spechive_app` role for application queries (subject to RLS)
 
 ## License
 

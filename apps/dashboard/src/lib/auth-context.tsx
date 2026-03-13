@@ -39,10 +39,10 @@ interface AuthContextValue {
 }
 
 const STORAGE_KEYS = {
-  token: 'assertly_token',
-  user: 'assertly_user',
-  org: 'assertly_org',
-  role: 'assertly_role',
+  token: 'spechive_token',
+  user: 'spechive_user',
+  org: 'spechive_org',
+  role: 'spechive_role',
 } as const;
 
 function loadSessionState(): {

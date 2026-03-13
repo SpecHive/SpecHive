@@ -1,6 +1,6 @@
-# @assertly/api-types
+# @spechive/api-types
 
-Typed API response interfaces for the [Assertly](https://github.com/assertly-dev/assertly) query API.
+Typed API response interfaces for the [SpecHive](https://github.com/spechive-dev/spechive) query API.
 
 ## What's included
 
@@ -10,7 +10,7 @@ Typed API response interfaces for the [Assertly](https://github.com/assertly-dev
 ## Usage
 
 ```typescript
-import type { PaginatedResponse } from '@assertly/api-types';
+import type { PaginatedResponse } from '@spechive/api-types';
 ```
 
 These types are shared between the query API (producer) and the dashboard (consumer) to ensure type safety across the stack.

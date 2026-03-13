@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bootstrapNestApp } from '@assertly/nestjs-common';
+import { bootstrapNestApp } from '@spechive/nestjs-common';
 
 import { AppModule } from './app.module';
 

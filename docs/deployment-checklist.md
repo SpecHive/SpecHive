@@ -12,7 +12,7 @@
 ```bash
 # PostgreSQL passwords
 openssl rand -base64 32   # → POSTGRES_PASSWORD
-openssl rand -base64 32   # → ASSERTLY_APP_PASSWORD
+openssl rand -base64 32   # → SPECHIVE_APP_PASSWORD
 openssl rand -base64 32   # → OUTBOXY_PASSWORD
 
 # Application secrets
@@ -45,7 +45,7 @@ cp .env.production .env
 
 Replace all `CHANGE_ME` values. Pay attention to:
 
-- `DATABASE_URL` password must match `ASSERTLY_APP_PASSWORD`
+- `DATABASE_URL` password must match `SPECHIVE_APP_PASSWORD`
 - `CORS_ORIGIN` must match the dashboard URL (e.g., `https://app.example.com`)
 - `VITE_API_URL` must match the public query-api URL (e.g., `https://api.example.com`)
 - `MINIO_PUBLIC_ENDPOINT` must be reachable from end users' browsers
@@ -176,7 +176,7 @@ server {
 
 ```bash
 # Daily backup via cron
-0 2 * * * docker compose exec -T postgres pg_dump -U assertly assertly | gzip > /backups/assertly-$(date +\%Y\%m\%d).sql.gz
+0 2 * * * docker compose exec -T postgres pg_dump -U spechive spechive | gzip > /backups/spechive-$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### MinIO
@@ -185,7 +185,7 @@ Use MinIO Client (`mc`) for bucket replication or backup:
 
 ```bash
 mc alias set local http://localhost:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
-mc mirror local/assertly-artifacts /backups/artifacts/
+mc mirror local/spechive-artifacts /backups/artifacts/
 ```
 
 ### Environment

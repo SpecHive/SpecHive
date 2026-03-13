@@ -1,3 +1,9 @@
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { OutboxyModule } from '@outboxy/sdk-nestjs';
 import {
   createOutboxyModuleConfig,
   createS3ModuleOptions,
@@ -7,13 +13,7 @@ import {
   IsProductionModule,
   S3Module,
   ThrottlerBehindProxyGuard,
-} from '@assertly/nestjs-common';
-import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { OutboxyModule } from '@outboxy/sdk-nestjs';
+} from '@spechive/nestjs-common';
 
 import { ArtifactCleanupModule } from './modules/artifact-cleanup/artifact-cleanup.module';
 import { ConfigModule } from './modules/config/config.module';

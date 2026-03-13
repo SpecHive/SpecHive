@@ -1,8 +1,8 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { Reflector } from '@nestjs/core';
 import { DiscoveryService } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { INBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { EVENT_HANDLER_KEY, type IEventHandler } from '../src/modules/result-processor/handlers';

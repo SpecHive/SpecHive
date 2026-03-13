@@ -31,4 +31,4 @@ BEGIN
 END;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION register_user(uuid, uuid, uuid, text, varchar(255), text, text, text) TO assertly_app;
+GRANT EXECUTE ON FUNCTION register_user(uuid, uuid, uuid, text, varchar(255), text, text, text) TO spechive_app;

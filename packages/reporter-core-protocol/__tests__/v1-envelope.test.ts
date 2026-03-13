@@ -1,4 +1,4 @@
-import { RunStatus, TestStatus, ArtifactType } from '@assertly/shared-types';
+import { RunStatus, TestStatus, ArtifactType } from '@spechive/shared-types';
 import { describe, it, expect } from 'vitest';
 
 import { EnrichedEventEnvelopeSchema } from '../src/v1/envelope.js';

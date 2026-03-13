@@ -55,68 +55,68 @@ jobs:
         run: pnpm -r run build
 
       # Layer 1: shared-types (leaf dependency)
-      - name: Publish @assertly/shared-types
+      - name: Publish @spechive/shared-types
         if: contains(needs.release-please.outputs.paths_released, 'packages/shared-types')
-        run: pnpm --filter @assertly/shared-types publish --no-git-checks
+        run: pnpm --filter @spechive/shared-types publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Layer 2: packages that depend on shared-types
-      - name: Publish @assertly/reporter-core-protocol
+      - name: Publish @spechive/reporter-core-protocol
         if: contains(needs.release-please.outputs.paths_released, 'packages/reporter-core-protocol')
-        run: pnpm --filter @assertly/reporter-core-protocol publish --no-git-checks
+        run: pnpm --filter @spechive/reporter-core-protocol publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @assertly/database
+      - name: Publish @spechive/database
         if: contains(needs.release-please.outputs.paths_released, 'packages/database')
-        run: pnpm --filter @assertly/database publish --no-git-checks
+        run: pnpm --filter @spechive/database publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @assertly/api-types
+      - name: Publish @spechive/api-types
         if: contains(needs.release-please.outputs.paths_released, 'packages/api-types')
-        run: pnpm --filter @assertly/api-types publish --no-git-checks
+        run: pnpm --filter @spechive/api-types publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Layer 3: nestjs-common (depends on shared-types + database)
-      - name: Publish @assertly/nestjs-common
+      - name: Publish @spechive/nestjs-common
         if: contains(needs.release-please.outputs.paths_released, 'packages/nestjs-common')
-        run: pnpm --filter @assertly/nestjs-common publish --no-git-checks
+        run: pnpm --filter @spechive/nestjs-common publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Layer 4: NestJS apps (depend on nestjs-common)
-      - name: Publish @assertly/query-api
+      - name: Publish @spechive/query-api
         if: contains(needs.release-please.outputs.paths_released, 'apps/query-api')
-        run: pnpm --filter @assertly/query-api publish --no-git-checks
+        run: pnpm --filter @spechive/query-api publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @assertly/ingestion-api
+      - name: Publish @spechive/ingestion-api
         if: contains(needs.release-please.outputs.paths_released, 'apps/ingestion-api')
-        run: pnpm --filter @assertly/ingestion-api publish --no-git-checks
+        run: pnpm --filter @spechive/ingestion-api publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @assertly/worker
+      - name: Publish @spechive/worker
         if: contains(needs.release-please.outputs.paths_released, 'apps/worker')
-        run: pnpm --filter @assertly/worker publish --no-git-checks
+        run: pnpm --filter @spechive/worker publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Layer 5: playwright-reporter (bundles deps, no chain dependency)
-      - name: Publish @assertly/playwright-reporter
+      - name: Publish @spechive/playwright-reporter
         if: contains(needs.release-please.outputs.paths_released, 'packages/playwright-reporter')
-        run: pnpm --filter @assertly/playwright-reporter publish --no-git-checks
+        run: pnpm --filter @spechive/playwright-reporter publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Layer 6: dashboard
-      - name: Publish @assertly/dashboard
+      - name: Publish @spechive/dashboard
         if: contains(needs.release-please.outputs.paths_released, 'apps/dashboard')
-        run: pnpm --filter @assertly/dashboard publish --no-git-checks
+        run: pnpm --filter @spechive/dashboard publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -174,7 +174,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/assertly-${{ matrix.image }}
+          images: ghcr.io/${{ github.repository_owner }}/spechive-${{ matrix.image }}
           tags: |
             type=sha,prefix=
             type=raw,value=latest

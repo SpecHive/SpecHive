@@ -1,7 +1,7 @@
-import { S3Service } from '@assertly/nestjs-common';
-import type { ArtifactId, RunId, TestId } from '@assertly/shared-types';
-import { ArtifactType } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import { S3Service } from '@spechive/nestjs-common';
+import type { ArtifactId, RunId, TestId } from '@spechive/shared-types';
+import { ArtifactType } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';

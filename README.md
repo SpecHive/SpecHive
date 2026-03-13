@@ -1,8 +1,8 @@
-# Assertly
+# SpecHive
 
 Open-source test reporting platform for Playwright.
 
-![CI](https://github.com/assertly-dev/assertly/actions/workflows/ci.yml/badge.svg) ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg) [![npm](https://img.shields.io/npm/v/@assertly/playwright-reporter)](https://www.npmjs.com/package/@assertly/playwright-reporter)
+![CI](https://github.com/spechive-dev/spechive/actions/workflows/ci.yml/badge.svg) ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg) [![npm](https://img.shields.io/npm/v/@spechive/playwright-reporter)](https://www.npmjs.com/package/@spechive/playwright-reporter)
 
 ## Features
 
@@ -41,7 +41,7 @@ packages/
   database/               Drizzle schema, migrations, seed
   eslint-config/          Shared ESLint config
   nestjs-common/          Shared NestJS modules
-  playwright-reporter/    Playwright reporter for Assertly
+  playwright-reporter/    Playwright reporter for SpecHive
   reporter-core-protocol/ Protocol types for test reporters
   shared-types/           Branded ID types and enums
   typescript-config/      Shared tsconfig bases
@@ -52,8 +52,8 @@ packages/
 **Prerequisites:** Node.js >= 22, pnpm >= 9, Docker & Docker Compose.
 
 ```bash
-git clone https://github.com/assertly-dev/assertly.git
-cd assertly
+git clone https://github.com/spechive-dev/spechive.git
+cd spechive
 cp .env.example .env
 pnpm install
 pnpm build
@@ -71,8 +71,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide, including
 1. Clone the repository and copy the production environment template:
 
    ```bash
-   git clone https://github.com/assertly-dev/assertly.git
-   cd assertly
+   git clone https://github.com/spechive-dev/spechive.git
+   cd spechive
    cp .env.production .env
    ```
 
@@ -117,7 +117,7 @@ See `docs/deployment-checklist.md` for the full production checklist.
 ## Reporter Installation
 
 ```bash
-npm install @assertly/playwright-reporter
+npm install @spechive/playwright-reporter
 ```
 
 Add it to your `playwright.config.ts`:
@@ -127,10 +127,10 @@ Add it to your `playwright.config.ts`:
 export default defineConfig({
   reporter: [
     [
-      '@assertly/playwright-reporter',
+      '@spechive/playwright-reporter',
       {
-        apiUrl: 'https://your-assertly-instance.com',
-        projectToken: process.env.ASSERTLY_PROJECT_TOKEN,
+        apiUrl: 'https://your-spechive-instance.com',
+        projectToken: process.env.SPECHIVE_PROJECT_TOKEN,
       },
     ],
   ],
@@ -145,7 +145,7 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup inst
 
 ## License
 
-Assertly uses a dual-license model:
+SpecHive uses a dual-license model:
 
 | Component                                                                                                                                          | License                                              |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |

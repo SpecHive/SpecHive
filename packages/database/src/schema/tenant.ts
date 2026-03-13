@@ -5,7 +5,7 @@ import {
   type UserId,
   InvitationStatus,
   MembershipRole,
-} from '@assertly/shared-types';
+} from '@spechive/shared-types';
 import { index, pgEnum, pgTable, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';

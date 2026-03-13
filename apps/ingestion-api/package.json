@@ -1,5 +1,5 @@
 {
-  "name": "@assertly/ingestion-api",
+  "name": "@spechive/ingestion-api",
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
   "exports": {
@@ -8,7 +8,7 @@
       "default": "./dist/modules/index.js"
     }
   },
-  "description": "Assertly ingestion API for receiving reporter events",
+  "description": "SpecHive ingestion API for receiving reporter events",
   "files": [
     "dist",
     "README.md",
@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "apps/ingestion-api"
   },
   "scripts": {
@@ -30,10 +30,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@assertly/database": "workspace:*",
-    "@assertly/nestjs-common": "workspace:*",
-    "@assertly/reporter-core-protocol": "workspace:*",
-    "@assertly/shared-types": "workspace:*",
+    "@spechive/database": "workspace:*",
+    "@spechive/nestjs-common": "workspace:*",
+    "@spechive/reporter-core-protocol": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
     "@fastify/helmet": "^13.0.0",
     "@outboxy/dialect-postgres": "^1.1.4",
     "@outboxy/sdk-nestjs": "^2.1.5",
@@ -52,7 +52,7 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",

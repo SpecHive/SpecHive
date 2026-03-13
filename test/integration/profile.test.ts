@@ -60,7 +60,7 @@ describe('Profile management', () => {
 
 describe('Change password', () => {
   const uniqueSuffix = randomBytes(4).toString('hex');
-  const testEmail = `profile-test-${uniqueSuffix}@assertly.dev`;
+  const testEmail = `profile-test-${uniqueSuffix}@spechive.dev`;
   const testPassword = 'original-password-123';
   const newPassword = 'new-password-456';
 
@@ -71,7 +71,7 @@ describe('Change password', () => {
   it('rejects wrong current password', async () => {
     const { body } = await queryApi.auth.register(
       {
-        email: `reject-wrong-${uniqueSuffix}@assertly.dev`,
+        email: `reject-wrong-${uniqueSuffix}@spechive.dev`,
         password: testPassword,
         name: 'Wrong Password Test',
         organizationName: `WrongPwdOrg-${uniqueSuffix}`,

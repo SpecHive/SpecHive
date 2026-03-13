@@ -1,5 +1,5 @@
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import type { ArtifactId } from '@assertly/shared-types';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import type { ArtifactId } from '@spechive/shared-types';
 
 export interface SendEventResult {
   ok: boolean;
@@ -19,7 +19,7 @@ export interface PresignResult {
 const DEFAULT_TIMEOUT = 10_000;
 const DEFAULT_MAX_RETRIES = 3;
 
-export class AssertlyClient {
+export class SpecHiveClient {
   private readonly apiUrl: string;
   private readonly projectToken: string;
   private readonly timeout: number;
@@ -43,7 +43,7 @@ export class AssertlyClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) {
         const delay = 1000 * Math.pow(2, attempt - 1) + Math.random() * 500;
-        console.warn(`[assertly] Retrying event (attempt ${attempt}/${this.maxRetries})...`);
+        console.warn(`[spechive] Retrying event (attempt ${attempt}/${this.maxRetries})...`);
         await this.sleep(delay);
       }
 
@@ -132,14 +132,14 @@ export class AssertlyClient {
       });
       if (!response.ok) {
         const text = await response.text().catch(() => '');
-        console.warn(`[assertly] Event send failed (${response.status}): ${text}`);
+        console.warn(`[spechive] Event send failed (${response.status}): ${text}`);
         return { ok: false, retryable: response.status >= 500, statusCode: response.status };
       }
       const body = (await response.json()) as { eventId: string };
       return { ok: true, eventId: body.eventId };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`[assertly] Event send error: ${msg}`);
+      console.warn(`[spechive] Event send error: ${msg}`);
       return { ok: false, retryable: true };
     } finally {
       clearTimeout(timeoutId);

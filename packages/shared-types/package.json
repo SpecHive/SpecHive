@@ -1,8 +1,8 @@
 {
-  "name": "@assertly/shared-types",
+  "name": "@spechive/shared-types",
   "version": "0.0.1",
   "license": "MIT",
-  "description": "Shared TypeScript types for Assertly",
+  "description": "Shared TypeScript types for SpecHive",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,18 +29,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "packages/shared-types"
   },
   "keywords": [
-    "assertly",
+    "spechive",
     "types",
     "branded-ids",
     "uuidv7",
     "typescript"
   ],
   "devDependencies": {
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"
   }

@@ -1,4 +1,3 @@
-import { createDbConnection } from '@assertly/database';
 import {
   type DynamicModule,
   Global,
@@ -7,6 +6,7 @@ import {
   type OptionalFactoryDependency,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createDbConnection } from '@spechive/database';
 
 import { DATABASE_CONNECTION } from '../constants';
 

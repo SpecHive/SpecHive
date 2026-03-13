@@ -18,7 +18,7 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION get_expired_artifacts(integer, integer) TO assertly_app;
+GRANT EXECUTE ON FUNCTION get_expired_artifacts(integer, integer) TO spechive_app;
 
 CREATE OR REPLACE FUNCTION delete_artifacts_by_ids(p_artifact_ids uuid[])
 RETURNS integer
@@ -35,4 +35,4 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION delete_artifacts_by_ids(uuid[]) TO assertly_app;
+GRANT EXECUTE ON FUNCTION delete_artifacts_by_ids(uuid[]) TO spechive_app;

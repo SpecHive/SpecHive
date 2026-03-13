@@ -1,5 +1,5 @@
-import { MembershipRole } from '@assertly/shared-types';
-import type { OrganizationId, UserId } from '@assertly/shared-types';
+import { MembershipRole } from '@spechive/shared-types';
+import type { OrganizationId, UserId } from '@spechive/shared-types';
 import { z } from 'zod';
 
 export const JwtPayloadSchema = z.object({

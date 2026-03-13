@@ -1,1 +1,1 @@
-export { Roles, ROLES_KEY } from '@assertly/nestjs-common';
+export { Roles, ROLES_KEY } from '@spechive/nestjs-common';

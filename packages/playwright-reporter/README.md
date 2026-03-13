@@ -1,11 +1,11 @@
-# @assertly/playwright-reporter
+# @spechive/playwright-reporter
 
-Playwright reporter for the [Assertly](https://github.com/assertly-dev/assertly) test reporting platform. Sends test results, retries, and artifacts (screenshots, traces, videos) to your Assertly instance in real time.
+Playwright reporter for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform. Sends test results, retries, and artifacts (screenshots, traces, videos) to your SpecHive instance in real time.
 
 ## Installation
 
 ```bash
-pnpm add -D @assertly/playwright-reporter
+pnpm add -D @spechive/playwright-reporter
 ```
 
 ## Configuration
@@ -19,10 +19,10 @@ export default defineConfig({
   reporter: [
     ['html'],
     [
-      '@assertly/playwright-reporter',
+      '@spechive/playwright-reporter',
       {
-        apiUrl: 'https://api.your-assertly-instance.com',
-        projectToken: process.env.ASSERTLY_PROJECT_TOKEN,
+        apiUrl: 'https://api.your-spechive-instance.com',
+        projectToken: process.env.SPECHIVE_PROJECT_TOKEN,
         captureArtifacts: true,
         failOnConnectionError: false,
       },
@@ -35,8 +35,8 @@ export default defineConfig({
 
 | Option                  | Type                      | Default                      | Description                                              |
 | ----------------------- | ------------------------- | ---------------------------- | -------------------------------------------------------- |
-| `apiUrl`                | `string`                  | `ASSERTLY_API_URL` env       | Assertly API endpoint                                    |
-| `projectToken`          | `string`                  | `ASSERTLY_PROJECT_TOKEN` env | Project token for authentication                         |
+| `apiUrl`                | `string`                  | `SPECHIVE_API_URL` env       | SpecHive API endpoint                                    |
+| `projectToken`          | `string`                  | `SPECHIVE_PROJECT_TOKEN` env | Project token for authentication                         |
 | `timeout`               | `number`                  | `30000`                      | HTTP request timeout in milliseconds                     |
 | `enabled`               | `boolean`                 | `true`                       | Enable or disable the reporter                           |
 | `captureArtifacts`      | `boolean`                 | `true`                       | Upload test artifacts (screenshots, traces, videos)      |
@@ -49,9 +49,9 @@ export default defineConfig({
 
 | Variable                 | Description                                        |
 | ------------------------ | -------------------------------------------------- |
-| `ASSERTLY_API_URL`       | Fallback for `apiUrl` when not set in config       |
-| `ASSERTLY_PROJECT_TOKEN` | Fallback for `projectToken` when not set in config |
-| `ASSERTLY_ENABLED`       | Set to `"false"` or `"0"` to disable the reporter  |
+| `SPECHIVE_API_URL`       | Fallback for `apiUrl` when not set in config       |
+| `SPECHIVE_PROJECT_TOKEN` | Fallback for `projectToken` when not set in config |
+| `SPECHIVE_ENABLED`       | Set to `"false"` or `"0"` to disable the reporter  |
 
 Config values take precedence over environment variables.
 
@@ -88,8 +88,8 @@ jobs:
       - run: npx playwright install --with-deps
       - run: npx playwright test
         env:
-          ASSERTLY_API_URL: ${{ vars.ASSERTLY_API_URL }}
-          ASSERTLY_PROJECT_TOKEN: ${{ secrets.ASSERTLY_PROJECT_TOKEN }}
+          SPECHIVE_API_URL: ${{ vars.SPECHIVE_API_URL }}
+          SPECHIVE_PROJECT_TOKEN: ${{ secrets.SPECHIVE_PROJECT_TOKEN }}
 ```
 
 ### GitLab CI
@@ -98,8 +98,8 @@ jobs:
 e2e-tests:
   image: mcr.microsoft.com/playwright:v1.50.0-noble
   variables:
-    ASSERTLY_API_URL: $ASSERTLY_API_URL
-    ASSERTLY_PROJECT_TOKEN: $ASSERTLY_PROJECT_TOKEN
+    SPECHIVE_API_URL: $SPECHIVE_API_URL
+    SPECHIVE_PROJECT_TOKEN: $SPECHIVE_PROJECT_TOKEN
   script:
     - npm ci
     - npx playwright test
@@ -108,13 +108,13 @@ e2e-tests:
 ## Troubleshooting
 
 **Reporter disabled warning**
-If you see `[assertly] Reporter disabled: missing apiUrl or projectToken`, ensure that `ASSERTLY_API_URL` and `ASSERTLY_PROJECT_TOKEN` environment variables are set, or pass `apiUrl` and `projectToken` directly in the reporter config.
+If you see `[spechive] Reporter disabled: missing apiUrl or projectToken`, ensure that `SPECHIVE_API_URL` and `SPECHIVE_PROJECT_TOKEN` environment variables are set, or pass `apiUrl` and `projectToken` directly in the reporter config.
 
 **Connection errors**
-If the reporter cannot reach your Assertly instance, verify the `apiUrl` is correct and the server is reachable. Set `failOnConnectionError: true` to make the test run fail immediately when the API is unreachable, instead of silently dropping events.
+If the reporter cannot reach your SpecHive instance, verify the `apiUrl` is correct and the server is reachable. Set `failOnConnectionError: true` to make the test run fail immediately when the API is unreachable, instead of silently dropping events.
 
 **Missing artifacts**
-Verify that `captureArtifacts` is not set to `false`. Artifacts larger than 10 MB are skipped automatically. Check the console output for `[assertly] Skipping artifact` warnings.
+Verify that `captureArtifacts` is not set to `false`. Artifacts larger than 10 MB are skipped automatically. Check the console output for `[spechive] Skipping artifact` warnings.
 
 ## License
 

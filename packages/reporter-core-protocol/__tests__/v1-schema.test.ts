@@ -1,5 +1,5 @@
-import { RunStatus, TestStatus, ArtifactType } from '@assertly/shared-types';
-import type { ArtifactId, RunId, SuiteId, TestId } from '@assertly/shared-types';
+import { RunStatus, TestStatus, ArtifactType } from '@spechive/shared-types';
+import type { ArtifactId, RunId, SuiteId, TestId } from '@spechive/shared-types';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {

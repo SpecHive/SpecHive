@@ -7,7 +7,7 @@ import type {
   SuiteId,
   TestId,
   UserId,
-} from '@assertly/shared-types';
+} from '@spechive/shared-types';
 
 import type { PaginatedResponse } from './pagination.js';
 

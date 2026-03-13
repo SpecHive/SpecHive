@@ -1,7 +1,7 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId } from '@assertly/shared-types';
 import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { ProjectsService } from '../src/modules/projects/projects.service';

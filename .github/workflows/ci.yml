@@ -96,13 +96,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build shared-types
-        run: pnpm --filter @assertly/shared-types build
+        run: pnpm --filter @spechive/shared-types build
 
       - name: Build reporter-core-protocol
-        run: pnpm --filter @assertly/reporter-core-protocol build
+        run: pnpm --filter @spechive/reporter-core-protocol build
 
       - name: Build playwright-reporter
-        run: pnpm --filter @assertly/playwright-reporter build
+        run: pnpm --filter @spechive/playwright-reporter build
 
       - name: Verify reporter bundle
         run: bash packages/playwright-reporter/scripts/verify-bundle.sh
@@ -116,13 +116,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: assertly
-          POSTGRES_PASSWORD: assertly
-          POSTGRES_DB: assertly
+          POSTGRES_USER: spechive
+          POSTGRES_PASSWORD: spechive
+          POSTGRES_DB: spechive
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U assertly -d assertly"
+          --health-cmd "pg_isready -U spechive -d spechive"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -159,18 +159,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build shared-types
-        run: pnpm --filter @assertly/shared-types build
+        run: pnpm --filter @spechive/shared-types build
 
       - name: Build reporter-core-protocol
-        run: pnpm --filter @assertly/reporter-core-protocol build
+        run: pnpm --filter @spechive/reporter-core-protocol build
 
       - name: Build database
-        run: pnpm --filter @assertly/database build
+        run: pnpm --filter @spechive/database build
 
       - name: Run database migrations
         run: pnpm db:migrate
         env:
-          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
 
       - name: Install psql
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -183,17 +183,17 @@ jobs:
 
             DO \$\$
             BEGIN
-              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'assertly_app') THEN
-                CREATE ROLE assertly_app LOGIN PASSWORD 'assertly_app';
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'spechive_app') THEN
+                CREATE ROLE spechive_app LOGIN PASSWORD 'spechive_app';
               END IF;
             END
             \$\$;
-            GRANT CONNECT ON DATABASE assertly TO assertly_app;
-            GRANT USAGE ON SCHEMA public TO assertly_app;
-            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO assertly_app;
-            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO assertly_app;
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO assertly_app;
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO assertly_app;
+            GRANT CONNECT ON DATABASE spechive TO spechive_app;
+            GRANT USAGE ON SCHEMA public TO spechive_app;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO spechive_app;
+            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO spechive_app;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO spechive_app;
+            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO spechive_app;
 
             DO \$\$
             BEGIN
@@ -202,16 +202,16 @@ jobs:
               END IF;
             END
             \$\$;
-            GRANT CONNECT ON DATABASE assertly TO outboxy;
+            GRANT CONNECT ON DATABASE spechive TO outboxy;
             GRANT USAGE ON SCHEMA public TO outboxy;
           "
         env:
-          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
 
       - name: Run tests
         run: pnpm test
         env:
-          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
 
@@ -251,13 +251,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build shared-types
-        run: pnpm --filter @assertly/shared-types build
+        run: pnpm --filter @spechive/shared-types build
 
       - name: Build reporter-core-protocol
-        run: pnpm --filter @assertly/reporter-core-protocol build
+        run: pnpm --filter @spechive/reporter-core-protocol build
 
       - name: Build database
-        run: pnpm --filter @assertly/database build
+        run: pnpm --filter @spechive/database build
 
       - name: Start Docker Compose stack
         run: docker compose -f .github/docker-compose.ci.yml up -d
@@ -265,7 +265,7 @@ jobs:
       - name: Wait for services to be healthy
         run: |
           echo "Waiting for postgres to be healthy..."
-          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T postgres pg_isready -U assertly -d assertly; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T postgres pg_isready -U spechive -d spechive; do sleep 2; done'
           echo "Waiting for minio to be healthy..."
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
           echo "Waiting for outboxy-api to be healthy..."
@@ -275,18 +275,18 @@ jobs:
       - name: Run database migrations
         run: pnpm db:migrate
         env:
-          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
 
       - name: Run full integration tests
         run: pnpm test:integration
         env:
-          DATABASE_URL: postgresql://assertly:assertly@localhost:5432/assertly
+          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
           MINIO_ENDPOINT: localhost:9000
-          MINIO_APP_ACCESS_KEY: assertly-app
-          MINIO_APP_SECRET_KEY: assertly-app-secret-key
-          MINIO_BUCKET: assertly-artifacts
+          MINIO_APP_ACCESS_KEY: spechive-app
+          MINIO_APP_SECRET_KEY: spechive-app-secret-key
+          MINIO_BUCKET: spechive-artifacts
           MINIO_USE_SSL: 'false'
           OUTBOXY_API_URL: http://localhost:3100
 

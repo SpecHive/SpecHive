@@ -1,6 +1,6 @@
-import { S3Service } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import { S3Service } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { ArtifactsService } from '../src/modules/artifacts/artifacts.service';

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { envSchema } from '../src/modules/config/env.validation';
 
 const VALID_SECRET = 'a]pI0$h8?GxR5^Tf2Lw@m9Nz&kJ7dYqX'; // 33 chars, satisfies min(32)
-const VALID_DATABASE_URL = 'postgres://user:pass@localhost:5432/assertly';
+const VALID_DATABASE_URL = 'postgres://user:pass@localhost:5432/spechive';
 
 const VALID_WORKER_ENV = {
   WEBHOOK_SECRET: VALID_SECRET,
@@ -82,9 +82,9 @@ describe('worker envSchema', () => {
       const result = envSchema.parse(VALID_WORKER_ENV);
       expect(result.MINIO_ENDPOINT).toBe('localhost:9000');
       expect(result.MINIO_USE_SSL).toBe('false');
-      expect(result.MINIO_BUCKET).toBe('assertly-artifacts');
-      expect(result.MINIO_APP_ACCESS_KEY).toBe('assertly-app');
-      expect(result.MINIO_APP_SECRET_KEY).toBe('assertly-app-secret-key');
+      expect(result.MINIO_BUCKET).toBe('spechive-artifacts');
+      expect(result.MINIO_APP_ACCESS_KEY).toBe('spechive-app');
+      expect(result.MINIO_APP_SECRET_KEY).toBe('spechive-app-secret-key');
     });
 
     it('accepts custom MINIO values', () => {
@@ -117,7 +117,7 @@ describe('worker envSchema', () => {
         ...VALID_WORKER_ENV,
         NODE_ENV: 'production',
         MINIO_ENDPOINT: 'localhost:9000',
-        MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
+        MINIO_PUBLIC_ENDPOINT: 'cdn.spechive.dev:9000',
         MINIO_USE_SSL: 'false',
       });
       expect(result.MINIO_USE_SSL).toBe('false');

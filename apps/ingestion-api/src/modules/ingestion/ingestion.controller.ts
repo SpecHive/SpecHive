@@ -1,5 +1,3 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
-import { V1EventSchema } from '@assertly/reporter-core-protocol';
 import {
   Body,
   Controller,
@@ -11,6 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
+import { V1EventSchema } from '@spechive/reporter-core-protocol';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
 import { ProjectTokenGuard } from '../../guards/project-token.guard';

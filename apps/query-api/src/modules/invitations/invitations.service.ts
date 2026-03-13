@@ -1,13 +1,13 @@
 import { randomBytes } from 'node:crypto';
 
-import type { Database } from '@assertly/database';
-import { setTenantContext } from '@assertly/database';
-import { invitations, users } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { InvitationId, OrganizationId, UserId } from '@assertly/shared-types';
-import { InvitationStatus, MembershipRole } from '@assertly/shared-types';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Database } from '@spechive/database';
+import { setTenantContext } from '@spechive/database';
+import { invitations, users } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { InvitationId, OrganizationId, UserId } from '@spechive/shared-types';
+import { InvitationStatus, MembershipRole } from '@spechive/shared-types';
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';

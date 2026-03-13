@@ -1,8 +1,8 @@
-import { IS_PRODUCTION } from '@assertly/nestjs-common';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
+import { IS_PRODUCTION } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 import { createWebhookPayload } from '../../../test/helpers/factories/webhook.factory';

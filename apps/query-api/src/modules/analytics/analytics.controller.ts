@@ -1,6 +1,6 @@
-import { IS_PRODUCTION, throwZodBadRequest } from '@assertly/nestjs-common';
-import type { ProjectId } from '@assertly/shared-types';
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
+import type { ProjectId } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { CurrentUser } from '../../decorators/current-user.decorator';

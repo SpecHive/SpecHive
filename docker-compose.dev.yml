@@ -1,4 +1,4 @@
-name: assertly
+name: spechive
 
 # Development overrides: source volumes for hot reload, dev commands.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up

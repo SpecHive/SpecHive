@@ -1,7 +1,7 @@
-import type { Database } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import type { Database } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { sql } from 'drizzle-orm';
 
 @Injectable()

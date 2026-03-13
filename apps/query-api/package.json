@@ -1,5 +1,5 @@
 {
-  "name": "@assertly/query-api",
+  "name": "@spechive/query-api",
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
   "exports": {
@@ -22,7 +22,7 @@
       ]
     }
   },
-  "description": "Assertly query API for dashboard read endpoints with JWT authentication",
+  "description": "SpecHive query API for dashboard read endpoints with JWT authentication",
   "files": [
     "dist",
     "README.md",
@@ -33,7 +33,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "apps/query-api"
   },
   "scripts": {
@@ -44,10 +44,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@assertly/api-types": "workspace:*",
-    "@assertly/database": "workspace:*",
-    "@assertly/nestjs-common": "workspace:*",
-    "@assertly/shared-types": "workspace:*",
+    "@spechive/api-types": "workspace:*",
+    "@spechive/database": "workspace:*",
+    "@spechive/nestjs-common": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.0",
     "argon2": "^0.44.0",
@@ -66,7 +66,7 @@
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",

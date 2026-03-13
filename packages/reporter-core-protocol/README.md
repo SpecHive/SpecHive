@@ -1,6 +1,6 @@
-# @assertly/reporter-core-protocol
+# @spechive/reporter-core-protocol
 
-Core event protocol definitions for [Assertly](https://github.com/assertly-dev/assertly) test reporters.
+Core event protocol definitions for [SpecHive](https://github.com/spechive-dev/spechive) test reporters.
 
 ## What's included
 
@@ -11,7 +11,7 @@ Core event protocol definitions for [Assertly](https://github.com/assertly-dev/a
 ## Usage
 
 ```typescript
-import { RunStartEventSchema, type RunStartEvent } from '@assertly/reporter-core-protocol';
+import { RunStartEventSchema, type RunStartEvent } from '@spechive/reporter-core-protocol';
 
 // Validate incoming event
 const event = RunStartEventSchema.parse(rawPayload);

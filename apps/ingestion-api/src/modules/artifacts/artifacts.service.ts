@@ -1,9 +1,9 @@
 import { basename } from 'node:path';
 
-import { S3Service } from '@assertly/nestjs-common';
-import type { ArtifactId, OrganizationId, ProjectId } from '@assertly/shared-types';
-import { asArtifactId, sanitizeArtifactName } from '@assertly/shared-types';
 import { Injectable } from '@nestjs/common';
+import { S3Service } from '@spechive/nestjs-common';
+import type { ArtifactId, OrganizationId, ProjectId } from '@spechive/shared-types';
+import { asArtifactId, sanitizeArtifactName } from '@spechive/shared-types';
 import { uuidv7 } from 'uuidv7';
 
 import type { PresignRequest } from './presign-request.schema';

@@ -1,3 +1,7 @@
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import {
   createS3ModuleOptions,
   DatabaseModule,
@@ -8,11 +12,7 @@ import {
   RolesGuard,
   S3Module,
   ThrottlerBehindProxyGuard,
-} from '@assertly/nestjs-common';
-import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
+} from '@spechive/nestjs-common';
 
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ArtifactsModule } from './modules/artifacts/artifacts.module';

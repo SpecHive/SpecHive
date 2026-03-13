@@ -10,12 +10,12 @@ const VALID_ENV = {
 const VALID_PRODUCTION_ENV = {
   ...VALID_ENV,
   NODE_ENV: 'production',
-  CORS_ORIGIN: 'https://app.assertly.dev',
+  CORS_ORIGIN: 'https://app.spechive.dev',
   MINIO_USE_SSL: 'true',
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
-  MINIO_PUBLIC_ENDPOINT: 'cdn.assertly.dev:9000',
+  MINIO_PUBLIC_ENDPOINT: 'cdn.spechive.dev:9000',
   JWT_SECRET: 'a'.repeat(64),
-  DASHBOARD_URL: 'https://app.assertly.dev',
+  DASHBOARD_URL: 'https://app.spechive.dev',
 };
 
 describe('query-api envSchema', () => {
@@ -51,7 +51,7 @@ describe('query-api envSchema', () => {
 
   it('allows a non-localhost CORS_ORIGIN in production', () => {
     const result = envSchema.parse(VALID_PRODUCTION_ENV);
-    expect(result.CORS_ORIGIN).toBe('https://app.assertly.dev');
+    expect(result.CORS_ORIGIN).toBe('https://app.spechive.dev');
   });
 
   describe('JWT_SECRET length in production', () => {
@@ -127,7 +127,7 @@ describe('query-api envSchema', () => {
 
     it('accepts valid URL in production', () => {
       const result = envSchema.parse(VALID_PRODUCTION_ENV);
-      expect(result.DASHBOARD_URL).toBe('https://app.assertly.dev');
+      expect(result.DASHBOARD_URL).toBe('https://app.spechive.dev');
     });
   });
 });

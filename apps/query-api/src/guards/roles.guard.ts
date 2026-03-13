@@ -1,1 +1,1 @@
-export { RolesGuard } from '@assertly/nestjs-common';
+export { RolesGuard } from '@spechive/nestjs-common';

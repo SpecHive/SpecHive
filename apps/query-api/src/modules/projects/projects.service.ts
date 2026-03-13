@@ -1,9 +1,9 @@
-import type { Database } from '@assertly/database';
-import { setTenantContext } from '@assertly/database';
-import { projects } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId } from '@assertly/shared-types';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { setTenantContext } from '@spechive/database';
+import { projects } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId } from '@spechive/shared-types';
 import { asc, count } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';

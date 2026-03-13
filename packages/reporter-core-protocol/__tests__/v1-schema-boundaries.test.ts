@@ -1,4 +1,4 @@
-import { ArtifactType } from '@assertly/shared-types';
+import { ArtifactType } from '@spechive/shared-types';
 import { describe, it, expect } from 'vitest';
 
 import { SuiteStartSchema, TestStartSchema, ArtifactUploadSchema } from '../src/v1/schema.js';

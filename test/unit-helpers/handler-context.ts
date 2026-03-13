@@ -1,4 +1,4 @@
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 
 import type { EventHandlerContext } from '../../apps/worker/src/modules/result-processor/handlers/event-handler.interface';
 

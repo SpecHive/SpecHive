@@ -1,7 +1,7 @@
 /**
  * RLS write-path (INSERT/UPDATE) isolation tests.
  *
- * Verifies that the app role (`assertly_app`) cannot insert or update rows
+ * Verifies that the app role (`spechive_app`) cannot insert or update rows
  * across tenant boundaries. Requires Docker Compose postgres with a migrated
  * database:
  *   docker compose up -d postgres && pnpm db:migrate

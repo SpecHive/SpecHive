@@ -4,11 +4,11 @@
  */
 export function buildSuperuserDatabaseUrl(): string {
   if (process.env['ADMIN_DATABASE_URL']) return process.env['ADMIN_DATABASE_URL'];
-  const user = process.env['POSTGRES_USER'] ?? 'assertly';
-  const pass = process.env['POSTGRES_PASSWORD'] ?? 'assertly';
+  const user = process.env['POSTGRES_USER'] ?? 'spechive';
+  const pass = process.env['POSTGRES_PASSWORD'] ?? 'spechive';
   const host = process.env['POSTGRES_HOST'] ?? 'localhost';
   const port = process.env['POSTGRES_PORT'] ?? '5432';
-  const db = process.env['POSTGRES_DB'] ?? 'assertly';
+  const db = process.env['POSTGRES_DB'] ?? 'spechive';
   return `postgres://${user}:${pass}@${host}:${port}/${db}`;
 }
 
@@ -20,7 +20,7 @@ export function buildAppDatabaseUrl(): string {
   if (process.env['DATABASE_URL']) return process.env['DATABASE_URL'];
   const host = process.env['POSTGRES_HOST'] ?? 'localhost';
   const port = process.env['POSTGRES_PORT'] ?? '5432';
-  return `postgres://assertly_app:assertly_app@${host}:${port}/assertly`;
+  return `postgres://spechive_app:spechive_app@${host}:${port}/spechive`;
 }
 
 /**

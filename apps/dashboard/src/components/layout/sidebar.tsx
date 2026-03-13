@@ -89,7 +89,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
-        <span className="text-lg font-semibold tracking-tight">Assertly</span>
+        <span className="text-lg font-semibold tracking-tight">SpecHive</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-4" aria-label="Main navigation">

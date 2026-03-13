@@ -1,9 +1,9 @@
 {
-  "name": "@assertly/eslint-config",
+  "name": "@spechive/eslint-config",
   "version": "0.0.1",
   "license": "MIT",
   "type": "module",
-  "description": "Shared ESLint configuration for Assertly",
+  "description": "Shared ESLint configuration for SpecHive",
   "main": "index.mjs",
   "exports": {
     ".": "./index.mjs"

@@ -18,8 +18,8 @@ export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [successMessage] = useState(() => {
-    const msg = sessionStorage.getItem('assertly_flash_message');
-    if (msg) sessionStorage.removeItem('assertly_flash_message');
+    const msg = sessionStorage.getItem('spechive_flash_message');
+    if (msg) sessionStorage.removeItem('spechive_flash_message');
     return msg;
   });
 
@@ -52,7 +52,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Assertly</CardTitle>
+          <CardTitle className="text-2xl font-bold">SpecHive</CardTitle>
           <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent>

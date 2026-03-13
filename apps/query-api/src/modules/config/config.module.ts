@@ -1,4 +1,4 @@
-import { createConfigModule } from '@assertly/nestjs-common';
+import { createConfigModule } from '@spechive/nestjs-common';
 
 import { envSchema } from './env.validation';
 

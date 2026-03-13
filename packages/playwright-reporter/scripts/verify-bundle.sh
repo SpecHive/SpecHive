@@ -25,13 +25,13 @@ echo "   OK"
 
 # 3. Verify no workspace imports leak into .d.ts
 echo "3. Checking .d.ts for leaked workspace imports..."
-if grep -q '@assertly/shared-types' "$PKG_DIR/dist/index.d.ts" 2>/dev/null; then
-  echo "FAIL: dist/index.d.ts contains '@assertly/shared-types' import"
+if grep -q '@spechive/shared-types' "$PKG_DIR/dist/index.d.ts" 2>/dev/null; then
+  echo "FAIL: dist/index.d.ts contains '@spechive/shared-types' import"
   echo "   Fix: set dts: { resolve: true } in tsup.config.ts"
   exit 1
 fi
-if grep -q '@assertly/reporter-core-protocol' "$PKG_DIR/dist/index.d.ts" 2>/dev/null; then
-  echo "FAIL: dist/index.d.ts contains '@assertly/reporter-core-protocol' import"
+if grep -q '@spechive/reporter-core-protocol' "$PKG_DIR/dist/index.d.ts" 2>/dev/null; then
+  echo "FAIL: dist/index.d.ts contains '@spechive/reporter-core-protocol' import"
   echo "   Fix: set dts: { resolve: true } in tsup.config.ts"
   exit 1
 fi
@@ -39,11 +39,11 @@ echo "   OK — no workspace imports leaked"
 
 # 4. Verify shared-types code is inlined in dist/index.js
 echo "4. Checking shared-types are bundled into dist/index.js..."
-if grep -q '@assertly/shared-types' "$PKG_DIR/dist/index.js" 2>/dev/null; then
-  echo "WARN: dist/index.js references '@assertly/shared-types' — may not be fully bundled"
+if grep -q '@spechive/shared-types' "$PKG_DIR/dist/index.js" 2>/dev/null; then
+  echo "WARN: dist/index.js references '@spechive/shared-types' — may not be fully bundled"
 fi
-if grep -q '@assertly/reporter-core-protocol' "$PKG_DIR/dist/index.js" 2>/dev/null; then
-  echo "WARN: dist/index.js references '@assertly/reporter-core-protocol' — may not be fully bundled"
+if grep -q '@spechive/reporter-core-protocol' "$PKG_DIR/dist/index.js" 2>/dev/null; then
+  echo "WARN: dist/index.js references '@spechive/reporter-core-protocol' — may not be fully bundled"
 fi
 echo "   OK"
 
@@ -86,8 +86,8 @@ cd "$TMPDIR"
 npm init -y > /dev/null 2>&1
 # Set type to module for ESM import
 node -e "const p = require('./package.json'); p.type = 'module'; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2))"
-npm install assertly-playwright-reporter-*.tgz > /dev/null 2>&1
-node -e "import('@assertly/playwright-reporter').then(m => { if (!m.default && !m.AssertlyReporter) { console.error('FAIL: No default or named export found'); process.exit(1); } console.log('   OK — ESM import succeeded') }).catch(e => { console.error('FAIL:', e.message); process.exit(1); })"
+npm install spechive-playwright-reporter-*.tgz > /dev/null 2>&1
+node -e "import('@spechive/playwright-reporter').then(m => { if (!m.default && !m.SpecHiveReporter) { console.error('FAIL: No default or named export found'); process.exit(1); } console.log('   OK — ESM import succeeded') }).catch(e => { console.error('FAIL:', e.message); process.exit(1); })"
 
 echo ""
 echo "=== All checks passed ==="

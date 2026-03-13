@@ -44,11 +44,11 @@ FROM deps AS build
 
 COPY . .
 
-RUN pnpm --filter @assertly/shared-types run build
-RUN pnpm --filter @assertly/reporter-core-protocol run build
-RUN pnpm --filter @assertly/database run build
-RUN pnpm --filter @assertly/nestjs-common run build
-RUN pnpm --filter @assertly/worker run build
+RUN pnpm --filter @spechive/shared-types run build
+RUN pnpm --filter @spechive/reporter-core-protocol run build
+RUN pnpm --filter @spechive/database run build
+RUN pnpm --filter @spechive/nestjs-common run build
+RUN pnpm --filter @spechive/worker run build
 
 # ============================================================
 # Production: minimal final image
@@ -57,7 +57,7 @@ FROM base AS production
 
 ENV NODE_ENV=production
 
-RUN addgroup -S assertly && adduser -S assertly -G assertly
+RUN addgroup -S spechive && adduser -S spechive -G spechive
 
 WORKDIR /app
 
@@ -82,9 +82,9 @@ COPY --from=build /app/packages/nestjs-common/dist ./packages/nestjs-common/dist
 
 COPY apps/worker/nest-cli.json ./apps/worker/
 
-RUN chown -R assertly:assertly /app
+RUN chown -R spechive:spechive /app
 
-USER assertly
+USER spechive
 
 EXPOSE 3001
 

@@ -14,4 +14,4 @@ BEGIN
 END;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION cleanup_stale_pending_artifacts() TO assertly_app;
+GRANT EXECUTE ON FUNCTION cleanup_stale_pending_artifacts() TO spechive_app;

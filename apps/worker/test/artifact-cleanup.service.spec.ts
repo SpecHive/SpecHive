@@ -1,6 +1,6 @@
-import { DATABASE_CONNECTION, S3Service } from '@assertly/nestjs-common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { ArtifactCleanupService } from '../src/modules/artifact-cleanup/artifact-cleanup.service';

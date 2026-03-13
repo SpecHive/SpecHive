@@ -1,4 +1,4 @@
-# Contributing to Assertly
+# Contributing to SpecHive
 
 ## Prerequisites
 
@@ -9,8 +9,8 @@
 ## Getting Started
 
 ```bash
-git clone https://github.com/assertly-dev/assertly.git
-cd assertly
+git clone https://github.com/spechive-dev/spechive.git
+cd spechive
 cp .env.example .env
 pnpm install
 pnpm build
@@ -93,7 +93,7 @@ shared-types → reporter-core-protocol → database → nestjs-common → apps
 
 ## Licensing
 
-Assertly uses a dual-license model. By submitting a pull request, you agree to license your contribution under the applicable license:
+SpecHive uses a dual-license model. By submitting a pull request, you agree to license your contribution under the applicable license:
 
 | Contribution target                                                                                                                                | License  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |

@@ -1,4 +1,6 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
+import { Test } from '@nestjs/testing';
+import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import {
   asArtifactId,
   asRunId,
@@ -9,9 +11,7 @@ import {
   RunStatus,
   TestStatus,
   ArtifactType,
-} from '@assertly/shared-types';
-import { Test } from '@nestjs/testing';
-import { OUTBOXY_CLIENT } from '@outboxy/sdk-nestjs';
+} from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';

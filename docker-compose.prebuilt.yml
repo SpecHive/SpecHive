@@ -7,22 +7,22 @@
 # Requires: docker login ghcr.io
 
 services:
-  assertly-migrate:
-    image: ghcr.io/assertly-dev/assertly-migrate:latest
+  spechive-migrate:
+    image: ghcr.io/spechive-dev/spechive-migrate:latest
     build: !reset null
 
   ingestion-api:
-    image: ghcr.io/assertly-dev/assertly-ingestion-api:latest
+    image: ghcr.io/spechive-dev/spechive-ingestion-api:latest
     build: !reset null
 
   worker:
-    image: ghcr.io/assertly-dev/assertly-worker:latest
+    image: ghcr.io/spechive-dev/spechive-worker:latest
     build: !reset null
 
   query-api:
-    image: ghcr.io/assertly-dev/assertly-query-api:latest
+    image: ghcr.io/spechive-dev/spechive-query-api:latest
     build: !reset null
 
   dashboard:
-    image: ghcr.io/assertly-dev/assertly-dashboard:latest
+    image: ghcr.io/spechive-dev/spechive-dashboard:latest
     build: !reset null

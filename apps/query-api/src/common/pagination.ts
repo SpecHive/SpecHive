@@ -1,7 +1,7 @@
-import type { PaginatedResponse } from '@assertly/api-types';
+import type { PaginatedResponse } from '@spechive/api-types';
 import { z } from 'zod';
 
-export type { PaginatedResponse, PaginationMeta } from '@assertly/api-types';
+export type { PaginatedResponse, PaginationMeta } from '@spechive/api-types';
 
 export const uuidSchema = z.string().uuid();
 

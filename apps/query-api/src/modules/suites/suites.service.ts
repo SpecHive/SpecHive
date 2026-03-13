@@ -1,8 +1,8 @@
-import type { Database } from '@assertly/database';
-import { setTenantContext, suites } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, RunId } from '@assertly/shared-types';
 import { Inject, Injectable } from '@nestjs/common';
+import type { Database } from '@spechive/database';
+import { setTenantContext, suites } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, RunId } from '@spechive/shared-types';
 import { asc, eq } from 'drizzle-orm';
 
 @Injectable()

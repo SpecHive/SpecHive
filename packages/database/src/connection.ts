@@ -1,4 +1,4 @@
-import type { OrganizationId } from '@assertly/shared-types';
+import type { OrganizationId } from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';

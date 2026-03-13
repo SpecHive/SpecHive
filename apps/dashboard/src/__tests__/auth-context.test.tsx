@@ -108,17 +108,17 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
       });
 
-      expect(sessionStorage.getItem('assertly_token')).toBe('jwt-token');
-      expect(JSON.parse(sessionStorage.getItem('assertly_user')!)).toEqual(mockLoginResponse.user);
-      expect(JSON.parse(sessionStorage.getItem('assertly_org')!)).toEqual(
+      expect(sessionStorage.getItem('spechive_token')).toBe('jwt-token');
+      expect(JSON.parse(sessionStorage.getItem('spechive_user')!)).toEqual(mockLoginResponse.user);
+      expect(JSON.parse(sessionStorage.getItem('spechive_org')!)).toEqual(
         mockLoginResponse.organization,
       );
     });
 
     it('restores auth state from sessionStorage on mount', () => {
-      sessionStorage.setItem('assertly_token', 'stored-token');
-      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
-      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_token', 'stored-token');
+      sessionStorage.setItem('spechive_user', JSON.stringify(mockLoginResponse.user));
+      sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
 
@@ -128,9 +128,9 @@ describe('AuthContext', () => {
     });
 
     it('clears sessionStorage on logout', async () => {
-      sessionStorage.setItem('assertly_token', 'stored-token');
-      sessionStorage.setItem('assertly_user', JSON.stringify(mockLoginResponse.user));
-      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_token', 'stored-token');
+      sessionStorage.setItem('spechive_user', JSON.stringify(mockLoginResponse.user));
+      sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
 
@@ -142,32 +142,32 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
       });
 
-      expect(sessionStorage.getItem('assertly_token')).toBeNull();
-      expect(sessionStorage.getItem('assertly_user')).toBeNull();
-      expect(sessionStorage.getItem('assertly_org')).toBeNull();
+      expect(sessionStorage.getItem('spechive_token')).toBeNull();
+      expect(sessionStorage.getItem('spechive_user')).toBeNull();
+      expect(sessionStorage.getItem('spechive_org')).toBeNull();
     });
 
     it('falls back to unauthenticated when sessionStorage JSON is corrupted', () => {
-      sessionStorage.setItem('assertly_token', 'stored-token');
-      sessionStorage.setItem('assertly_user', '{invalid json');
-      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_token', 'stored-token');
+      sessionStorage.setItem('spechive_user', '{invalid json');
+      sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
 
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
-      expect(sessionStorage.getItem('assertly_token')).toBeNull();
-      expect(sessionStorage.getItem('assertly_user')).toBeNull();
-      expect(sessionStorage.getItem('assertly_org')).toBeNull();
+      expect(sessionStorage.getItem('spechive_token')).toBeNull();
+      expect(sessionStorage.getItem('spechive_user')).toBeNull();
+      expect(sessionStorage.getItem('spechive_org')).toBeNull();
     });
 
     it('falls back to unauthenticated when token exists but user is missing', () => {
-      sessionStorage.setItem('assertly_token', 'stored-token');
-      sessionStorage.setItem('assertly_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_token', 'stored-token');
+      sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
 
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
-      expect(sessionStorage.getItem('assertly_token')).toBeNull();
+      expect(sessionStorage.getItem('spechive_token')).toBeNull();
     });
   });
 

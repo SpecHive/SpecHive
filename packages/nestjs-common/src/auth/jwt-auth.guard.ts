@@ -1,8 +1,8 @@
-import type { MembershipRole, OrganizationId, UserId } from '@assertly/shared-types';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import type { MembershipRole, OrganizationId, UserId } from '@spechive/shared-types';
 import { jwtVerify } from 'jose';
 
 import { IS_PUBLIC_KEY } from '../constants';

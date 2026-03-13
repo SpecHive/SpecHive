@@ -6,7 +6,7 @@ import {
   asRunId,
   asSuiteId,
   asTestId,
-} from '@assertly/shared-types';
+} from '@spechive/shared-types';
 import { z } from 'zod';
 
 const MAX_METADATA_BYTES = 1_000_000;

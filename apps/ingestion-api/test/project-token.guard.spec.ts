@@ -1,6 +1,6 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import { RunStatus, TestStatus } from '@assertly/shared-types';
+import { RunStatus, TestStatus } from '@spechive/shared-types';
 
 export const statusColorsDot: Record<string, string> = {
   [RunStatus.Passed]: 'bg-green-500',

@@ -1,8 +1,8 @@
 {
-  "name": "@assertly/api-types",
+  "name": "@spechive/api-types",
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
-  "description": "Typed API response interfaces for Assertly",
+  "description": "Typed API response interfaces for SpecHive",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,21 +27,21 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/assertly-dev/assertly",
+    "url": "https://github.com/spechive-dev/spechive",
     "directory": "packages/api-types"
   },
   "keywords": [
-    "assertly",
+    "spechive",
     "api",
     "types",
     "responses",
     "typescript"
   ],
   "dependencies": {
-    "@assertly/shared-types": "workspace:*"
+    "@spechive/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "@assertly/typescript-config": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
     "typescript": "^5.9.3"
   }
 }

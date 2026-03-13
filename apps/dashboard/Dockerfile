@@ -46,9 +46,9 @@ COPY . .
 ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=${VITE_API_URL}
 
-RUN pnpm --filter @assertly/shared-types run build
-RUN pnpm --filter @assertly/api-types run build
-RUN pnpm --filter @assertly/dashboard run build
+RUN pnpm --filter @spechive/shared-types run build
+RUN pnpm --filter @spechive/api-types run build
+RUN pnpm --filter @spechive/dashboard run build
 
 # ============================================================
 # Production: serve compiled assets with nginx

@@ -1,5 +1,5 @@
-import { ZodValidationPipe } from '@assertly/nestjs-common';
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
 import { ProjectTokenGuard } from '../../guards/project-token.guard';

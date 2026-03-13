@@ -1,8 +1,8 @@
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import { RunStatus, asRunId } from '@assertly/shared-types';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import { RunStatus, asRunId } from '@spechive/shared-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AssertlyClient } from '../src/client.js';
+import { SpecHiveClient } from '../src/client.js';
 
 const MOCK_EVENT: V1Event = {
   version: '1',
@@ -23,7 +23,7 @@ function textResponse(body: string, status: number): Response {
   return new Response(body, { status });
 }
 
-describe('AssertlyClient', () => {
+describe('SpecHiveClient', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('AssertlyClient', () => {
   it('sends event with correct URL, headers, and body', async () => {
     fetchSpy.mockResolvedValueOnce(jsonResponse({ eventId: 'evt-1' }));
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 0);
     await client.sendEvent(MOCK_EVENT);
 
     expect(fetchSpy).toHaveBeenCalledOnce();
@@ -55,7 +55,7 @@ describe('AssertlyClient', () => {
   it('returns ok with eventId on success', async () => {
     fetchSpy.mockResolvedValueOnce(jsonResponse({ eventId: 'evt-42' }));
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result).toEqual({ ok: true, eventId: 'evt-42', retries: 0 });
@@ -65,7 +65,7 @@ describe('AssertlyClient', () => {
     fetchSpy.mockResolvedValueOnce(textResponse('Bad Request', 400));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result).toEqual({ ok: false, retryable: false, statusCode: 400, retries: 0 });
@@ -77,7 +77,7 @@ describe('AssertlyClient', () => {
     fetchSpy.mockRejectedValueOnce(new Error('Network failure'));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10_000, 0);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result).toEqual({ ok: false, retryable: true, retries: 0 });
@@ -96,7 +96,7 @@ describe('AssertlyClient', () => {
     );
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new AssertlyClient('https://api.test', 'tok-123', 10, 0);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10, 0);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result).toEqual({ ok: false, retryable: true, retries: 0 });
@@ -107,7 +107,7 @@ describe('AssertlyClient', () => {
     it('returns true when health endpoint responds ok', async () => {
       fetchSpy.mockResolvedValueOnce(new Response('ok', { status: 200 }));
 
-      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const client = new SpecHiveClient('https://api.test', 'tok-123');
       const result = await client.checkHealth();
 
       expect(result).toBe(true);
@@ -118,7 +118,7 @@ describe('AssertlyClient', () => {
     it('returns false when health endpoint returns non-ok', async () => {
       fetchSpy.mockResolvedValueOnce(new Response('', { status: 503 }));
 
-      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const client = new SpecHiveClient('https://api.test', 'tok-123');
       const result = await client.checkHealth();
 
       expect(result).toBe(false);
@@ -127,7 +127,7 @@ describe('AssertlyClient', () => {
     it('returns false on network error', async () => {
       fetchSpy.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
-      const client = new AssertlyClient('https://api.test', 'tok-123');
+      const client = new SpecHiveClient('https://api.test', 'tok-123');
       const result = await client.checkHealth();
 
       expect(result).toBe(false);

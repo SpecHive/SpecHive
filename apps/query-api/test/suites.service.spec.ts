@@ -1,6 +1,6 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, RunId } from '@assertly/shared-types';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, RunId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { SuitesService } from '../src/modules/suites/suites.service';

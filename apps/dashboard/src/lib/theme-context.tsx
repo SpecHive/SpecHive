@@ -10,7 +10,7 @@ interface ThemeContextValue {
   resolvedTheme: ResolvedTheme;
 }
 
-const THEME_STORAGE_KEY = 'assertly-theme';
+const THEME_STORAGE_KEY = 'spechive-theme';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

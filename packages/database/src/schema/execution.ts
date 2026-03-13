@@ -9,7 +9,7 @@ import {
   ArtifactType,
   RunStatus,
   TestStatus,
-} from '@assertly/shared-types';
+} from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
 import {
   foreignKey,

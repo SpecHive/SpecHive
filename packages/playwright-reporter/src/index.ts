@@ -1,18 +1,6 @@
 import crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-import type { V1Event } from '@assertly/reporter-core-protocol';
-import {
-  ArtifactType,
-  RunStatus,
-  TestStatus,
-  asRunId,
-  asSuiteId,
-  asTestId,
-  sanitizeArtifactName,
-} from '@assertly/shared-types';
-import type { ArtifactId } from '@assertly/shared-types';
-import type { RunId, SuiteId, TestId } from '@assertly/shared-types';
 import type {
   FullConfig,
   Suite,
@@ -21,10 +9,22 @@ import type {
   FullResult,
   Reporter,
 } from '@playwright/test/reporter';
+import type { V1Event } from '@spechive/reporter-core-protocol';
+import {
+  ArtifactType,
+  RunStatus,
+  TestStatus,
+  asRunId,
+  asSuiteId,
+  asTestId,
+  sanitizeArtifactName,
+} from '@spechive/shared-types';
+import type { ArtifactId } from '@spechive/shared-types';
+import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 
 import { detectCi } from './ci-detect.js';
-import { AssertlyClient } from './client.js';
-import type { AssertlyReporterConfig } from './types.js';
+import { SpecHiveClient } from './client.js';
+import type { SpecHiveReporterConfig } from './types.js';
 
 const MAX_ERROR_MESSAGE_LENGTH = 10_000;
 const MAX_STACK_TRACE_LENGTH = 50_000;
@@ -50,10 +50,10 @@ function parseBoolean(value: string | undefined, defaultValue: boolean): boolean
   return normalized === 'true' || normalized === '1';
 }
 
-function resolveConfig(config: AssertlyReporterConfig): ResolvedConfig {
-  const apiUrl = config.apiUrl ?? process.env.ASSERTLY_API_URL;
-  const projectToken = config.projectToken ?? process.env.ASSERTLY_PROJECT_TOKEN;
-  const enabled = config.enabled ?? parseBoolean(process.env.ASSERTLY_ENABLED, true);
+function resolveConfig(config: SpecHiveReporterConfig): ResolvedConfig {
+  const apiUrl = config.apiUrl ?? process.env.SPECHIVE_API_URL;
+  const projectToken = config.projectToken ?? process.env.SPECHIVE_PROJECT_TOKEN;
+  const enabled = config.enabled ?? parseBoolean(process.env.SPECHIVE_ENABLED, true);
 
   const base = {
     timeout: config.timeout ?? 30_000,
@@ -67,8 +67,8 @@ function resolveConfig(config: AssertlyReporterConfig): ResolvedConfig {
   if (!apiUrl || !projectToken) {
     if (enabled) {
       console.warn(
-        '[assertly] Reporter disabled: missing apiUrl or projectToken. ' +
-          'Set ASSERTLY_API_URL and ASSERTLY_PROJECT_TOKEN env vars, or pass them in reporter config.',
+        '[spechive] Reporter disabled: missing apiUrl or projectToken. ' +
+          'Set SPECHIVE_API_URL and SPECHIVE_PROJECT_TOKEN env vars, or pass them in reporter config.',
       );
     }
     return { ...base, apiUrl: '', projectToken: '', enabled: false };
@@ -77,9 +77,9 @@ function resolveConfig(config: AssertlyReporterConfig): ResolvedConfig {
   return { ...base, apiUrl, projectToken, enabled };
 }
 
-export default class AssertlyReporter implements Reporter {
+export default class SpecHiveReporter implements Reporter {
   private readonly config: ResolvedConfig;
-  private readonly client: AssertlyClient;
+  private readonly client: SpecHiveClient;
   private runId!: RunId;
   private readonly suiteMap = new Map<Suite, SuiteId>();
   private readonly testTracker = new Map<
@@ -100,9 +100,9 @@ export default class AssertlyReporter implements Reporter {
   private eventsFailed = 0;
   private retriesTotal = 0;
 
-  constructor(config: AssertlyReporterConfig = {}) {
+  constructor(config: SpecHiveReporterConfig = {}) {
     this.config = resolveConfig(config);
-    this.client = new AssertlyClient(
+    this.client = new SpecHiveClient(
       this.config.apiUrl,
       this.config.projectToken,
       this.config.timeout,
@@ -121,10 +121,10 @@ export default class AssertlyReporter implements Reporter {
     if (!healthy) {
       if (this.config.failOnConnectionError) {
         throw new Error(
-          `[assertly] Cannot reach ${this.config.apiUrl}/health — aborting because failOnConnectionError is enabled`,
+          `[spechive] Cannot reach ${this.config.apiUrl}/health — aborting because failOnConnectionError is enabled`,
         );
       }
-      console.warn(`[assertly] Cannot reach ${this.config.apiUrl}/health — events may be lost`);
+      console.warn(`[spechive] Cannot reach ${this.config.apiUrl}/health — events may be lost`);
     }
 
     this.runId = asRunId(crypto.randomUUID());
@@ -197,7 +197,7 @@ export default class AssertlyReporter implements Reporter {
     await this.waitForDrain();
 
     console.warn(
-      `[assertly] Run complete: ${this.eventsSent} sent, ${this.eventsFailed} failed, ${this.retriesTotal} retries`,
+      `[spechive] Run complete: ${this.eventsSent} sent, ${this.eventsFailed} failed, ${this.retriesTotal} retries`,
     );
   }
 
@@ -312,13 +312,13 @@ export default class AssertlyReporter implements Reporter {
 
       if (buffer.length > ARTIFACT_SIZE_LIMIT) {
         console.error(
-          `[assertly] Skipping artifact "${attachment.name}" (${buffer.length} bytes exceeds ${ARTIFACT_SIZE_LIMIT} byte limit)`,
+          `[spechive] Skipping artifact "${attachment.name}" (${buffer.length} bytes exceeds ${ARTIFACT_SIZE_LIMIT} byte limit)`,
         );
         continue;
       }
 
       if (buffer.length > ARTIFACT_SIZE_WARNING) {
-        console.warn(`[assertly] Large artifact "${attachment.name}" (${buffer.length} bytes)`);
+        console.warn(`[spechive] Large artifact "${attachment.name}" (${buffer.length} bytes)`);
       }
 
       const contentType = attachment.contentType ?? 'application/octet-stream';
@@ -333,7 +333,7 @@ export default class AssertlyReporter implements Reporter {
       });
 
       if (!presign) {
-        console.warn(`[assertly] Failed to get presigned URL for artifact "${attachment.name}"`);
+        console.warn(`[spechive] Failed to get presigned URL for artifact "${attachment.name}"`);
         continue;
       }
 
@@ -343,7 +343,7 @@ export default class AssertlyReporter implements Reporter {
         contentType,
       );
       if (!uploaded) {
-        console.warn(`[assertly] Failed to upload artifact "${attachment.name}" to S3`);
+        console.warn(`[spechive] Failed to upload artifact "${attachment.name}" to S3`);
         continue;
       }
 
@@ -370,7 +370,7 @@ export default class AssertlyReporter implements Reporter {
   private enqueue(event: V1Event): void {
     if (this.queue.length >= MAX_QUEUE_SIZE) {
       this.queue.shift();
-      console.warn('[assertly] Event queue full — dropping oldest event');
+      console.warn('[spechive] Event queue full — dropping oldest event');
     }
     this.queue.push(event);
     this.processQueue();
@@ -390,7 +390,7 @@ export default class AssertlyReporter implements Reporter {
         this.eventsSent++;
       } else {
         this.eventsFailed++;
-        console.warn(`[assertly] Event ${event.eventType} failed after retries`);
+        console.warn(`[spechive] Event ${event.eventType} failed after retries`);
       }
       this.retriesTotal += result.retries ?? 0;
     }
@@ -412,7 +412,7 @@ export default class AssertlyReporter implements Reporter {
       const timeout = setTimeout(() => {
         const remaining = this.queue.length;
         if (remaining > 0) {
-          console.warn(`[assertly] Flush timeout — ${remaining} events unsent`);
+          console.warn(`[spechive] Flush timeout — ${remaining} events unsent`);
         }
         this.drainResolve = null;
         resolve();
@@ -467,4 +467,4 @@ function mapRunStatus(status: FullResult['status']): RunStatus {
   }
 }
 
-export type { AssertlyReporterConfig } from './types.js';
+export type { SpecHiveReporterConfig } from './types.js';

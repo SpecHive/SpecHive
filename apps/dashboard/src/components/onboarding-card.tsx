@@ -72,8 +72,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   reporter: [
-    ['@assertly/playwright-reporter', {
-      apiUrl: 'https://your-assertly-instance.com',
+    ['@spechive/playwright-reporter', {
+      apiUrl: 'https://your-spechive-instance.com',
       token: '${tokenValue ?? '<YOUR_TOKEN>'}',
     }],
   ],
@@ -82,7 +82,7 @@ export default defineConfig({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Get started with Assertly</CardTitle>
+        <CardTitle>Get started with SpecHive</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Step 1: Create project */}
@@ -130,7 +130,7 @@ export default defineConfig({
             {currentStep === 3 && (
               <div className="mt-2">
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Add the Assertly reporter to your Playwright config:
+                  Add the SpecHive reporter to your Playwright config:
                 </p>
                 <div className="mb-3">
                   <p className="mb-1 text-xs font-medium text-muted-foreground">Your token</p>

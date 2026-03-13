@@ -1,14 +1,14 @@
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   DurationTrendPoint,
   FlakyTestSummary,
   PassRateTrendPoint,
   ProjectAnalyticsSummary,
-} from '@assertly/api-types';
-import type { Database } from '@assertly/database';
-import { runs, tests, setTenantContext } from '@assertly/database';
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId } from '@assertly/shared-types';
-import { Inject, Injectable } from '@nestjs/common';
+} from '@spechive/api-types';
+import type { Database } from '@spechive/database';
+import { runs, tests, setTenantContext } from '@spechive/database';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 

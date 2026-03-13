@@ -1,6 +1,6 @@
-# @assertly/nestjs-common
+# @spechive/nestjs-common
 
-Shared NestJS modules and utilities for [Assertly](https://github.com/assertly-dev/assertly) backend services.
+Shared NestJS modules and utilities for [SpecHive](https://github.com/spechive-dev/spechive) backend services.
 
 ## Exported modules
 
@@ -24,7 +24,7 @@ Shared NestJS modules and utilities for [Assertly](https://github.com/assertly-d
 ## Usage
 
 ```typescript
-import { DatabaseModule, HealthModule, S3Module } from '@assertly/nestjs-common';
+import { DatabaseModule, HealthModule, S3Module } from '@spechive/nestjs-common';
 
 @Module({
   imports: [DatabaseModule, HealthModule, S3Module],

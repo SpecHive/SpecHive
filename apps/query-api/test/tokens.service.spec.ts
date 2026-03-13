@@ -1,7 +1,7 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, ProjectId, ProjectTokenId } from '@assertly/shared-types';
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, ProjectId, ProjectTokenId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { TokensService } from '../src/modules/tokens/tokens.service';

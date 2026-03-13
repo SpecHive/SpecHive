@@ -1,8 +1,8 @@
-import type { Database } from '@assertly/database';
-import { DATABASE_CONNECTION, S3Service } from '@assertly/nestjs-common';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
+import type { Database } from '@spechive/database';
+import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
 import { sql } from 'drizzle-orm';
 
 import type { EnvConfig } from '../config/env.validation';

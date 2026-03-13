@@ -21,5 +21,5 @@ AS $$
   WHERE m.user_id = p_user_id;
 $$;--> statement-breakpoint
 
-GRANT EXECUTE ON FUNCTION authenticate_user_by_email(text) TO assertly_app;--> statement-breakpoint
-GRANT EXECUTE ON FUNCTION get_user_organizations(uuid) TO assertly_app;
+GRANT EXECUTE ON FUNCTION authenticate_user_by_email(text) TO spechive_app;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION get_user_organizations(uuid) TO spechive_app;

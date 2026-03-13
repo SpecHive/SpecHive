@@ -1,8 +1,8 @@
-import assertlyConfig from '@assertly/eslint-config';
+import spechiveConfig from '@spechive/eslint-config';
 
 export default [
   { ignores: ['**/dist/**', '**/build/**', '**/coverage/**', '**/.next/**'] },
-  ...assertlyConfig,
+  ...spechiveConfig,
   {
     files: ['**/*.js'],
     languageOptions: {

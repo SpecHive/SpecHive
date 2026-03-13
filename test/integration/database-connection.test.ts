@@ -8,7 +8,7 @@
  *   pnpm test:integration test/integration/database-connection.test.ts
  */
 
-import { asOrganizationId } from '@assertly/shared-types';
+import { asOrganizationId } from '@spechive/shared-types';
 import postgres from 'postgres';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 

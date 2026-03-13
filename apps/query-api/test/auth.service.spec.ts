@@ -1,8 +1,8 @@
-import { DATABASE_CONNECTION } from '@assertly/nestjs-common';
-import type { OrganizationId, UserId } from '@assertly/shared-types';
 import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { OrganizationId, UserId } from '@spechive/shared-types';
 import { verify } from 'argon2';
 import { jwtVerify } from 'jose';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -18,7 +18,7 @@ vi.mock('uuidv7', () => ({
   uuidv7: vi.fn().mockReturnValue('00000000-0000-7000-8000-000000000099'),
 }));
 
-vi.mock('@assertly/database', async (importOriginal) => {
+vi.mock('@spechive/database', async (importOriginal) => {
   const original = await importOriginal<Record<string, unknown>>();
   return { ...original, setTenantContext: vi.fn() };
 });
@@ -30,7 +30,7 @@ const secret = new TextEncoder().encode(JWT_SECRET);
 
 const MOCK_USER = {
   id: '00000000-0000-4000-a000-000000000001',
-  email: 'test@assertly.dev',
+  email: 'test@spechive.dev',
   password_hash: '$argon2id$hash',
   name: 'Test User',
 };
@@ -90,11 +90,11 @@ describe('AuthService', () => {
         .mockResolvedValueOnce([]); // store_refresh_token
       mockVerify.mockResolvedValue(true);
 
-      const result = await service.login('test@assertly.dev', 'password123');
+      const result = await service.login('test@spechive.dev', 'password123');
 
       expect(result.token).toBeDefined();
       expect(result.refreshToken).toBeDefined();
-      expect(result.user.email).toBe('test@assertly.dev');
+      expect(result.user.email).toBe('test@spechive.dev');
       expect(result.organization.id).toBe(MOCK_ORG.organization_id);
 
       // Verify the JWT contains the correct payload
@@ -116,7 +116,7 @@ describe('AuthService', () => {
       mockExecute.mockResolvedValueOnce([MOCK_USER]);
       mockVerify.mockResolvedValue(false);
 
-      await expect(service.login('test@assertly.dev', 'wrong')).rejects.toThrow(
+      await expect(service.login('test@spechive.dev', 'wrong')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -125,7 +125,7 @@ describe('AuthService', () => {
       mockExecute.mockResolvedValueOnce([MOCK_USER]).mockResolvedValueOnce([]);
       mockVerify.mockResolvedValue(true);
 
-      await expect(service.login('test@assertly.dev', 'password123')).rejects.toThrow(
+      await expect(service.login('test@spechive.dev', 'password123')).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -135,7 +135,7 @@ describe('AuthService', () => {
       mockVerify.mockResolvedValue(true);
 
       await expect(
-        service.login('test@assertly.dev', 'password123', 'non-existent-org-id'),
+        service.login('test@spechive.dev', 'password123', 'non-existent-org-id'),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -147,7 +147,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce([]); // store_refresh_token
       mockVerify.mockResolvedValue(true);
 
-      const result = await service.login('test@assertly.dev', 'password123', 'org-2');
+      const result = await service.login('test@spechive.dev', 'password123', 'org-2');
 
       expect(result.organization.id).toBe('org-2');
     });
@@ -163,7 +163,7 @@ describe('AuthService', () => {
         MOCK_USER.id as UserId,
         MOCK_ORG.organization_id as OrganizationId,
       );
-      expect(result.email).toBe('test@assertly.dev');
+      expect(result.email).toBe('test@spechive.dev');
     });
 
     it('throws 401 when user not found', async () => {

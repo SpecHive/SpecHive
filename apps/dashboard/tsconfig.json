@@ -1,5 +1,5 @@
 {
-  "extends": "@assertly/typescript-config/react.json",
+  "extends": "@spechive/typescript-config/react.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
