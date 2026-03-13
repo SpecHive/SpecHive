@@ -4,9 +4,17 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/assertly-dashboard.d.ts",
+      "import": "./dist/lib/assertly-dashboard.js"
+    },
+    "./style.css": "./dist/lib/assertly-dashboard.css"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && vite build --config vite.config.lib.ts",
+    "build:lib": "vite build --config vite.config.lib.ts",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run"
@@ -37,6 +45,12 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.9.3",
     "vite": "^7.0.0",
+    "vite-plugin-dts": "^4.0.0",
     "vitest": "^4.0.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.0.0"
   }
 }

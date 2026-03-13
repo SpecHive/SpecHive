@@ -134,6 +134,20 @@
       "when": 1773135000000,
       "tag": "0018_odd_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1773221197766,
+      "tag": "0019_harden_refresh_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1773315055000,
+      "tag": "0020_force_rls_test_attempts",
+      "breakpoints": true
     }
   ]
 }

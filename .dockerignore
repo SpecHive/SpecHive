@@ -3,8 +3,6 @@
 .env.*
 node_modules
 **/node_modules
-dist
-**/dist
 coverage
 **/coverage
 *.log
@@ -16,4 +14,6 @@ test/
 .github/
 docker/
 *.md
+dist
+**/dist
 *.tsbuildinfo

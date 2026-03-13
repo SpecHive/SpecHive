@@ -1,12 +1,15 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
-
 type OnTokenRefreshCallback = (token: string) => void;
 
 class ApiClient {
+  private baseUrl: string = import.meta.env.VITE_API_URL ?? '';
   private token: string | null = null;
   private onUnauthorized: (() => void) | null = null;
   private onTokenRefresh: OnTokenRefreshCallback | null = null;
   private refreshPromise: Promise<boolean> | null = null;
+
+  setBaseUrl(url: string): void {
+    this.baseUrl = url;
+  }
 
   setToken(token: string | null): void {
     this.token = token;
@@ -21,7 +24,8 @@ class ApiClient {
   }
 
   async get<T>(path: string, params?: Record<string, string>): Promise<T> {
-    const url = new URL(`${API_BASE_URL}${path}`);
+    this.assertConfigured();
+    const url = new URL(`${this.baseUrl}${path}`);
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         if (value !== undefined && value !== '') {
@@ -33,7 +37,7 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>(`${API_BASE_URL}${path}`, {
+    return this.request<T>(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -41,7 +45,7 @@ class ApiClient {
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>(`${API_BASE_URL}${path}`, {
+    return this.request<T>(`${this.baseUrl}${path}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -49,7 +53,15 @@ class ApiClient {
   }
 
   async delete<T>(path: string): Promise<T> {
-    return this.request<T>(`${API_BASE_URL}${path}`, { method: 'DELETE' });
+    return this.request<T>(`${this.baseUrl}${path}`, { method: 'DELETE' });
+  }
+
+  private assertConfigured(): void {
+    if (!this.baseUrl) {
+      throw new Error(
+        'ApiClient: baseUrl not configured. Call apiClient.setBaseUrl() before making requests.',
+      );
+    }
   }
 
   private async request<T>(url: string, init: RequestInit, isRetry = false): Promise<T> {
@@ -117,7 +129,7 @@ class ApiClient {
 
   private async doRefresh(): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
+      const response = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),

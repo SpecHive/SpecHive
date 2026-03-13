@@ -19,6 +19,7 @@ export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard
 export { DATABASE_CONNECTION, IS_PUBLIC_KEY } from './constants';
 
 export { DatabaseModule } from './database/database.module';
+export { DatabaseShutdownService } from './database/database-shutdown.service';
 
 export { S3Module } from './s3/s3.module';
 export { S3Service } from './s3/s3.service';
@@ -27,4 +28,8 @@ export type { S3ModuleConfig } from './s3/s3.constants';
 export { createS3ModuleOptions } from './s3/s3.factory';
 export type { S3FactoryEnvConfig } from './s3/s3.factory';
 
-export { createOutboxyAdapter } from './outboxy/index';
+export { createOutboxyAdapter, createOutboxyModuleConfig } from './outboxy/index';
+
+export { JwtAuthGuard, RolesGuard, CurrentUser, Public, Roles, ROLES_KEY } from './auth/index';
+export { JwtPayloadSchema } from './auth/index';
+export type { JwtPayload, UserContext } from './auth/index';

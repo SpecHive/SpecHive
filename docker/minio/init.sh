@@ -52,7 +52,8 @@ run_idempotent() {
       if echo "$OUTPUT" | grep -qi "already.*exist\|already.*attach"; then
         echo "${label}: already exists, skipping."
       else
-        echo "WARNING: ${label} failed: $OUTPUT" >&2
+        echo "ERROR: ${label} failed: $OUTPUT" >&2
+        exit 1
       fi
     }
 }

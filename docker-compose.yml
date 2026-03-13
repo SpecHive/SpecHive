@@ -78,7 +78,7 @@ services:
   # Outboxy (transactional outbox)
   # ---------------------------------------------------------------------------
   outboxy-migrate:
-    image: ghcr.io/outboxy/outboxy:v0.4.0
+    image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: on-failure
     networks:
       - assertly-network
@@ -90,7 +90,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-assertly}:${POSTGRES_PASSWORD:-assertly}@postgres:5432/${POSTGRES_DB:-assertly}
 
   outboxy-api:
-    image: ghcr.io/outboxy/outboxy:v0.4.0
+    image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: unless-stopped
     networks:
       - assertly-network
@@ -111,7 +111,7 @@ services:
         condition: service_healthy
 
   outboxy-worker:
-    image: ghcr.io/outboxy/outboxy:v0.4.0
+    image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: unless-stopped
     networks:
       - assertly-network

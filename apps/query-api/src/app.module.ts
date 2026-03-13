@@ -4,6 +4,8 @@ import {
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
   IsProductionModule,
+  JwtAuthGuard,
+  RolesGuard,
   S3Module,
   ThrottlerBehindProxyGuard,
 } from '@assertly/nestjs-common';
@@ -12,8 +14,6 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { AuthModule } from './modules/auth/auth.module';

@@ -15,15 +15,10 @@ import { NavLink } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
+import { usePlugins, type NavItem } from '@/lib/plugin-registry';
 import { useTheme, type Theme } from '@/lib/theme-context';
 import { cn } from '@/lib/utils';
 import type { Organization } from '@/types/api';
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -34,6 +29,9 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const { logout, user, organization, switchOrganization } = useAuth();
+  const plugins = usePlugins();
+  const pluginNavItems = plugins.flatMap((p) => p.navItems ?? []);
+  const allNavItems = [...navItems, ...pluginNavItems];
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -95,7 +93,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 p-4" aria-label="Main navigation">
-        {navItems.map(({ label, href, icon: Icon }) => (
+        {allNavItems.map(({ label, href, icon: Icon }) => (
           <NavLink
             key={href}
             to={href}

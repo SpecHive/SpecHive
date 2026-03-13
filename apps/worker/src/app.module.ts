@@ -1,5 +1,5 @@
 import {
-  createOutboxyAdapter,
+  createOutboxyModuleConfig,
   createS3ModuleOptions,
   DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
@@ -13,7 +13,6 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { PostgreSqlDialect, PostgreSqlInboxDialect } from '@outboxy/dialect-postgres';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 
 import { ArtifactCleanupModule } from './modules/artifact-cleanup/artifact-cleanup.module';
@@ -39,14 +38,7 @@ const GLOBAL_RATE_LIMIT_MAX = 200;
     HealthModule,
     DatabaseModule.forRootFromEnv(),
     OutboxyModule.forRootAsync({
-      useFactory: () => ({
-        dialect: new PostgreSqlDialect(),
-        adapter: createOutboxyAdapter(),
-        inbox: {
-          enabled: true,
-          dialect: new PostgreSqlInboxDialect(),
-        },
-      }),
+      useFactory: () => createOutboxyModuleConfig(),
       isGlobal: true,
     }),
     S3Module.forRootAsync({

@@ -3,6 +3,26 @@
   "version": "0.0.1",
   "private": true,
   "license": "AGPL-3.0-only",
+  "exports": {
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "default": "./dist/modules/index.js"
+    },
+    "./config": {
+      "types": "./dist/modules/config/env.validation.d.ts",
+      "default": "./dist/modules/config/env.validation.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "modules": [
+        "dist/modules/index.d.ts"
+      ],
+      "config": [
+        "dist/modules/config/env.validation.d.ts"
+      ]
+    }
+  },
   "description": "Assertly query API for dashboard read endpoints with JWT authentication",
   "scripts": {
     "build": "nest build",

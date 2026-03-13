@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router';
 
+import { usePlugins } from '@/lib/plugin-registry';
 import { cn } from '@/lib/utils';
 
 const settingsNavItems = [
@@ -8,13 +9,17 @@ const settingsNavItems = [
 ];
 
 export function SettingsLayout() {
+  const plugins = usePlugins();
+  const pluginSettingsItems = plugins.flatMap((p) => p.settingsNavItems ?? []);
+  const allSettingsItems = [...settingsNavItems, ...pluginSettingsItems];
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">Settings</h1>
       <div className="flex gap-8">
         <nav className="w-48 shrink-0">
           <ul className="space-y-1">
-            {settingsNavItems.map(({ label, href }) => (
+            {allSettingsItems.map(({ label, href }) => (
               <li key={href}>
                 <NavLink
                   to={href}

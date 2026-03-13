@@ -15,9 +15,9 @@ import { DatabaseShutdownService } from './database-shutdown.service';
 @Global()
 @Module({})
 export class DatabaseModule {
-  static forRootAsync(options: {
+  static forRootAsync<T extends unknown[]>(options: {
     inject: (InjectionToken | OptionalFactoryDependency)[];
-    useFactory: (...args: never[]) => unknown | Promise<unknown>;
+    useFactory: (...args: T) => unknown | Promise<unknown>;
   }): DynamicModule {
     return {
       module: DatabaseModule,

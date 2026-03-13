@@ -5,12 +5,16 @@ import postgres from 'postgres';
 
 import * as schema from './schema/index.js';
 
-export function createDbConnection(url: string, poolMax = 10) {
-  const client = postgres(url, {
+export function createPostgresClient(url: string, poolMax = 10) {
+  return postgres(url, {
     max: poolMax,
     idle_timeout: 20,
     connect_timeout: 10,
   });
+}
+
+export function createDbConnection(url: string, poolMax = 10) {
+  const client = createPostgresClient(url, poolMax);
   return drizzle(client, { schema });
 }
 
