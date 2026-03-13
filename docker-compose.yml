@@ -1,3 +1,6 @@
+# Pre-built images: use `docker compose -f docker-compose.yml -f docker-compose.prebuilt.yml up -d`
+# to pull from GHCR instead of building locally.
+
 name: assertly
 
 networks:

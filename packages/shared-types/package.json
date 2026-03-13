@@ -19,6 +19,26 @@
     "dev": "tsc --project tsconfig.json --watch",
     "test": "vitest run"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "packages/shared-types"
+  },
+  "keywords": [
+    "assertly",
+    "types",
+    "branded-ids",
+    "uuidv7",
+    "typescript"
+  ],
   "devDependencies": {
     "@assertly/typescript-config": "workspace:*",
     "typescript": "^5.9.3",

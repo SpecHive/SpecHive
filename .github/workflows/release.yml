@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: write
 
 concurrency:
   group: release-please
@@ -15,8 +16,178 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      paths_released: ${{ steps.release.outputs.paths_released }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  npm-publish:
+    needs: [release-please]
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9.15.9'
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r run build
+
+      # Layer 1: shared-types (leaf dependency)
+      - name: Publish @assertly/shared-types
+        if: contains(needs.release-please.outputs.paths_released, 'packages/shared-types')
+        run: pnpm --filter @assertly/shared-types publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Layer 2: packages that depend on shared-types
+      - name: Publish @assertly/reporter-core-protocol
+        if: contains(needs.release-please.outputs.paths_released, 'packages/reporter-core-protocol')
+        run: pnpm --filter @assertly/reporter-core-protocol publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @assertly/database
+        if: contains(needs.release-please.outputs.paths_released, 'packages/database')
+        run: pnpm --filter @assertly/database publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @assertly/api-types
+        if: contains(needs.release-please.outputs.paths_released, 'packages/api-types')
+        run: pnpm --filter @assertly/api-types publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Layer 3: nestjs-common (depends on shared-types + database)
+      - name: Publish @assertly/nestjs-common
+        if: contains(needs.release-please.outputs.paths_released, 'packages/nestjs-common')
+        run: pnpm --filter @assertly/nestjs-common publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Layer 4: NestJS apps (depend on nestjs-common)
+      - name: Publish @assertly/query-api
+        if: contains(needs.release-please.outputs.paths_released, 'apps/query-api')
+        run: pnpm --filter @assertly/query-api publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @assertly/ingestion-api
+        if: contains(needs.release-please.outputs.paths_released, 'apps/ingestion-api')
+        run: pnpm --filter @assertly/ingestion-api publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @assertly/worker
+        if: contains(needs.release-please.outputs.paths_released, 'apps/worker')
+        run: pnpm --filter @assertly/worker publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Layer 5: playwright-reporter (bundles deps, no chain dependency)
+      - name: Publish @assertly/playwright-reporter
+        if: contains(needs.release-please.outputs.paths_released, 'packages/playwright-reporter')
+        run: pnpm --filter @assertly/playwright-reporter publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Layer 6: dashboard
+      - name: Publish @assertly/dashboard
+        if: contains(needs.release-please.outputs.paths_released, 'apps/dashboard')
+        run: pnpm --filter @assertly/dashboard publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docker-publish:
+    needs: [release-please]
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - image: ingestion-api
+            dockerfile: apps/ingestion-api/Dockerfile
+            path: apps/ingestion-api
+          - image: worker
+            dockerfile: apps/worker/Dockerfile
+            path: apps/worker
+          - image: query-api
+            dockerfile: apps/query-api/Dockerfile
+            path: apps/query-api
+          - image: dashboard
+            dockerfile: apps/dashboard/Dockerfile
+            path: apps/dashboard
+          - image: migrate
+            dockerfile: apps/ingestion-api/Dockerfile
+            path: packages/database
+            target: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from release
+        id: version
+        run: |
+          # Use the tag from the released path, or fall back to sha
+          VERSION=$(echo '${{ needs.release-please.outputs.paths_released }}' | jq -r 'to_entries[] | select(.key == "${{ matrix.path }}") | .value' 2>/dev/null || echo "")
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ github.sha }}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/assertly-${{ matrix.image }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target || '' }}
+          push: ${{ contains(needs.release-please.outputs.paths_released, matrix.path) }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          secrets: npm_token=${{ secrets.NPM_TOKEN }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

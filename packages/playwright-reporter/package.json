@@ -31,7 +31,7 @@
     "directory": "packages/playwright-reporter"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "scripts": {
     "build": "tsup",

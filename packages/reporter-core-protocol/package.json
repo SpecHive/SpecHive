@@ -19,6 +19,26 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "packages/reporter-core-protocol"
+  },
+  "keywords": [
+    "assertly",
+    "reporter",
+    "protocol",
+    "events",
+    "test-reporting"
+  ],
   "dependencies": {
     "@assertly/shared-types": "workspace:*",
     "zod": "^4.0.0"

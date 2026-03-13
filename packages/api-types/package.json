@@ -17,6 +17,26 @@
     "build": "tsc --project tsconfig.json",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "packages/api-types"
+  },
+  "keywords": [
+    "assertly",
+    "api",
+    "types",
+    "responses",
+    "typescript"
+  ],
   "dependencies": {
     "@assertly/shared-types": "workspace:*"
   },

@@ -1,7 +1,6 @@
 {
   "name": "@assertly/dashboard",
   "version": "0.0.1",
-  "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
@@ -19,6 +18,26 @@
     "preview": "vite preview",
     "test": "vitest run"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "apps/dashboard"
+  },
+  "keywords": [
+    "assertly",
+    "dashboard",
+    "react",
+    "test-reporting",
+    "ui"
+  ],
   "dependencies": {
     "@assertly/api-types": "workspace:*",
     "@radix-ui/react-tooltip": "^1.2.8",

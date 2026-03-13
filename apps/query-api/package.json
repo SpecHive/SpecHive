@@ -1,7 +1,6 @@
 {
   "name": "@assertly/query-api",
   "version": "0.0.1",
-  "private": true,
   "license": "AGPL-3.0-only",
   "exports": {
     "./modules": {
@@ -24,6 +23,19 @@
     }
   },
   "description": "Assertly query API for dashboard read endpoints with JWT authentication",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "apps/query-api"
+  },
   "scripts": {
     "build": "nest build",
     "typecheck": "tsc --noEmit",
@@ -38,26 +50,36 @@
     "@assertly/shared-types": "workspace:*",
     "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.0",
+    "argon2": "^0.44.0",
+    "jose": "^6.0.0",
+    "uuidv7": "^1.0.2",
+    "zod": "^4.0.0"
+  },
+  "peerDependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
     "@nestjs/throttler": "^6.0.0",
-    "argon2": "^0.44.0",
     "drizzle-orm": "^0.45.0",
-    "jose": "^6.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "uuidv7": "^1.0.2",
-    "zod": "^4.0.0"
+    "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@assertly/typescript-config": "workspace:*",
     "@nestjs/cli": "^11.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
+    "@nestjs/throttler": "^6.0.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "drizzle-orm": "^0.45.0",
     "fastify": "^5.8.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"
   }

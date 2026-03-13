@@ -33,6 +33,28 @@
     "db:seed": "tsx src/seed.ts",
     "perf:baseline": "tsx src/perf-baseline.ts"
   },
+  "files": [
+    "dist",
+    "drizzle",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/assertly-dev/assertly",
+    "directory": "packages/database"
+  },
+  "keywords": [
+    "assertly",
+    "database",
+    "drizzle",
+    "postgresql",
+    "migrations",
+    "rls"
+  ],
   "dependencies": {
     "@assertly/shared-types": "workspace:*",
     "argon2": "^0.44.0",
