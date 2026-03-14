@@ -7,6 +7,7 @@ const mockFetch = vi.fn();
 beforeEach(() => {
   mockFetch.mockReset();
   vi.stubGlobal('fetch', mockFetch);
+  apiClient.setBaseUrl('http://localhost:3000');
   apiClient.setToken(null);
   apiClient.setOnUnauthorized(null);
   apiClient.setOnTokenRefresh(null);
