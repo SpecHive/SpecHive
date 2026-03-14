@@ -1,0 +1,53 @@
+# Changelog
+
+## [0.0.2](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.1...dashboard-v0.0.2) (2026-03-14)
+
+
+### Features
+
+* add barrel exports, plugin system, and cloud extension points ([2cb0c9b](https://github.com/SpecHive/SpecHive/commit/2cb0c9b734550bbdf0ac72edf0db015b39faec93))
+* add npm token secrets to docker builds, upgrade outboxy to v0.4.0 ([3f59e5f](https://github.com/SpecHive/SpecHive/commit/3f59e5f823acc406c35eaa23d8ca199e7aabc3df))
+* add organization switcher endpoint and sidebar dropdown ([e839de6](https://github.com/SpecHive/SpecHive/commit/e839de6114e6684ea264c2fd21efa54d193c9c39))
+* **api:** project creation and token lifecycle management ([bf95b27](https://github.com/SpecHive/SpecHive/commit/bf95b2785569d656941c81cea806b67d68a65214))
+* connect dashboard to query-api with real auth and data ([c8133e6](https://github.com/SpecHive/SpecHive/commit/c8133e6d7a58a3d4e572b727c2dec67999511a1c))
+* dashboard audit fixes, api-types package, worker auto-discovery, capabilities endpoint ([9ab143f](https://github.com/SpecHive/SpecHive/commit/9ab143ffd7bdb199db064fd1d7d810cf2c0f5364))
+* **dashboard:** add analytics charts, server-side KPIs, and trend visualizations ([3088e70](https://github.com/SpecHive/SpecHive/commit/3088e7090c89c91f07f94ea7461b93c40e6eb390))
+* **dashboard:** add error boundary for graceful rendering error recovery ([b2de9bc](https://github.com/SpecHive/SpecHive/commit/b2de9bcb389fdc3cee12e099abcd39013d78473b))
+* **dashboard:** add KPI tooltips, fix flaky analytics query ([6fb723a](https://github.com/SpecHive/SpecHive/commit/6fb723a461ee87023e31b9802cbbfc091306a7d1))
+* **dashboard:** add suite tree view with filtering on run detail page ([db18195](https://github.com/SpecHive/SpecHive/commit/db18195daebec8d667a0a66d589d347ed71baef8))
+* **dashboard:** add theme cycling support ([dac6f73](https://github.com/SpecHive/SpecHive/commit/dac6f738eca23ef0c33b1ba57c415a45df176da5))
+* **dashboard:** add toasts, search, sorting, and auth expiry UX ([0dba55d](https://github.com/SpecHive/SpecHive/commit/0dba55d9f99e8f9b1716e503c34752c26c19e512))
+* **dashboard:** display run name in runs list, detail page, and dashboard ([c6633f6](https://github.com/SpecHive/SpecHive/commit/c6633f6d9a7ff5ae25b8cc979054500b8f4340a8))
+* **dashboard:** persist jwt in session storage to survive page refresh ([4121360](https://github.com/SpecHive/SpecHive/commit/4121360633807a71ebb3f1821d7060fd69c19c33))
+* **dashboard:** shared project context, page header, and token management ([5449d3c](https://github.com/SpecHive/SpecHive/commit/5449d3cd2b29536b0b3e9d66d3a3120b861a4816))
+* **database:** add name column to runs table ([1377b85](https://github.com/SpecHive/SpecHive/commit/1377b85afabde15ed32464a26e8ba938dc50d340))
+* **platform:** add automatic CI environment detection for test runs ([da2e126](https://github.com/SpecHive/SpecHive/commit/da2e1267e0d491ae37ee2e93a1bc8a67b939a8ed))
+* **platform:** add organization member management and invitation system ([61fc96d](https://github.com/SpecHive/SpecHive/commit/61fc96ddf51878e0ebbf15baa3befabc40db96f8))
+* **platform:** add test retry attempt tracking with per-attempt visibility ([e3c3358](https://github.com/SpecHive/SpecHive/commit/e3c3358575486001976f6e8c463582702834751a))
+* **platform:** add user profile management with password change ([928c470](https://github.com/SpecHive/SpecHive/commit/928c47096f426c13261ae4bc054493fedcb73b48))
+* **platform:** add user registration with onboarding flow ([b78287f](https://github.com/SpecHive/SpecHive/commit/b78287fc063d33c7f794d3a2753aa4489e5aaffe))
+* **query-api:** add analytics backend with aggregation endpoints ([891d513](https://github.com/SpecHive/SpecHive/commit/891d5139297ee33fb898c9464f79abf738021b3f))
+* **query-api:** add suites list endpoint for run suite hierarchy ([b5d83a0](https://github.com/SpecHive/SpecHive/commit/b5d83a0cd236c7ccaf6aabdb8c2240465869fedf))
+
+
+### Bug Fixes
+
+* address audit findings for config, dry, type safety, tests, and architecture ([1583d68](https://github.com/SpecHive/SpecHive/commit/1583d68ee951b435daaf5aeff89cfa301e496a54))
+* **dashboard,query-api:** fix login status code, remove dead links, show user info in sidebar ([25bc791](https://github.com/SpecHive/SpecHive/commit/25bc791b17ffbbb17e1e7a3e5451ac094e0e2314))
+* **dashboard:** render stack trace field instead of error message in trace section ([259cebc](https://github.com/SpecHive/SpecHive/commit/259cebcc2dc2bffd088ff1e168128a1cf9e39055))
+* **platform:** critical audit fixes — Dockerfiles, CI, artifact states, timing oracle, deps ([073e88b](https://github.com/SpecHive/SpecHive/commit/073e88bfa2671760d06ee251fc5e412acf5fdedd))
+* **platform:** post-audit remediation — type safety, DRY, and defense-in-depth ([49c91f7](https://github.com/SpecHive/SpecHive/commit/49c91f7c9f58d76096acc85af20288c3122e49a2))
+* resolve all critical sprint 0 audit findings ([87e3237](https://github.com/SpecHive/SpecHive/commit/87e3237ab494090fca12328340161f40cf1aa334))
+* resolve code quality findings for error filter, dry, validation, architecture ([41f8a6c](https://github.com/SpecHive/SpecHive/commit/41f8a6c0e88e244440bb5dea25db074798a299ef))
+* resolve infrastructure findings for dockerfiles, ci, nginx, dependencies ([18e06a0](https://github.com/SpecHive/SpecHive/commit/18e06a0600ff83551923626c4648148e90d66c4b))
+* resolve sprint 0 audit findings across monorepo ([945a319](https://github.com/SpecHive/SpecHive/commit/945a319a92db62c311ac79b6154a8f8f4fee850b))
+* **security:** add refresh tokens, rate limiting, and tenant isolation tests ([34c41ef](https://github.com/SpecHive/SpecHive/commit/34c41efaba12ccff820acc2a5593d4238da1f3c0))
+* **test:** set baseUrl in api-client tests for CI environment ([d747242](https://github.com/SpecHive/SpecHive/commit/d747242b01b219637792794a8527288f10470327))
+
+
+### Refactoring
+
+* extract shared nestjs-common package, upgrade dashboard to vite 7 + nginx ([a733eab](https://github.com/SpecHive/SpecHive/commit/a733eab76472eb1afb407162baf08c85bcf75bf1))
+* harden security, extract shared configs, and add org_id to project_tokens ([0845e3c](https://github.com/SpecHive/SpecHive/commit/0845e3c2d0c3f23fc71187b5558fe55c21816040))
+* harden token hashing, extract shared bootstrap, and propagate org ids ([31a653b](https://github.com/SpecHive/SpecHive/commit/31a653bc9b6e828407cd0ab1991fd9b6853fcc00))
+* **platform:** extract shared infra, add runtime validation, DRY patterns ([8f06a56](https://github.com/SpecHive/SpecHive/commit/8f06a5619692d3b786d421c054bc6dd92897ccb6))
