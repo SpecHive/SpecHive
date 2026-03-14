@@ -6,3 +6,4 @@ coverage
 .turbo
 pnpm-lock.yaml
 *.lock
+CHANGELOG.md
