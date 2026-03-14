@@ -215,7 +215,7 @@ jobs:
           DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:unit
         env:
           DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
@@ -265,6 +265,9 @@ jobs:
       - name: Build database
         run: pnpm --filter @spechive/database build
 
+      - name: Build nestjs-common
+        run: pnpm --filter @spechive/nestjs-common build
+
       - name: Start Docker Compose stack
         run: docker compose -f .github/docker-compose.ci.yml up -d
 
@@ -287,6 +290,7 @@ jobs:
         run: pnpm test:integration
         env:
           DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
+          APP_DATABASE_URL: postgresql://spechive_app:spechive_app@localhost:5432/spechive
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
           MINIO_ENDPOINT: localhost:9000
