@@ -1,8 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectCi } from '../src/ci-detect.js';
 
 describe('detectCi', () => {
+  beforeEach(() => {
+    vi.stubEnv('GITHUB_ACTIONS', '');
+    vi.stubEnv('GITLAB_CI', '');
+    vi.stubEnv('JENKINS_URL', '');
+    vi.stubEnv('CIRCLECI', '');
+    vi.stubEnv('TF_BUILD', '');
+    vi.stubEnv('CI', '');
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
