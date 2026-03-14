@@ -1,7 +1,6 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { createParamDecorator, InternalServerErrorException } from '@nestjs/common';
-
-import type { ProjectContext } from '../guards/project-token.guard';
+import type { ProjectContext } from '@spechive/nestjs-common';
 
 export const CurrentProject = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): ProjectContext => {

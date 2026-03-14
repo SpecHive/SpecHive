@@ -1,8 +1,7 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { InternalServerErrorException } from '@nestjs/common';
+import type { ProjectContext } from '@spechive/nestjs-common';
 import { describe, it, expect } from 'vitest';
-
-import type { ProjectContext } from '../src/guards/project-token.guard';
 
 // Import the factory function that createParamDecorator wraps.
 // createParamDecorator stores the factory in the decorator metadata but the

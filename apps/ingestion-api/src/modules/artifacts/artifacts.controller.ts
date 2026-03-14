@@ -1,9 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ZodValidationPipe } from '@spechive/nestjs-common';
+import { ProjectTokenGuard, ZodValidationPipe } from '@spechive/nestjs-common';
+import type { ProjectContext } from '@spechive/nestjs-common';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
-import { ProjectTokenGuard } from '../../guards/project-token.guard';
-import type { ProjectContext } from '../../guards/project-token.guard';
 
 import { ArtifactsService } from './artifacts.service';
 import { PresignRequestSchema } from './presign-request.schema';

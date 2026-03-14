@@ -296,7 +296,7 @@ const UNIT_TESTS = [
 const PROJECTS: ProjectConfig[] = [
   {
     name: 'Frontend E2E',
-    runCount: 18,
+    runCount: 75,
     testsPerRun: { min: 15, max: 30 },
     suiteConfig: { depth: 3, suitesPerLevel: 3 },
     artifactTypes: [ArtifactType.Screenshot, ArtifactType.Trace, ArtifactType.Video],
@@ -306,7 +306,7 @@ const PROJECTS: ProjectConfig[] = [
   },
   {
     name: 'Backend API',
-    runCount: 16,
+    runCount: 60,
     testsPerRun: { min: 20, max: 40 },
     suiteConfig: { depth: 2, suitesPerLevel: 4 },
     artifactTypes: [ArtifactType.Log],
@@ -316,7 +316,7 @@ const PROJECTS: ProjectConfig[] = [
   },
   {
     name: 'Unit Tests',
-    runCount: 15,
+    runCount: 90,
     testsPerRun: { min: 50, max: 100 },
     suiteConfig: { depth: 2, suitesPerLevel: 5 },
     artifactTypes: [],

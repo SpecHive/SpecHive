@@ -1,11 +1,10 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { ProjectTokenGuard } from '@spechive/nestjs-common';
+import type { ProjectContext } from '@spechive/nestjs-common';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-import { ProjectTokenGuard } from '../src/guards/project-token.guard';
-import type { ProjectContext } from '../src/guards/project-token.guard';
 
 vi.mock('argon2', () => ({
   verify: vi.fn(),

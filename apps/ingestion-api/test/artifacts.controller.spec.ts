@@ -6,10 +6,10 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { AllExceptionsFilter, IS_PRODUCTION, S3Service } from '@spechive/nestjs-common';
+import { ProjectTokenGuard } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
-import { ProjectTokenGuard } from '../src/guards/project-token.guard';
 import { ArtifactsController } from '../src/modules/artifacts/artifacts.controller';
 import { ArtifactsService } from '../src/modules/artifacts/artifacts.service';
 

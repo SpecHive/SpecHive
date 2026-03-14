@@ -130,4 +130,19 @@ describe('bootstrapNestApp', () => {
     const adapter = createCall[1] as FastifyAdapter;
     expect(adapter).toBeInstanceOf(FastifyAdapter);
   });
+
+  it('calls fastifyPlugins callback when provided', async () => {
+    setupConfigMock();
+    const pluginsFn = vi.fn().mockResolvedValue(undefined);
+
+    await bootstrapNestApp({ module: FakeModule, fastifyPlugins: pluginsFn });
+
+    expect(pluginsFn).toHaveBeenCalledWith(mockApp);
+  });
+
+  it('does not fail when fastifyPlugins is omitted', async () => {
+    setupConfigMock();
+
+    await expect(bootstrapNestApp({ module: FakeModule })).resolves.toBeUndefined();
+  });
 });

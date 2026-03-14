@@ -13,6 +13,7 @@ export interface BootstrapOptions {
   bodyLimit?: number;
   cors?: boolean;
   cookies?: boolean;
+  fastifyPlugins?: (app: NestFastifyApplication) => Promise<void>;
 }
 
 export async function bootstrapNestApp(options: BootstrapOptions): Promise<void> {
@@ -28,6 +29,10 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   // type incompatibility with other Fastify plugins. This is a known Fastify issue.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(helmet as any);
+
+  if (options.fastifyPlugins) {
+    await options.fastifyPlugins(app);
+  }
 
   if (options.cookies) {
     const cookie = await import('@fastify/cookie');

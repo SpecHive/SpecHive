@@ -320,6 +320,42 @@ services:
       minio-init:
         condition: service_completed_successfully
 
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - spechive-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      PORT: '3003'
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
+      INGESTION_API_URL: http://ingestion-api:3000
+      QUERY_API_URL: http://query-api:3002
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3003/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      ingestion-api:
+        condition: service_healthy
+      query-api:
+        condition: service_healthy
+
   dashboard:
     build:
       context: .

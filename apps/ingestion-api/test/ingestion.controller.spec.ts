@@ -6,11 +6,11 @@ import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { AllExceptionsFilter, IS_PRODUCTION } from '@spechive/nestjs-common';
+import { ProjectTokenGuard } from '@spechive/nestjs-common';
+import type { ProjectContext } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
-import { ProjectTokenGuard } from '../src/guards/project-token.guard';
-import type { ProjectContext } from '../src/guards/project-token.guard';
 import { IngestionController } from '../src/modules/ingestion/ingestion.controller';
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 

@@ -9,12 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
+import { IS_PRODUCTION, ProjectTokenGuard, throwZodBadRequest } from '@spechive/nestjs-common';
+import type { ProjectContext } from '@spechive/nestjs-common';
 import { V1EventSchema } from '@spechive/reporter-core-protocol';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
-import { ProjectTokenGuard } from '../../guards/project-token.guard';
-import type { ProjectContext } from '../../guards/project-token.guard';
 
 import { IngestionService } from './ingestion.service';
 
