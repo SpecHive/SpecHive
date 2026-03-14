@@ -268,6 +268,12 @@ jobs:
       - name: Build nestjs-common
         run: pnpm --filter @spechive/nestjs-common build
 
+      - name: Build application services
+        run: |
+          pnpm --filter @spechive/ingestion-api build
+          pnpm --filter @spechive/worker build
+          pnpm --filter @spechive/query-api build
+
       - name: Start Docker Compose stack
         run: docker compose -f .github/docker-compose.ci.yml up -d
 
@@ -285,6 +291,35 @@ jobs:
         run: pnpm db:migrate
         env:
           DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
+
+      - name: Start application services
+        run: |
+          PORT=3000 node apps/ingestion-api/dist/main &
+          PORT=3001 node apps/worker/dist/main &
+          PORT=3002 node apps/query-api/dist/main &
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://spechive_app:spechive_app@localhost:5432/spechive
+          WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
+          TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
+          MINIO_ENDPOINT: localhost:9000
+          MINIO_PUBLIC_ENDPOINT: localhost:9000
+          MINIO_APP_ACCESS_KEY: spechive-app
+          MINIO_APP_SECRET_KEY: spechive-app-secret-key
+          MINIO_BUCKET: spechive-artifacts
+          MINIO_USE_SSL: 'false'
+          OUTBOXY_API_URL: http://localhost:3100
+          JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
+
+      - name: Wait for application services
+        run: |
+          echo "Waiting for ingestion-api on :3000..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3000/health/ready; do sleep 1; done'
+          echo "Waiting for worker on :3001..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3001/health/ready; do sleep 1; done'
+          echo "Waiting for query-api on :3002..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3002/health/ready; do sleep 1; done'
+          echo "All application services are healthy!"
 
       - name: Run full integration tests
         run: pnpm test:integration

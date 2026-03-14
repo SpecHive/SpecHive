@@ -105,11 +105,13 @@ services:
     image: ghcr.io/outboxy/outboxy:v1.0.0
     networks:
       - spechive-network
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     command: worker
     environment:
       DATABASE_URL: postgres://outboxy:outboxy@postgres:5432/spechive
       PUBLISHER_TYPE: http
-      PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
+      PUBLISHER_HTTP_DEFAULT_URL: http://host.docker.internal:3001/webhooks/outboxy
     healthcheck:
       test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
       interval: 15s
