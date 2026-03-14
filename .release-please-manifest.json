@@ -1,12 +1,12 @@
 {
-  "packages/shared-types": "0.0.1",
-  "packages/reporter-core-protocol": "0.0.1",
-  "packages/playwright-reporter": "0.0.1",
-  "packages/database": "0.0.1",
-  "packages/nestjs-common": "0.0.1",
-  "packages/api-types": "0.0.1",
-  "apps/query-api": "0.0.1",
-  "apps/ingestion-api": "0.0.1",
-  "apps/worker": "0.0.1",
-  "apps/dashboard": "0.0.1"
+  "packages/shared-types": "0.0.2",
+  "packages/reporter-core-protocol": "0.0.2",
+  "packages/playwright-reporter": "0.0.2",
+  "packages/database": "0.0.2",
+  "packages/nestjs-common": "0.0.2",
+  "packages/api-types": "0.0.2",
+  "apps/query-api": "0.0.2",
+  "apps/ingestion-api": "0.0.2",
+  "apps/worker": "0.0.2",
+  "apps/dashboard": "0.0.2"
 }

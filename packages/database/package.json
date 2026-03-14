@@ -1,6 +1,6 @@
 {
   "name": "@spechive/database",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "AGPL-3.0-only",
   "description": "Database schema, connection, and migrations for SpecHive",
   "type": "module",
