@@ -324,6 +324,9 @@ jobs:
           timeout 30 bash -c 'until curl -sf http://localhost:3002/health/ready; do sleep 1; done'
           echo "All application services are healthy!"
 
+      - name: Restart outboxy-worker to connect to host services
+        run: docker compose -f .github/docker-compose.ci.yml restart outboxy-worker
+
       - name: Run full integration tests
         run: pnpm test:integration
         env:
@@ -331,12 +334,15 @@ jobs:
           APP_DATABASE_URL: postgresql://spechive_app:spechive_app@localhost:5432/spechive
           WEBHOOK_SECRET: 'ci-test-webhook-secret-minimum-32-chars!!'
           TOKEN_HASH_KEY: 'ci-test-token-hash-key-minimum-32-chars!!'
+          JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
           MINIO_ENDPOINT: localhost:9000
+          MINIO_PUBLIC_ENDPOINT: localhost:9000
           MINIO_APP_ACCESS_KEY: spechive-app
           MINIO_APP_SECRET_KEY: spechive-app-secret-key
           MINIO_BUCKET: spechive-artifacts
           MINIO_USE_SSL: 'false'
           OUTBOXY_API_URL: http://localhost:3100
+          POSTGRES_CONTAINER: spechive-ci-postgres-1
 
       - name: Cleanup Docker Compose stack
         if: always()

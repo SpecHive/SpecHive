@@ -103,8 +103,9 @@ export class AuthService {
         );
         break;
       } catch (err: unknown) {
-        if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
-          const detail = (err as { detail?: string }).detail ?? '';
+        const pgErr = this.extractPgError(err);
+        if (pgErr?.code === '23505') {
+          const detail = pgErr.detail ?? '';
           if (detail.includes('email')) {
             throw new ConflictException('An account with this email already exists');
           }
@@ -180,8 +181,9 @@ export class AuthService {
         )`,
       );
     } catch (err: unknown) {
-      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
-        const detail = (err as { detail?: string }).detail ?? '';
+      const pgErr = this.extractPgError(err);
+      if (pgErr?.code === '23505') {
+        const detail = pgErr.detail ?? '';
         if (detail.includes('email')) {
           throw new ConflictException('An account with this email already exists. Please log in.');
         }
@@ -449,6 +451,20 @@ export class AuthService {
       slug: o.organization_slug,
       role: o.role as MembershipRole,
     }));
+  }
+
+  /** Extract PostgreSQL error from either a direct or Drizzle-wrapped error. */
+  private extractPgError(err: unknown): { code: string; detail: string | undefined } | null {
+    if (err instanceof Error && 'code' in err) {
+      return { code: (err as { code: string }).code, detail: (err as { detail?: string }).detail };
+    }
+    if (err instanceof Error && err.cause instanceof Error && 'code' in err.cause) {
+      return {
+        code: (err.cause as { code: string }).code,
+        detail: (err.cause as { detail?: string }).detail,
+      };
+    }
+    return null;
   }
 
   private normalizeEmail(email: string): string {

@@ -126,10 +126,12 @@ describe('Register with invitation', () => {
     });
 
     const email = `revoked-${randomBytes(4).toString('hex')}@test.dev`;
-    const regRes = await queryApi.auth.register(
-      { email, password: 'password123', name: 'Revoked Invite', inviteToken },
-      TEST_IP,
-    );
+    const regRes = await queryApi.auth.register({
+      email,
+      password: 'password123',
+      name: 'Revoked Invite',
+      inviteToken,
+    });
 
     expect(regRes.status).toBe(400);
   });
@@ -137,10 +139,12 @@ describe('Register with invitation', () => {
   it('rejects registration with invalid invite token', async () => {
     const email = `invalid-${randomBytes(4).toString('hex')}@test.dev`;
 
-    const regRes = await queryApi.auth.register(
-      { email, password: 'password123', name: 'Invalid Token', inviteToken: 'not-a-real-token' },
-      TEST_IP,
-    );
+    const regRes = await queryApi.auth.register({
+      email,
+      password: 'password123',
+      name: 'Invalid Token',
+      inviteToken: 'not-a-real-token',
+    });
 
     expect(regRes.status).toBe(400);
   });
@@ -157,10 +161,12 @@ describe('Register with invitation', () => {
     }
 
     const email = `expired-${randomBytes(4).toString('hex')}@test.dev`;
-    const regRes = await queryApi.auth.register(
-      { email, password: 'password123', name: 'Expired Invite', inviteToken },
-      TEST_IP,
-    );
+    const regRes = await queryApi.auth.register({
+      email,
+      password: 'password123',
+      name: 'Expired Invite',
+      inviteToken,
+    });
 
     expect(regRes.status).toBe(400);
   });
@@ -169,10 +175,12 @@ describe('Register with invitation', () => {
     const { token: inviteToken } = await createInvitation(ownerToken);
 
     // Try registering with the seeded user's email
-    const regRes = await queryApi.auth.register(
-      { email: SEED_EMAIL, password: 'password123', name: 'Duplicate', inviteToken },
-      TEST_IP,
-    );
+    const regRes = await queryApi.auth.register({
+      email: SEED_EMAIL,
+      password: 'password123',
+      name: 'Duplicate',
+      inviteToken,
+    });
 
     expect(regRes.status).toBe(409);
   });
