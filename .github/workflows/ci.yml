@@ -312,6 +312,7 @@ jobs:
           MINIO_BUCKET: spechive-artifacts
           MINIO_USE_SSL: 'false'
           OUTBOXY_API_URL: http://localhost:3100
+          WORKER_WEBHOOK_URL: http://host.docker.internal:3001/webhooks/outboxy
           JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
 
       - name: Wait for application services
@@ -323,9 +324,6 @@ jobs:
           echo "Waiting for query-api on :3002..."
           timeout 30 bash -c 'until curl -sf http://localhost:3002/health/ready; do sleep 1; done'
           echo "All application services are healthy!"
-
-      - name: Restart outboxy-worker to connect to host services
-        run: docker compose -f .github/docker-compose.ci.yml restart outboxy-worker
 
       - name: Run full integration tests
         run: pnpm test:integration
