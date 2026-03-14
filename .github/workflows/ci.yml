@@ -170,6 +170,9 @@ jobs:
       - name: Build database
         run: pnpm --filter @spechive/database build
 
+      - name: Build nestjs-common
+        run: pnpm --filter @spechive/nestjs-common build
+
       - name: Install psql
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
