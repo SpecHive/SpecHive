@@ -8,6 +8,18 @@
   "exports": {
     ".": "./index.mjs"
   },
+  "files": [
+    "index.mjs",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/eslint-config"
+  },
   "scripts": {},
   "dependencies": {
     "@eslint/js": "^9.0.0",

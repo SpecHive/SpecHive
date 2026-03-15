@@ -56,6 +56,19 @@ jobs:
       - name: Build all packages
         run: pnpm -r run build
 
+      # Layer 0: config packages (no @spechive/* dependencies)
+      - name: Publish @spechive/typescript-config
+        if: contains(needs.release-please.outputs.paths_released, 'packages/typescript-config')
+        run: pnpm --filter @spechive/typescript-config publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @spechive/eslint-config
+        if: contains(needs.release-please.outputs.paths_released, 'packages/eslint-config')
+        run: pnpm --filter @spechive/eslint-config publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       # Layer 1: shared-types (leaf dependency)
       - name: Publish @spechive/shared-types
         if: contains(needs.release-please.outputs.paths_released, 'packages/shared-types')

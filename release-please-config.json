@@ -10,6 +10,8 @@
     { "type": "perf", "section": "Performance" }
   ],
   "packages": {
+    "packages/typescript-config": {},
+    "packages/eslint-config": {},
     "packages/shared-types": {},
     "packages/reporter-core-protocol": {},
     "packages/playwright-reporter": {},

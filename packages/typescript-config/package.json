@@ -8,5 +8,19 @@
     "./nestjs.json": "./nestjs.json",
     "./react.json": "./react.json"
   },
+  "files": [
+    "base.json",
+    "nestjs.json",
+    "react.json",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/typescript-config"
+  },
   "scripts": {}
 }
