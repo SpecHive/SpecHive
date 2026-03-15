@@ -1,6 +1,6 @@
 {
-  "packages/typescript-config": "0.0.1",
-  "packages/eslint-config": "0.0.1",
+  "packages/typescript-config": "0.0.2",
+  "packages/eslint-config": "0.0.2",
   "packages/shared-types": "0.0.2",
   "packages/reporter-core-protocol": "0.0.2",
   "packages/playwright-reporter": "0.0.2",
