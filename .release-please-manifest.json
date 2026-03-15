@@ -4,7 +4,7 @@
   "packages/shared-types": "0.0.2",
   "packages/reporter-core-protocol": "0.0.2",
   "packages/playwright-reporter": "0.0.2",
-  "packages/database": "0.0.2",
+  "packages/database": "0.0.3",
   "packages/nestjs-common": "0.0.2",
   "packages/api-types": "0.0.2",
   "apps/query-api": "0.0.2",

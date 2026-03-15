@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/SpecHive/SpecHive/compare/database-v0.0.2...database-v0.0.3) (2026-03-15)
+
+
+### Bug Fixes
+
+* **database:** move drizzle-orm to peerDependencies ([5e1e43c](https://github.com/SpecHive/SpecHive/commit/5e1e43cfd9ec844af970f24488797d1d84c41b8a))
+
 ## [0.0.2](https://github.com/SpecHive/SpecHive/compare/database-v0.0.1...database-v0.0.2) (2026-03-14)
 
 
