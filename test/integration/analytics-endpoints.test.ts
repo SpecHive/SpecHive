@@ -12,7 +12,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { QueryApiClient } from '../helpers/api-clients';
 import {
-  QUERY_API_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_PROJECT_ID,
   SEED_EMAIL,
@@ -21,7 +21,7 @@ import {
 import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
 import { waitForService } from '../helpers/wait';
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 // Deterministic UUIDs for analytics test data (unique prefix to avoid collisions)
 const ANALYTICS_RUN_PREFIX = '01970000-aaaa-7000-8000-';
@@ -45,7 +45,7 @@ describe('Analytics endpoints', () => {
   beforeAll(async () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
 
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
     jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
 
     // Seed analytics test data: 5 runs across 10 days

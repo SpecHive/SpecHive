@@ -18,20 +18,20 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   waitForService,
   QueryApiClient,
-  QUERY_API_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_EMAIL,
   SEED_PASSWORD,
 } from '../helpers';
 
 const TEST_IP = `10.profile.${randomBytes(4).toString('hex')}`;
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Profile management', () => {
   let token: string;
 
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
     token = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
       organizationId: SEED_ORG_ID,
       forwardedIp: TEST_IP,
@@ -65,7 +65,7 @@ describe('Change password', () => {
   const newPassword = 'new-password-456';
 
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
   }, 30_000);
 
   it('rejects wrong current password', async () => {

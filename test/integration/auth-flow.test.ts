@@ -21,7 +21,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   waitForService,
   QueryApiClient,
-  QUERY_API_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_EMAIL,
   SEED_PASSWORD,
@@ -30,11 +30,11 @@ import {
 // Unique per test run to avoid stale throttle state from prior runs
 const TEST_IP = `10.auth.flow.${randomBytes(4).toString('hex')}`;
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Auth flow', () => {
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
   }, 30_000);
 
   it('rejects unauthenticated requests to protected endpoints (401)', async () => {

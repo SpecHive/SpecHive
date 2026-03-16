@@ -276,6 +276,7 @@ jobs:
           pnpm --filter @spechive/ingestion-api build
           pnpm --filter @spechive/worker build
           pnpm --filter @spechive/query-api build
+          pnpm --filter @spechive/gateway build
 
       - name: Start Docker Compose stack
         run: docker compose -f .github/docker-compose.ci.yml up -d
@@ -300,6 +301,7 @@ jobs:
           PORT=3000 node apps/ingestion-api/dist/main &
           PORT=3001 node apps/worker/dist/main &
           PORT=3002 node apps/query-api/dist/main &
+          PORT=3003 INGESTION_API_URL=http://localhost:3000 QUERY_API_URL=http://localhost:3002 CORS_ORIGIN=http://localhost:5173 node apps/gateway/dist/main &
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://spechive_app:spechive_app@localhost:5432/spechive
@@ -323,6 +325,8 @@ jobs:
           timeout 30 bash -c 'until curl -sf http://localhost:3001/health/ready; do sleep 1; done'
           echo "Waiting for query-api on :3002..."
           timeout 30 bash -c 'until curl -sf http://localhost:3002/health/ready; do sleep 1; done'
+          echo "Waiting for gateway on :3003..."
+          timeout 30 bash -c 'until curl -sf http://localhost:3003/health/ready; do sleep 1; done'
           echo "All application services are healthy!"
 
       - name: Run full integration tests
@@ -341,6 +345,7 @@ jobs:
           MINIO_USE_SSL: 'false'
           OUTBOXY_API_URL: http://localhost:3100
           POSTGRES_CONTAINER: spechive-ci-postgres-1
+          GATEWAY_URL: http://localhost:3003
 
       - name: Cleanup Docker Compose stack
         if: always()
@@ -399,3 +404,13 @@ jobs:
           secrets: npm_token=${{ secrets.NPM_TOKEN }}
           cache-from: type=gha,scope=query-api
           cache-to: type=gha,scope=query-api,mode=max
+
+      - name: Build gateway image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/gateway/Dockerfile
+          push: false
+          secrets: npm_token=${{ secrets.NPM_TOKEN }}
+          cache-from: type=gha,scope=gateway
+          cache-to: type=gha,scope=gateway,mode=max

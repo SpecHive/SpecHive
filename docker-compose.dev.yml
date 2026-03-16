@@ -9,21 +9,31 @@ secrets:
 
 services:
   postgres:
+    # Add non-internal network so Docker can publish the port to the host.
+    # The base compose puts postgres only on the `internal` (internal: true)
+    # network, which silently blocks host port-mapping.
+    networks:
+      - internal
+      - spechive-network
     ports:
       - '5432:5432'
 
   minio:
+    networks:
+      - internal
+      - spechive-network
     ports:
       - '9000:9000'
       - '9001:9001'
 
   outboxy-api:
+    networks:
+      - internal
+      - spechive-network
     ports:
       - '3100:3100'
 
   ingestion-api:
-    ports:
-      - '3000:3000'
     read_only: false
     build:
       context: .
@@ -40,6 +50,9 @@ services:
       - ./packages:/app/packages:ro
 
   worker:
+    networks:
+      - internal
+      - spechive-network
     ports:
       - '3001:3001'
     read_only: false
@@ -57,8 +70,6 @@ services:
       - ./packages:/app/packages:ro
 
   query-api:
-    ports:
-      - '3002:3002'
     read_only: false
     build:
       context: .
@@ -75,7 +86,7 @@ services:
 
   gateway:
     ports:
-      - '3003:3003'
+      - '3000:3003'
     read_only: false
     build:
       context: .

@@ -20,7 +20,7 @@ const QUERY_API_CWD = resolve(process.cwd(), 'apps/query-api');
 async function waitForReady(port: string, maxAttempts = 40, delayMs = 500): Promise<void> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const res = await fetch(`http://localhost:${port}/health`);
+      const res = await fetch(`http://127.0.0.1:${port}/health`);
       if (res.ok) return;
     } catch {
       // Not ready yet

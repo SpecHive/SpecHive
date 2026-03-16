@@ -6,9 +6,10 @@ SpecHive is a multi-tenant test reporting platform that ingests test results fro
 
 ```
 apps/
-  ingestion-api/   NestJS API — receives reporter events (port 3000)
-  worker/          NestJS worker — processes outbox events (port 3001)
-  query-api/       NestJS API — serve data to the dashboard (port 3002)
+  gateway/         NestJS API gateway — JWT auth, rate limiting, proxy (port 3000 externally)
+  ingestion-api/   NestJS API — receives reporter events (internal, behind gateway)
+  worker/          NestJS worker — processes outbox events (internal)
+  query-api/       NestJS API — serve data to the dashboard (internal, behind gateway)
   dashboard/       React/Vite SPA (port 5173)
 
 packages/
@@ -209,7 +210,7 @@ test/
 ├── unit-helpers/
 │   ├── handler-context.ts  # createHandlerContext() for worker handler specs
 │   ├── drizzle-mock.ts     # createMockInsertChain(), createMockDb()
-│   ├── mock-guards.ts      # MockProjectTokenGuard, MockThrottlerGuard
+│   ├── mock-guards.ts      # MockProjectTokenGuard, MockThrottlerGuard, MockGatewayTrustGuard
 │   ├── nestjs.ts           # createTestModule() wrapper
 │   └── index.ts
 ├── integration/            # Integration tests (require Docker stack)
@@ -229,14 +230,14 @@ test/
 ### Import paths
 
 ```typescript
-// Integration tests
-import { waitForService, SEED_ORG_ID, QueryApiClient } from '../../helpers';
+// Integration tests — all normal-flow tests go through GATEWAY_URL
+import { waitForService, SEED_ORG_ID, GATEWAY_URL, QueryApiClient } from '../../helpers';
 
 // Unit tests (handler specs)
 import { createHandlerContext } from '../../../test/unit-helpers';
 
 // Unit tests (controller specs)
-import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
+import { MockGatewayTrustGuard } from '../../../test/unit-helpers/mock-guards';
 ```
 
 ## Important rules

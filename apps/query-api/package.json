@@ -54,7 +54,6 @@
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
-    "@nestjs/throttler": "^6.0.0",
     "argon2": "^0.44.0",
     "drizzle-orm": "^0.45.0",
     "jose": "^6.0.0",

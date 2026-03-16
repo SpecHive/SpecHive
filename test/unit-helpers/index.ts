@@ -6,4 +6,4 @@ export {
   createMockUpdateChain,
 } from './drizzle-mock';
 export { createTestModule } from './nestjs';
-export { MockProjectTokenGuard, MockThrottlerGuard } from './mock-guards';
+export { MockProjectTokenGuard, MockThrottlerGuard, MockGatewayTrustGuard } from './mock-guards';

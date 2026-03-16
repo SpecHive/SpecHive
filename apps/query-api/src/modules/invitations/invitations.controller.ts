@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, HttpCode, Param, Post, Query, Body } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
 import type { InvitationId } from '@spechive/shared-types';
 import { InvitationStatus, MembershipRole } from '@spechive/shared-types';
 import { z } from 'zod';
@@ -8,7 +9,6 @@ import { paginationSchema, uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { Public } from '../../decorators/public.decorator';
 import { Roles } from '../../decorators/roles.decorator';
-import type { UserContext } from '../auth/types';
 
 import { InvitationsService } from './invitations.service';
 

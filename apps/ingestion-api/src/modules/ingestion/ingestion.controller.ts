@@ -1,15 +1,5 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Inject,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import { IS_PRODUCTION, ProjectTokenGuard, throwZodBadRequest } from '@spechive/nestjs-common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Inject, Post } from '@nestjs/common';
+import { IS_PRODUCTION, Public, throwZodBadRequest } from '@spechive/nestjs-common';
 import type { ProjectContext } from '@spechive/nestjs-common';
 import { V1EventSchema } from '@spechive/reporter-core-protocol';
 
@@ -17,11 +7,7 @@ import { CurrentProject } from '../../decorators/current-project.decorator';
 
 import { IngestionService } from './ingestion.service';
 
-const INGESTION_RATE_LIMIT_TTL_MS = 60_000;
-const INGESTION_RATE_LIMIT_MAX = 300;
-
 @Controller('v1')
-@Throttle({ default: { ttl: INGESTION_RATE_LIMIT_TTL_MS, limit: INGESTION_RATE_LIMIT_MAX } })
 export class IngestionController {
   constructor(
     private readonly ingestionService: IngestionService,
@@ -29,6 +15,7 @@ export class IngestionController {
   ) {}
 
   @Get('capabilities')
+  @Public()
   capabilities() {
     return {
       supportedVersions: ['1'],
@@ -47,7 +34,6 @@ export class IngestionController {
 
   @Post('events')
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(ProjectTokenGuard)
   async ingestEvent(@Body() body: unknown, @CurrentProject() project: ProjectContext) {
     const result = V1EventSchema.safeParse(body);
 

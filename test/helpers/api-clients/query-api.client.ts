@@ -5,7 +5,7 @@ import { ProjectsClient } from './projects.client';
 import { RunsClient } from './runs.client';
 import { TokensClient } from './tokens.client';
 
-/** Composed client for query-api (port 3002). */
+/** Composed client for query-api (gateway). */
 export class QueryApiClient {
   readonly auth: AuthClient;
   readonly projects: ProjectsClient;

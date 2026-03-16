@@ -12,8 +12,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Throttle } from '@nestjs/throttler';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
 import type { OrganizationId } from '@spechive/shared-types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -24,7 +24,6 @@ import type { EnvConfig } from '../config/env.validation';
 
 import { AuthService } from './auth.service';
 import { LoginRateLimitService } from './login-rate-limit.service';
-import type { UserContext } from './types';
 
 const COOKIE_NAME = 'spechive_rt';
 
@@ -85,7 +84,6 @@ export class AuthController {
     );
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('register')
   async register(
@@ -110,7 +108,6 @@ export class AuthController {
     return rest;
   }
 
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
   @HttpCode(200)
@@ -210,7 +207,6 @@ export class AuthController {
     return this.me(user);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('change-password')
   @HttpCode(200)
   async changePassword(

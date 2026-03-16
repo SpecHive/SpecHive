@@ -39,7 +39,6 @@
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
-    "@nestjs/throttler": "^6.0.0",
     "@outboxy/dialect-postgres": "^1.1.4",
     "@outboxy/sdk-nestjs": "^2.1.5",
     "argon2": "^0.44.0",

@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
 import type { ProjectId, ProjectTokenId } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import type { UserContext } from '../auth/types';
 
 import { TokensService } from './tokens.service';
 

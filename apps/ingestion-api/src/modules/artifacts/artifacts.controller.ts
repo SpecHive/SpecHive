@@ -1,5 +1,5 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { ProjectTokenGuard, ZodValidationPipe } from '@spechive/nestjs-common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { ProjectContext } from '@spechive/nestjs-common';
 
 import { CurrentProject } from '../../decorators/current-project.decorator';
@@ -14,7 +14,6 @@ export class ArtifactsController {
 
   @Post('presign')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(ProjectTokenGuard)
   async presign(
     @Body(new ZodValidationPipe(PresignRequestSchema)) body: PresignRequest,
     @CurrentProject() project: ProjectContext,

@@ -9,15 +9,11 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
 import { OutboxyBatchSchema } from '../../types/outboxy-envelope';
 import { ResultProcessorService } from '../result-processor/result-processor.service';
-
-const WEBHOOK_RATE_LIMIT_TTL_MS = 60_000;
-const WEBHOOK_RATE_LIMIT_MAX = 1_000;
 
 @Controller('webhooks')
 @UseGuards(WebhookAuthGuard)
@@ -31,7 +27,6 @@ export class WebhookReceiverController {
 
   @Post('outboxy')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { ttl: WEBHOOK_RATE_LIMIT_TTL_MS, limit: WEBHOOK_RATE_LIMIT_MAX } })
   async receiveOutboxyEvent(@Body() body: unknown) {
     const result = OutboxyBatchSchema.safeParse(body);
 

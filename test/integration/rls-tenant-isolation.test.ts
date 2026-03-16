@@ -41,13 +41,14 @@ describe('RLS tenant isolation', () => {
     // Verify database is reachable
     await superSql`SELECT 1`;
 
-    // Clean up any leftover test data (reverse dependency order)
+    // Clean up any leftover test data (reverse dependency order).
+    // Delete by both ID and slug to handle stale data from previously interrupted runs.
     await superSql`DELETE FROM artifacts WHERE id IN (${ARTIFACT_A_ID}, ${ARTIFACT_B_ID})`;
     await superSql`DELETE FROM tests WHERE id IN (${TEST_A_ID}, ${TEST_B_ID})`;
     await superSql`DELETE FROM suites WHERE id IN (${SUITE_A_ID}, ${SUITE_B_ID})`;
     await superSql`DELETE FROM runs WHERE id IN (${RUN_A_ID}, ${RUN_B_ID})`;
-    await superSql`DELETE FROM projects WHERE id IN (${PROJECT_A_ID}, ${PROJECT_B_ID})`;
-    await superSql`DELETE FROM organizations WHERE id IN (${ORG_A_ID}, ${ORG_B_ID})`;
+    await superSql`DELETE FROM projects WHERE organization_id IN (${ORG_A_ID}, ${ORG_B_ID})`;
+    await superSql`DELETE FROM organizations WHERE id IN (${ORG_A_ID}, ${ORG_B_ID}) OR slug IN ('org-a', 'org-b')`;
 
     // Seed two orgs with separate projects (as superuser, bypasses RLS)
     await superSql`

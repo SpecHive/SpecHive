@@ -35,3 +35,4 @@ export { JwtPayloadSchema } from './auth/index';
 export type { JwtPayload, UserContext } from './auth/index';
 export { ProjectTokenGuard } from './auth/index';
 export type { ProjectContext } from './auth/index';
+export { GatewayTrustGuard } from './auth/index';

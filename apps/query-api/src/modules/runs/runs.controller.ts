@@ -1,12 +1,12 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
 import { RunStatus } from '@spechive/shared-types';
 import type { ProjectId, RunId } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import type { UserContext } from '../auth/types';
 
 import { RunsService } from './runs.service';
 

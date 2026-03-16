@@ -19,8 +19,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   waitForService,
   QueryApiClient,
-  QUERY_API_URL,
-  INGESTION_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_EMAIL,
   SEED_PASSWORD,
@@ -28,13 +27,13 @@ import {
 
 const TEST_IP = `10.tok.rev.${randomBytes(4).toString('hex')}`;
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Token revocation', () => {
   let jwt: string;
 
   beforeAll(async () => {
-    await Promise.all([waitForService(QUERY_API_URL), waitForService(INGESTION_URL)]);
+    await waitForService(GATEWAY_URL);
     jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
       organizationId: SEED_ORG_ID,
       forwardedIp: TEST_IP,
@@ -64,7 +63,7 @@ describe('Token revocation', () => {
     const tokenId = tokenBody.id;
 
     // 3. Verify token works against ingestion-api (raw fetch — uses dynamic project token, not the standard one)
-    const ingestRes = await fetch(`${INGESTION_URL}/v1/events`, {
+    const ingestRes = await fetch(`${GATEWAY_URL}/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +80,7 @@ describe('Token revocation', () => {
     expect(revokeRes.status).toBe(204);
 
     // 5. Verify revoked token is rejected by ingestion-api (raw fetch — uses dynamic project token)
-    const revokedIngestRes = await fetch(`${INGESTION_URL}/v1/events`, {
+    const revokedIngestRes = await fetch(`${GATEWAY_URL}/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

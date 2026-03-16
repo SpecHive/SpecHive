@@ -14,7 +14,7 @@ import {
   SEED_ORG2_ID,
   SEED_EMAIL,
   SEED_PASSWORD,
-  QUERY_API_URL,
+  GATEWAY_URL,
 } from '../helpers/constants';
 import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
 import { waitForService } from '../helpers/wait';
@@ -29,12 +29,12 @@ describe('Cross-tenant analytics isolation', () => {
   let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
   let tokenA: string;
   let tokenB: string;
-  const queryApi = new QueryApiClient(QUERY_API_URL);
+  const queryApi = new QueryApiClient(GATEWAY_URL);
 
   beforeAll(async () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
 
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
 
     // Seed Org B project + run + suite + test
     await sql`

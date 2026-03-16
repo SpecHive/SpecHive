@@ -21,7 +21,7 @@ import { waitForService } from '../helpers/wait';
 // Configuration
 // ---------------------------------------------------------------------------
 
-const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://localhost:3100';
+const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://127.0.0.1:3100';
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
 const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'spechive-postgres-1';
 

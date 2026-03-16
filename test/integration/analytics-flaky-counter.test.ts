@@ -12,8 +12,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient, QueryApiClient } from '../helpers/api-clients';
 import {
-  INGESTION_URL,
-  QUERY_API_URL,
+  GATEWAY_URL,
   PROJECT_TOKEN,
   SEED_PROJECT_ID,
   SEED_EMAIL,
@@ -29,8 +28,8 @@ import {
 } from '../helpers/factories';
 import { waitForService, waitForRow } from '../helpers/wait';
 
-const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 const RUN_ID = crypto.randomUUID();
 const SUITE_ID = crypto.randomUUID();
@@ -44,8 +43,7 @@ describe('Flaky tests counter', () => {
   beforeAll(async () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
 
-    await waitForService(INGESTION_URL);
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
     jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
   }, 30_000);
 

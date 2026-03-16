@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
-import { INGESTION_URL, PROJECT_TOKEN, SEED_TOKEN_ID } from '../helpers/constants';
+import { GATEWAY_URL, PROJECT_TOKEN, SEED_TOKEN_ID } from '../helpers/constants';
 import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
 import {
   createRunStartEvent,
@@ -25,7 +25,7 @@ import {
 } from '../helpers/factories';
 import { waitForService, waitForRow } from '../helpers/wait';
 
-const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
+const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
 
 const RUN_ID = crypto.randomUUID();
 const SUITE_ID = crypto.randomUUID();
@@ -36,7 +36,7 @@ describe('End-to-end event flow', () => {
 
   beforeAll(async () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
-    await waitForService(INGESTION_URL);
+    await waitForService(GATEWAY_URL);
   }, 30_000);
 
   afterAll(async () => {

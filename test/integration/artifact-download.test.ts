@@ -21,8 +21,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 import { IngestionApiClient, QueryApiClient } from '../helpers/api-clients';
 import {
-  INGESTION_URL,
-  QUERY_API_URL,
+  GATEWAY_URL,
   PROJECT_TOKEN,
   SEED_PROJECT_ID,
   SEED_EMAIL,
@@ -39,8 +38,8 @@ import {
 } from '../helpers/factories';
 import { waitForService, poll } from '../helpers/wait';
 
-const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Artifact download', () => {
   const runId = randomUUID();
@@ -51,8 +50,7 @@ describe('Artifact download', () => {
   let jwtToken: string;
 
   beforeAll(async () => {
-    await waitForService(INGESTION_URL);
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
 
     // Ingest a complete test run with an artifact
     await ingestionApi.events.send(

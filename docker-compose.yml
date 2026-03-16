@@ -6,6 +6,9 @@ name: spechive
 networks:
   spechive-network:
     driver: bridge
+  internal:
+    driver: bridge
+    internal: true
 
 volumes:
   postgres-data:
@@ -24,7 +27,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
@@ -45,7 +48,7 @@ services:
     image: minio/minio:RELEASE.2025-02-18T16-25-55Z
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     command: server /data --console-address ":9001"
     volumes:
       - minio-data:/data
@@ -62,7 +65,7 @@ services:
   minio-init:
     image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     networks:
-      - spechive-network
+      - internal
     depends_on:
       minio:
         condition: service_healthy
@@ -84,7 +87,7 @@ services:
     image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: on-failure
     networks:
-      - spechive-network
+      - internal
     command: migrate
     depends_on:
       postgres:
@@ -96,7 +99,7 @@ services:
     image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     command: api
     environment:
       DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-spechive}
@@ -117,7 +120,7 @@ services:
     image: ghcr.io/outboxy/outboxy:v1.0.0
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     command: worker
     environment:
       DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-spechive}
@@ -151,7 +154,7 @@ services:
       secrets:
         - npm_token
     networks:
-      - spechive-network
+      - internal
     command: ['node', 'packages/database/dist/migrate.js']
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spechive}:${POSTGRES_PASSWORD:-spechive}@postgres:5432/${POSTGRES_DB:-spechive}
@@ -164,7 +167,7 @@ services:
   restrict-outboxy:
     image: postgres:16-alpine
     networks:
-      - spechive-network
+      - internal
     volumes:
       - ./docker/postgres/restrict-outboxy.sh:/restrict-outboxy.sh:ro
     entrypoint: ['sh', '/restrict-outboxy.sh']
@@ -191,7 +194,7 @@ services:
         - npm_token
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -239,7 +242,7 @@ services:
         - npm_token
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -283,7 +286,7 @@ services:
         - npm_token
     restart: unless-stopped
     networks:
-      - spechive-network
+      - internal
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -329,6 +332,7 @@ services:
     restart: unless-stopped
     networks:
       - spechive-network
+      - internal
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -375,7 +379,7 @@ services:
       - /var/cache/nginx
       - /var/run
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3002}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
       interval: 10s
@@ -383,5 +387,5 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      query-api:
+      gateway:
         condition: service_healthy

@@ -1,10 +1,10 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
 import type { ArtifactId } from '@spechive/shared-types';
 
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import type { UserContext } from '../auth/types';
 
 import { ArtifactsService } from './artifacts.service';
 

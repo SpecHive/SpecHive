@@ -34,3 +34,42 @@ export class MockThrottlerGuard {
     return true;
   }
 }
+
+interface UserContext {
+  userId: string;
+  organizationId: string;
+  role: string;
+}
+
+const DEFAULT_MOCK_USER_CONTEXT: UserContext = {
+  userId: '00000000-0000-4000-a000-000000000001',
+  organizationId: '00000000-0000-4000-a000-000000000099',
+  role: 'member',
+};
+
+const DEFAULT_GATEWAY_PROJECT_CONTEXT: ProjectContext = {
+  projectId: 'project-abc',
+  organizationId: '00000000-0000-4000-a000-000000000099',
+};
+
+/**
+ * Mock GatewayTrustGuard that always passes and injects mock user and/or project context.
+ */
+export class MockGatewayTrustGuard {
+  private readonly userContext: UserContext | undefined;
+  private readonly projectContext: ProjectContext | undefined;
+
+  constructor(opts?: { user?: UserContext; project?: ProjectContext }) {
+    this.userContext = opts?.user ?? DEFAULT_MOCK_USER_CONTEXT;
+    this.projectContext = opts?.project ?? DEFAULT_GATEWAY_PROJECT_CONTEXT;
+  }
+
+  canActivate(executionContext: {
+    switchToHttp(): { getRequest(): Record<string, unknown> };
+  }): boolean {
+    const request = executionContext.switchToHttp().getRequest();
+    if (this.userContext) request.user = this.userContext;
+    if (this.projectContext) request.projectContext = this.projectContext;
+    return true;
+  }
+}

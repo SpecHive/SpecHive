@@ -1,22 +1,18 @@
 import { ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { AllExceptionsFilter, IS_PRODUCTION } from '@spechive/nestjs-common';
-import { ProjectTokenGuard } from '@spechive/nestjs-common';
-import type { ProjectContext } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
-import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
+import { MockGatewayTrustGuard } from '../../../test/unit-helpers/mock-guards';
 import { IngestionController } from '../src/modules/ingestion/ingestion.controller';
 import { IngestionService } from '../src/modules/ingestion/ingestion.service';
 
-const MOCK_PROJECT_CONTEXT: ProjectContext = {
-  projectId: 'project-abc' as ProjectContext['projectId'],
-  organizationId: '00000000-0000-4000-a000-000000000099' as ProjectContext['organizationId'],
+const MOCK_PROJECT_CONTEXT = {
+  projectId: 'project-abc',
+  organizationId: '00000000-0000-4000-a000-000000000099',
 };
 
 const VALID_PAYLOAD = {
@@ -50,27 +46,15 @@ function buildModule(nodeEnv: string) {
         },
         { provide: IS_PRODUCTION, useValue: nodeEnv === 'production' },
         {
-          provide: DATABASE_CONNECTION,
-          useValue: {},
-        },
-        {
-          provide: ProjectTokenGuard,
-          useClass: MockProjectTokenGuard,
-        },
-        {
-          provide: ThrottlerGuard,
-          useClass: MockThrottlerGuard,
+          provide: APP_GUARD,
+          useClass: MockGatewayTrustGuard,
         },
         {
           provide: APP_FILTER,
           useFactory: () => new AllExceptionsFilter(mockConfigService as unknown as ConfigService),
         },
       ],
-    })
-      .overrideGuard(ProjectTokenGuard)
-      .useClass(MockProjectTokenGuard)
-      .overrideGuard(ThrottlerGuard)
-      .useClass(MockThrottlerGuard),
+    }),
   };
 }
 

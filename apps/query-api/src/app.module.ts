@@ -1,17 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule } from '@nestjs/throttler';
 import {
   createS3ModuleOptions,
   DatabaseModule,
-  GLOBAL_RATE_LIMIT_TTL_MS,
+  GatewayTrustGuard,
   HealthModule,
   IsProductionModule,
-  JwtAuthGuard,
   RolesGuard,
   S3Module,
-  ThrottlerBehindProxyGuard,
 } from '@spechive/nestjs-common';
 
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -27,18 +24,10 @@ import { SuitesModule } from './modules/suites/suites.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { TokensModule } from './modules/tokens/tokens.module';
 
-const GLOBAL_RATE_LIMIT_MAX = 120;
-
 @Module({
   imports: [
     ConfigModule,
     IsProductionModule,
-    ThrottlerModule.forRoot([
-      {
-        ttl: GLOBAL_RATE_LIMIT_TTL_MS,
-        limit: GLOBAL_RATE_LIMIT_MAX,
-      },
-    ]),
     HealthModule,
     DatabaseModule.forRootFromEnv(),
     S3Module.forRootAsync({
@@ -58,8 +47,7 @@ const GLOBAL_RATE_LIMIT_MAX = 120;
     ArtifactsModule,
   ],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: GatewayTrustGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

@@ -12,9 +12,9 @@ import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-import { waitForService, QueryApiClient, QUERY_API_URL } from '../helpers';
+import { waitForService, QueryApiClient, GATEWAY_URL } from '../helpers';
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 function uniqueEmail() {
   return `reg-${randomBytes(4).toString('hex')}@test.spechive.dev`;
@@ -22,7 +22,7 @@ function uniqueEmail() {
 
 describe('Registration', () => {
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
   }, 30_000);
 
   it('registers a new user and returns token, user, and organization (201)', async () => {

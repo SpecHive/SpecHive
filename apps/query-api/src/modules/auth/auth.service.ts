@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Database, Transaction } from '@spechive/database';
 import { setTenantContext } from '@spechive/database';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import type { JwtPayload } from '@spechive/nestjs-common';
 import { MembershipRole, asOrganizationId, asUserId } from '@spechive/shared-types';
 import type { OrganizationId, UserId } from '@spechive/shared-types';
 import { hash, verify } from 'argon2';
@@ -23,7 +24,6 @@ import { z } from 'zod';
 import type { EnvConfig } from '../config/env.validation';
 
 import { generateSlug } from './generate-slug';
-import type { JwtPayload } from './types';
 
 type AuthenticatedUser = {
   id: string;

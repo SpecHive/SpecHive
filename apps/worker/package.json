@@ -54,7 +54,6 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
     "@nestjs/schedule": "^6.1.1",
-    "@nestjs/throttler": "^6.0.0",
     "@outboxy/dialect-postgres": "^1.1.4",
     "@outboxy/sdk-nestjs": "^2.1.5",
     "drizzle-orm": "^0.45.0",

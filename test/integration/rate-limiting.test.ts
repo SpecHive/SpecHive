@@ -2,23 +2,23 @@
  * Rate limiting integration test (FIX-010).
  *
  * Verifies the login endpoint enforces its per-IP rate limit
- * via the ThrottlerBehindProxyGuard using X-Forwarded-For.
+ * via the gateway's ThrottlerBehindProxyGuard using X-Forwarded-For.
  */
 
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
-import { waitForService, QueryApiClient, QUERY_API_URL } from '../helpers';
+import { waitForService, QueryApiClient, GATEWAY_URL } from '../helpers';
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Rate limiting on login endpoint', () => {
   // Unique per test run to avoid stale throttle state from prior runs
   const TEST_IP = `10.rate.limit.${randomBytes(4).toString('hex')}`;
 
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
   }, 30_000);
 
   it('allows 10 requests then returns 429 on the 11th', async () => {

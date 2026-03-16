@@ -1,15 +1,12 @@
 import { ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import { AllExceptionsFilter, IS_PRODUCTION, S3Service } from '@spechive/nestjs-common';
-import { ProjectTokenGuard } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-import { MockProjectTokenGuard, MockThrottlerGuard } from '../../../test/unit-helpers/mock-guards';
+import { MockGatewayTrustGuard } from '../../../test/unit-helpers/mock-guards';
 import { ArtifactsController } from '../src/modules/artifacts/artifacts.controller';
 import { ArtifactsService } from '../src/modules/artifacts/artifacts.service';
 
@@ -32,20 +29,13 @@ describe('ArtifactsController', () => {
         { provide: S3Service, useValue: { getPresignedUploadUrl: mockGetPresignedUploadUrl } },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: IS_PRODUCTION, useValue: false },
-        { provide: DATABASE_CONNECTION, useValue: {} },
-        { provide: ProjectTokenGuard, useClass: MockProjectTokenGuard },
-        { provide: ThrottlerGuard, useClass: MockThrottlerGuard },
+        { provide: APP_GUARD, useClass: MockGatewayTrustGuard },
         {
           provide: APP_FILTER,
           useFactory: () => new AllExceptionsFilter(mockConfigService as unknown as ConfigService),
         },
       ],
-    })
-      .overrideGuard(ProjectTokenGuard)
-      .useClass(MockProjectTokenGuard)
-      .overrideGuard(ThrottlerGuard)
-      .useClass(MockThrottlerGuard)
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();

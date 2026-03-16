@@ -1,7 +1,7 @@
 import { ArtifactsPresignClient } from './artifacts-presign.client';
 import { EventsClient } from './events.client';
 
-/** Composed client for ingestion-api (port 3000). */
+/** Composed client for ingestion-api (gateway). */
 export class IngestionApiClient {
   readonly events: EventsClient;
   readonly artifacts: ArtifactsPresignClient;

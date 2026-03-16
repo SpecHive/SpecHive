@@ -7,3 +7,4 @@ export { JwtPayloadSchema } from './types';
 export type { JwtPayload, UserContext } from './types';
 export { ProjectTokenGuard } from './project-token.guard';
 export type { ProjectContext } from './project-token.guard';
+export { GatewayTrustGuard } from './gateway-trust.guard';

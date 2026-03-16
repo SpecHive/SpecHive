@@ -16,7 +16,7 @@ Each barrel file documents the required dependencies (DatabaseModule, S3Module, 
 
 ### Extension patterns
 
-- **Guard override**: Register a custom `APP_GUARD` in your `AppModule` to replace `JwtAuthGuard`. OSS modules read `request.user` — both guards must populate the same `UserContext` shape.
+- **Guard override**: Backend apps use `GatewayTrustGuard` (trusts headers from the gateway). Register a custom `APP_GUARD` to replace it — both guards must populate the same `UserContext` shape on `request.user`. `JwtAuthGuard` is gateway-only.
 - **Config injection**: Use `createConfigModule()` from `@spechive/nestjs-common` with an extended Zod schema to provide premium env vars alongside the base config.
 - **Service extension**: Use NestJS interceptors to wrap behavior (preferred), or extend a service class directly after adding it to the barrel export.
 

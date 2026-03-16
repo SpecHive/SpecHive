@@ -15,7 +15,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   waitForService,
   QueryApiClient,
-  QUERY_API_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_EMAIL,
   SEED_PASSWORD,
@@ -24,7 +24,7 @@ import {
 } from '../helpers';
 
 const TEST_IP = `10.reginv.${randomBytes(4).toString('hex')}`;
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 /** Helper: create an invitation and return its token. */
 async function createInvitation(
@@ -42,7 +42,7 @@ describe('Register with invitation', () => {
   let ownerToken: string;
 
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
     ownerToken = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
       organizationId: SEED_ORG_ID,
       forwardedIp: TEST_IP,

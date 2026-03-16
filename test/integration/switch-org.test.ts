@@ -20,7 +20,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   waitForService,
   QueryApiClient,
-  QUERY_API_URL,
+  GATEWAY_URL,
   SEED_ORG_ID,
   SEED_ORG2_ID,
   SEED_EMAIL,
@@ -29,13 +29,13 @@ import {
 
 const TEST_IP = `10.switch.${randomBytes(4).toString('hex')}`;
 
-const queryApi = new QueryApiClient(QUERY_API_URL);
+const queryApi = new QueryApiClient(GATEWAY_URL);
 
 describe('Switch organization', () => {
   let tokenOrg1: string;
 
   beforeAll(async () => {
-    await waitForService(QUERY_API_URL);
+    await waitForService(GATEWAY_URL);
     tokenOrg1 = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
       organizationId: SEED_ORG_ID,
       forwardedIp: TEST_IP,
