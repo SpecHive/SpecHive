@@ -272,7 +272,8 @@ describe('Migration correctness', () => {
         foreignTable: 'organizations',
         foreignColumn: 'id',
       },
-      { table: 'artifacts', column: 'test_id', foreignTable: 'tests', foreignColumn: 'id' },
+      // artifacts.test_id → tests.id FK intentionally omitted: partitioned tests PK is
+      // (id, created_at), so single-column FK is impossible. Cascade via trigger.
       {
         table: 'artifacts',
         column: 'organization_id',

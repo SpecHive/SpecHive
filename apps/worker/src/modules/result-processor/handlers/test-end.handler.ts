@@ -44,6 +44,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             stackTrace: a.stackTrace ? stripAnsi(a.stackTrace) : null,
             startedAt: a.startedAt ? new Date(a.startedAt) : null,
             finishedAt: a.finishedAt ? new Date(a.finishedAt) : null,
+            // Deterministic createdAt for dedup with composite unique index (test_id, retry_index, created_at)
+            createdAt: a.startedAt ? new Date(a.startedAt) : new Date(event.timestamp),
           })),
         )
         .onConflictDoNothing();

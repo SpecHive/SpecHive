@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 
+import { dailyRunStats, dailyFlakyTestStats } from './analytics.js';
 import { refreshTokens } from './auth.js';
 import { runs, suites, tests, artifacts, testAttempts } from './execution.js';
 import { projects, projectTokens } from './project.js';
@@ -125,5 +126,27 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
   invitedByUser: one(users, {
     fields: [invitations.invitedBy],
     references: [users.id],
+  }),
+}));
+
+export const dailyRunStatsRelations = relations(dailyRunStats, ({ one }) => ({
+  project: one(projects, {
+    fields: [dailyRunStats.projectId],
+    references: [projects.id],
+  }),
+  organization: one(organizations, {
+    fields: [dailyRunStats.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const dailyFlakyTestStatsRelations = relations(dailyFlakyTestStats, ({ one }) => ({
+  project: one(projects, {
+    fields: [dailyFlakyTestStats.projectId],
+    references: [projects.id],
+  }),
+  organization: one(organizations, {
+    fields: [dailyFlakyTestStats.organizationId],
+    references: [organizations.id],
   }),
 }));

@@ -18,12 +18,14 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { uuidv7 } from 'uuidv7';
 
 import { timestamps, uuidv7PK } from './_common.js';
 import { projects } from './project.js';
@@ -102,7 +104,7 @@ export const suites = pgTable(
     ...timestamps,
   },
   (table) => [
-    index('suites_run_name_idx').on(table.runId, table.name),
+    uniqueIndex('suites_run_name_idx').on(table.runId, table.name),
     index('suites_run_id_idx').on(table.runId),
     index('suites_organization_id_idx').on(table.organizationId),
     index('suites_parent_suite_id_idx').on(table.parentSuiteId),
@@ -116,7 +118,10 @@ export const suites = pgTable(
 export const tests = pgTable(
   'tests',
   {
-    id: uuidv7PK<TestId>(),
+    id: uuid('id')
+      .$type<TestId>()
+      .notNull()
+      .$defaultFn(() => uuidv7() as TestId),
     suiteId: uuid('suite_id')
       .$type<SuiteId>()
       .notNull()
@@ -140,6 +145,8 @@ export const tests = pgTable(
     ...timestamps,
   },
   (table) => [
+    primaryKey({ columns: [table.id, table.createdAt] }),
+    index('tests_id_idx').on(table.id),
     index('tests_suite_idx').on(table.suiteId),
     index('tests_run_status_idx').on(table.runId, table.status),
     index('tests_organization_id_idx').on(table.organizationId),
@@ -155,10 +162,9 @@ export const artifacts = pgTable(
   'artifacts',
   {
     id: uuidv7PK<ArtifactId>(),
-    testId: uuid('test_id')
-      .$type<TestId>()
-      .notNull()
-      .references(() => tests.id, { onDelete: 'cascade' }),
+    // FK to tests intentionally omitted — partitioned tests PK is (id, created_at),
+    // single-column FK on id alone is impossible. Cascade handled by trigger.
+    testId: uuid('test_id').$type<TestId>().notNull(),
     organizationId: uuid('organization_id')
       .$type<OrganizationId>()
       .notNull()
@@ -181,11 +187,13 @@ export const artifacts = pgTable(
 export const testAttempts = pgTable(
   'test_attempts',
   {
-    id: uuidv7PK<TestAttemptId>(),
-    testId: uuid('test_id')
-      .$type<TestId>()
+    id: uuid('id')
+      .$type<TestAttemptId>()
       .notNull()
-      .references(() => tests.id, { onDelete: 'cascade' }),
+      .$defaultFn(() => uuidv7() as TestAttemptId),
+    // FK to tests intentionally omitted — partitioned tests PK is (id, created_at),
+    // single-column FK on id alone is impossible. Cascade via testAttempts.runId → runs.id.
+    testId: uuid('test_id').$type<TestId>().notNull(),
     runId: uuid('run_id')
       .$type<RunId>()
       .notNull()
@@ -205,7 +213,8 @@ export const testAttempts = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex('test_attempts_test_retry_idx').on(table.testId, table.retryIndex),
+    primaryKey({ columns: [table.id, table.createdAt] }),
+    uniqueIndex('test_attempts_test_retry_idx').on(table.testId, table.retryIndex, table.createdAt),
     index('test_attempts_organization_id_idx').on(table.organizationId),
     index('test_attempts_run_id_idx').on(table.runId),
   ],

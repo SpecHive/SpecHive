@@ -98,13 +98,13 @@ describe('Analytics endpoints', () => {
           const testName = status === 'flaky' ? `flaky-test-${j}` : `test-${status}-${testIdx}`;
 
           await sql`
-            INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, duration_ms, started_at, finished_at)
+            INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, duration_ms, started_at, finished_at, created_at)
             VALUES (
               ${tId}, ${suiteId(i)}, ${runId(i)}, ${SEED_ORG_ID},
               ${testName}, ${status}, ${100 + testIdx * 10},
-              ${startedAt.toISOString()}, ${testFinishedAt.toISOString()}
+              ${startedAt.toISOString()}, ${testFinishedAt.toISOString()}, ${startedAt.toISOString()}
             )
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (id, created_at) DO NOTHING
           `;
           testIdx++;
         }

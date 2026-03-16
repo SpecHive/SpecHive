@@ -755,6 +755,7 @@ export async function seed(dbUrl: string, password?: string) {
               retryCount: testStatus === TestStatus.Flaky ? rng.nextInt(1, 3) : 0,
               startedAt: testStartedAt,
               finishedAt: testFinishedAt,
+              createdAt: testStartedAt,
             });
           }
         }

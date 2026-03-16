@@ -23,6 +23,9 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
         name: event.payload.testName,
         status: TestStatus.Pending,
         startedAt: new Date(event.timestamp),
+        // Explicit createdAt for deterministic dedup with composite PK (id, created_at).
+        // Replayed events carry the same timestamp, so (id, createdAt) will conflict correctly.
+        createdAt: new Date(event.timestamp),
       })
       .onConflictDoNothing()
       .returning({ id: tests.id });

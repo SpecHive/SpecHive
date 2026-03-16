@@ -3,4 +3,5 @@ export * from './tenant.js';
 export * from './project.js';
 export * from './execution.js';
 export * from './auth.js';
+export * from './analytics.js';
 export * from './relations.js';

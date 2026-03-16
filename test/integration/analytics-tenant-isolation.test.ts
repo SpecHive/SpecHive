@@ -59,7 +59,7 @@ describe('Cross-tenant analytics isolation', () => {
     await sql`
       INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, duration_ms, created_at, updated_at)
       VALUES (${ORG_B_TEST_ID}, ${ORG_B_SUITE_ID}, ${ORG_B_RUN_ID}, ${SEED_ORG2_ID}, 'isolation test', 'passed', 100, NOW(), NOW())
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT (id, created_at) DO NOTHING
     `;
 
     tokenA = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
