@@ -78,7 +78,13 @@ function SuiteNode({
         <button
           className="shrink-0 p-0.5"
           onClick={() => hasChildren && onToggle(node.suite.id)}
-          aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : undefined}
+          aria-label={
+            hasChildren
+              ? isExpanded
+                ? `Collapse ${node.suite.name}`
+                : `Expand ${node.suite.name}`
+              : undefined
+          }
           tabIndex={hasChildren ? 0 : -1}
           style={{ visibility: hasChildren ? 'visible' : 'hidden' }}
         >

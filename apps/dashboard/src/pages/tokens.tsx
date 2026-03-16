@@ -42,7 +42,7 @@ export function TokensPage() {
         title="Tokens"
         description="Manage API tokens for sending test results."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)} disabled={!projectId}>
             <Plus className="mr-1 h-4 w-4" /> Generate Token
           </Button>
         }

@@ -9,6 +9,8 @@ export { bootstrapNestApp } from './bootstrap/bootstrap-app';
 export type { BootstrapOptions } from './bootstrap/bootstrap-app';
 export { isProductionEnv } from './utils/env-helpers';
 export { escapeLikePattern } from './utils/like-escape';
+export { extractPgError } from './utils/pg-error';
+export { parseExpiry, parseExpirySeconds } from './utils/parse-expiry';
 export { IS_PRODUCTION, isProductionProvider } from './providers/is-production.provider';
 export { IsProductionModule } from './providers/is-production.module';
 export { throwZodBadRequest } from './utils/zod-error';

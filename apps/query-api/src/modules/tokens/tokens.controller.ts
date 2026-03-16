@@ -2,10 +2,12 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@ne
 import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
 import type { ProjectId, ProjectTokenId } from '@spechive/shared-types';
+import { MembershipRole } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { paginationSchema, uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
+import { Roles } from '../../decorators/roles.decorator';
 
 import { TokensService } from './tokens.service';
 
@@ -20,6 +22,7 @@ export class TokensController {
   constructor(private readonly tokensService: TokensService) {}
 
   @Post()
+  @Roles(MembershipRole.Owner, MembershipRole.Admin)
   async create(
     @CurrentUser() user: UserContext,
     @Param('id', new ZodValidationPipe(uuidSchema)) projectId: ProjectId,
@@ -45,6 +48,7 @@ export class TokensController {
 
   @Delete(':tokenId')
   @HttpCode(204)
+  @Roles(MembershipRole.Owner, MembershipRole.Admin)
   async revoke(
     @CurrentUser() user: UserContext,
     @Param('id', new ZodValidationPipe(uuidSchema)) projectId: ProjectId,

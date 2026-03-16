@@ -127,7 +127,7 @@ export function RunDetailPage() {
               {run.commitSha && (
                 <span className="font-mono text-xs">{run.commitSha.slice(0, 7)}</span>
               )}
-              {run.ciUrl && (
+              {run.ciUrl && /^https?:\/\//.test(run.ciUrl) && (
                 <a
                   href={run.ciUrl}
                   target="_blank"
@@ -228,6 +228,14 @@ export function RunDetailPage() {
                       <tr
                         key={test.id}
                         onClick={() => setSelectedTestId(test.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedTestId(test.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
                         className="cursor-pointer border-b transition-colors hover:bg-accent"
                       >
                         <td className="max-w-xs truncate py-3 pr-4 font-medium">{test.name}</td>

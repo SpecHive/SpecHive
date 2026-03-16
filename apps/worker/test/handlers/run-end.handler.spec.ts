@@ -14,8 +14,8 @@ describe('RunEndHandler', () => {
   beforeEach(async () => {
     ({ ctx, mocks } = createHandlerContext());
 
-    // run-end reads the current run status before updating
-    mocks.select.where.mockResolvedValue([{ status: RunStatus.Running }]);
+    // Conditional UPDATE returns the updated row (simulates successful transition)
+    mocks.update.returning.mockResolvedValue([{ id: 'run-1' }]);
 
     const module = await Test.createTestingModule({
       providers: [RunEndHandler],
@@ -24,7 +24,7 @@ describe('RunEndHandler', () => {
     handler = module.get(RunEndHandler);
   });
 
-  it('updates run status and finishedAt', async () => {
+  it('updates run status and finishedAt via conditional UPDATE', async () => {
     const event = {
       version: '1' as const,
       timestamp: '2025-01-01T01:00:00.000Z',
@@ -35,7 +35,6 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(mocks.select.select).toHaveBeenCalled();
     expect(mocks.update.update).toHaveBeenCalled();
     expect(mocks.update.set).toHaveBeenCalledWith({
       status: RunStatus.Passed,

@@ -35,7 +35,7 @@ export function SortableHeader({
     ? currentDirection === 'asc'
       ? 'ascending'
       : 'descending'
-    : undefined;
+    : 'none';
 
   return (
     <th

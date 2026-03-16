@@ -12,7 +12,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ZodValidationPipe } from '@spechive/nestjs-common';
+import { ZodValidationPipe, parseExpirySeconds } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
 import type { OrganizationId } from '@spechive/shared-types';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -79,7 +79,7 @@ export class AuthController {
     config: ConfigService<EnvConfig>,
   ) {
     this.isProduction = config.get<string>('NODE_ENV') === 'production';
-    this.refreshMaxAgeSec = this.parseExpirySeconds(
+    this.refreshMaxAgeSec = parseExpirySeconds(
       config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
     );
   }
@@ -156,11 +156,14 @@ export class AuthController {
   async switchOrganization(
     @CurrentUser() user: UserContext,
     @Body(new ZodValidationPipe(switchOrgSchema)) body: z.infer<typeof switchOrgSchema>,
+    @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
+    const currentRefreshToken = request.cookies[COOKIE_NAME];
     const result = await this.authService.switchOrganization(
       user.userId,
       body.organizationId as OrganizationId,
+      currentRefreshToken,
     );
     this.setRefreshCookie(reply, result.refreshToken);
     const { refreshToken: _, ...rest } = result;
@@ -204,7 +207,12 @@ export class AuthController {
     @Body(new ZodValidationPipe(updateProfileSchema)) body: z.infer<typeof updateProfileSchema>,
   ) {
     await this.authService.updateProfile(user.userId, user.organizationId, body.name);
-    return this.me(user);
+    const profile = await this.authService.getProfile(user.userId, user.organizationId);
+    return {
+      ...profile,
+      organizationId: user.organizationId,
+      role: user.role,
+    };
   }
 
   @Post('change-password')
@@ -242,14 +250,5 @@ export class AuthController {
       sameSite: 'lax',
       path: '/v1/auth',
     });
-  }
-
-  private parseExpirySeconds(str: string): number {
-    const match = str.match(/^(\d+)([smhd])$/);
-    if (!match) throw new Error(`Invalid expiry format: ${str}`);
-    const value = parseInt(match[1]!, 10);
-    const unit = match[2]!;
-    const multipliers: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
-    return value * multipliers[unit]!;
   }
 }

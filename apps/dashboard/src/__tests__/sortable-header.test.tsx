@@ -65,9 +65,9 @@ describe('SortableHeader', () => {
     expect(th).toHaveAttribute('aria-sort', 'descending');
   });
 
-  it('has no aria-sort when not active', () => {
+  it('has aria-sort="none" when not active', () => {
     renderHeader({ currentSort: 'other', currentDirection: 'asc' });
     const th = screen.getByText('Name').closest('th');
-    expect(th).not.toHaveAttribute('aria-sort');
+    expect(th).toHaveAttribute('aria-sort', 'none');
   });
 });

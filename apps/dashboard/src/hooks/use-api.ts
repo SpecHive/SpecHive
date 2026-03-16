@@ -30,6 +30,7 @@ export function useApi<T>(
 
     setLoading(true);
     setError(null);
+    setData(null);
 
     try {
       const result = await apiClient.get<T>(

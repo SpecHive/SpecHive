@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
@@ -166,12 +171,12 @@ describe('AuthService', () => {
       expect(result.email).toBe('test@spechive.dev');
     });
 
-    it('throws 401 when user not found', async () => {
+    it('throws 404 when user not found', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
       await expect(
         service.getProfile('non-existent' as UserId, MOCK_ORG.organization_id as OrganizationId),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

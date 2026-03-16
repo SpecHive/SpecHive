@@ -102,7 +102,7 @@ export const suites = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex('suites_run_name_unique_idx').on(table.runId, table.name),
+    index('suites_run_name_idx').on(table.runId, table.name),
     index('suites_run_id_idx').on(table.runId),
     index('suites_organization_id_idx').on(table.organizationId),
     index('suites_parent_suite_id_idx').on(table.parentSuiteId),

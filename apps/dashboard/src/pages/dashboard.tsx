@@ -106,10 +106,15 @@ export function DashboardPage() {
   const [onboardingActive, setOnboardingActive] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!projectsLoading && onboardingActive === null) {
-      setOnboardingActive(projects.length === 0);
+    if (!projectsLoading) {
+      setOnboardingActive((prev) => {
+        if (prev === null) return projects.length === 0;
+        // Only re-activate if ALL projects were deleted (not during creation)
+        if (!prev && projects.length === 0) return true;
+        return prev;
+      });
     }
-  }, [projectsLoading, projects.length, onboardingActive]);
+  }, [projectsLoading, projects.length]);
 
   const projectId = selectedProjectId;
 

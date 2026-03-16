@@ -9,6 +9,13 @@ interface FailureRecord {
   firstAttemptAt: number;
 }
 
+/**
+ * In-memory login rate limiting — effective for single-instance deployments only.
+ * Resets on process restart and is per-process (bypassed with multiple replicas).
+ * The gateway's global throttle provides baseline brute-force protection.
+ *
+ * TODO: Migrate to Redis-backed rate limiting for multi-replica deployments.
+ */
 @Injectable()
 export class LoginRateLimitService implements OnModuleDestroy {
   private readonly failures = new Map<string, FailureRecord>();

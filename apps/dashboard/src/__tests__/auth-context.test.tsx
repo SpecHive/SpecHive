@@ -12,6 +12,7 @@ vi.mock('@/lib/api-client', () => ({
     setToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
     setOnTokenRefresh: vi.fn(),
+    silentRefresh: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -26,6 +27,7 @@ const mockLoginResponse = {
   token: 'jwt-token',
   user: { id: '1', email: 'a@b.com', name: 'Test User' },
   organization: { id: '1', name: 'Test Org', slug: 'test-org' },
+  role: 'owner',
 };
 
 function TestConsumer() {
@@ -98,7 +100,7 @@ describe('AuthContext', () => {
   });
 
   describe('sessionStorage persistence', () => {
-    it('persists auth state to sessionStorage on login', async () => {
+    it('persists user/org/role to sessionStorage on login (token is NOT stored)', async () => {
       vi.mocked(apiClient.post).mockResolvedValueOnce(mockLoginResponse);
 
       renderWithAuth();
@@ -108,31 +110,40 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
       });
 
-      expect(sessionStorage.getItem('spechive_token')).toBe('jwt-token');
+      // Token must NOT be persisted to sessionStorage (XSS mitigation)
+      expect(sessionStorage.getItem('spechive_token')).toBeNull();
       expect(JSON.parse(sessionStorage.getItem('spechive_user')!)).toEqual(mockLoginResponse.user);
       expect(JSON.parse(sessionStorage.getItem('spechive_org')!)).toEqual(
         mockLoginResponse.organization,
       );
     });
 
-    it('restores auth state from sessionStorage on mount', () => {
-      sessionStorage.setItem('spechive_token', 'stored-token');
+    it('restores user/org from sessionStorage and gets token via silent refresh', async () => {
       sessionStorage.setItem('spechive_user', JSON.stringify(mockLoginResponse.user));
       sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_role', 'owner');
+      vi.mocked(apiClient.silentRefresh).mockResolvedValueOnce('refreshed-token');
 
       renderWithAuth();
 
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+      });
       expect(screen.getByTestId('user-name')).toHaveTextContent('Test User');
-      expect(apiClient.setToken).toHaveBeenCalledWith('stored-token');
+      expect(apiClient.setToken).toHaveBeenCalledWith('refreshed-token');
     });
 
     it('clears sessionStorage on logout', async () => {
-      sessionStorage.setItem('spechive_token', 'stored-token');
       sessionStorage.setItem('spechive_user', JSON.stringify(mockLoginResponse.user));
       sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_role', 'owner');
+      vi.mocked(apiClient.silentRefresh).mockResolvedValueOnce('refreshed-token');
 
       renderWithAuth();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
+      });
 
       vi.mocked(apiClient.post).mockResolvedValueOnce(undefined);
 
@@ -142,32 +153,35 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
       });
 
-      expect(sessionStorage.getItem('spechive_token')).toBeNull();
       expect(sessionStorage.getItem('spechive_user')).toBeNull();
       expect(sessionStorage.getItem('spechive_org')).toBeNull();
     });
 
     it('falls back to unauthenticated when sessionStorage JSON is corrupted', () => {
-      sessionStorage.setItem('spechive_token', 'stored-token');
       sessionStorage.setItem('spechive_user', '{invalid json');
       sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
 
       renderWithAuth();
 
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
-      expect(sessionStorage.getItem('spechive_token')).toBeNull();
       expect(sessionStorage.getItem('spechive_user')).toBeNull();
       expect(sessionStorage.getItem('spechive_org')).toBeNull();
     });
 
-    it('falls back to unauthenticated when token exists but user is missing', () => {
-      sessionStorage.setItem('spechive_token', 'stored-token');
+    it('falls back to unauthenticated when silent refresh fails', async () => {
+      sessionStorage.setItem('spechive_user', JSON.stringify(mockLoginResponse.user));
       sessionStorage.setItem('spechive_org', JSON.stringify(mockLoginResponse.organization));
+      sessionStorage.setItem('spechive_role', 'owner');
+      // silentRefresh returns null — httpOnly cookie is gone
+      vi.mocked(apiClient.silentRefresh).mockResolvedValueOnce(null);
 
       renderWithAuth();
 
-      expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
-      expect(sessionStorage.getItem('spechive_token')).toBeNull();
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
+      });
+      expect(sessionStorage.getItem('spechive_user')).toBeNull();
+      expect(sessionStorage.getItem('spechive_org')).toBeNull();
     });
   });
 

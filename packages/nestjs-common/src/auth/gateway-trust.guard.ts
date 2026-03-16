@@ -6,6 +6,8 @@ import type { OrganizationId, ProjectId, UserId } from '@spechive/shared-types';
 
 import { IS_PUBLIC_KEY } from '../constants';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 import type { ProjectContext } from './project-token.guard';
 import type { UserContext } from './types';
 
@@ -52,6 +54,10 @@ export class GatewayTrustGuard implements CanActivate {
     if (userId && orgId && role) {
       if (!Object.values(MembershipRole).includes(role as MembershipRole)) {
         throw new UnauthorizedException('Invalid user role');
+      }
+
+      if (!UUID_PATTERN.test(userId) || !UUID_PATTERN.test(orgId)) {
+        throw new UnauthorizedException('Invalid user or organization ID format');
       }
 
       request.user = {

@@ -37,6 +37,7 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
+    this.assertConfigured();
     return this.request<T>(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,6 +46,7 @@ class ApiClient {
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
+    this.assertConfigured();
     return this.request<T>(`${this.baseUrl}${path}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -53,7 +55,32 @@ class ApiClient {
   }
 
   async delete<T>(path: string): Promise<T> {
+    this.assertConfigured();
     return this.request<T>(`${this.baseUrl}${path}`, { method: 'DELETE' });
+  }
+
+  async silentRefresh(): Promise<string | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+        credentials: 'include',
+      });
+
+      if (!response.ok) return null;
+
+      const data = (await response.json()) as { token: string };
+      this.token = data.token;
+
+      if (this.onTokenRefresh) {
+        this.onTokenRefresh(data.token);
+      }
+
+      return data.token;
+    } catch {
+      return null;
+    }
   }
 
   private assertConfigured(): void {

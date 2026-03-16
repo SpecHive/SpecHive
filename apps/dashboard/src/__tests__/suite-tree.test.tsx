@@ -66,7 +66,7 @@ describe('SuiteTree', () => {
     const user = userEvent.setup();
     render(<SuiteTree {...defaultProps} />);
 
-    const expandButtons = screen.getAllByLabelText('Expand');
+    const expandButtons = screen.getAllByLabelText(/^Expand /);
     await user.click(expandButtons[0]);
 
     expect(screen.getByText('Auth Tests')).toBeInTheDocument();
@@ -77,11 +77,11 @@ describe('SuiteTree', () => {
     const user = userEvent.setup();
     render(<SuiteTree {...defaultProps} />);
 
-    const expandButton = screen.getAllByLabelText('Expand')[0];
+    const expandButton = screen.getAllByLabelText(/^Expand /)[0];
     await user.click(expandButton);
     expect(screen.getByText('Auth Tests')).toBeInTheDocument();
 
-    const collapseButton = screen.getByLabelText('Collapse');
+    const collapseButton = screen.getByLabelText(/^Collapse /);
     await user.click(collapseButton);
     expect(screen.queryByText('Auth Tests')).not.toBeInTheDocument();
   });
@@ -130,9 +130,9 @@ describe('SuiteTree', () => {
     render(<SuiteTree {...defaultProps} />);
 
     // Expand "Unit Tests"
-    await user.click(screen.getAllByLabelText('Expand')[0]);
+    await user.click(screen.getAllByLabelText(/^Expand /)[0]);
     // Expand "Auth Tests"
-    await user.click(screen.getAllByLabelText('Expand')[0]);
+    await user.click(screen.getAllByLabelText(/^Expand /)[0]);
 
     expect(screen.getByText('Login Tests')).toBeInTheDocument();
   });

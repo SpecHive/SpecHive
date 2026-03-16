@@ -2,7 +2,7 @@ import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import type { Database } from '@spechive/database';
 import { setTenantContext } from '@spechive/database';
 import { projects } from '@spechive/database';
-import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { DATABASE_CONNECTION, extractPgError } from '@spechive/nestjs-common';
 import type { OrganizationId } from '@spechive/shared-types';
 import { asc, count } from 'drizzle-orm';
 
@@ -56,7 +56,8 @@ export class ProjectsService {
         return created;
       });
     } catch (err: unknown) {
-      if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+      const pgErr = extractPgError(err);
+      if (pgErr?.code === '23505') {
         throw new ConflictException('A project with this name already exists');
       }
       throw err;

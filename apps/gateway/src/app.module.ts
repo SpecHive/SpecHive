@@ -8,6 +8,7 @@ import {
   HealthModule,
   IsProductionModule,
   JwtAuthGuard,
+  RolesGuard,
   ThrottlerBehindProxyGuard,
 } from '@spechive/nestjs-common';
 
@@ -35,6 +36,7 @@ const GATEWAY_RATE_LIMIT_MAX = 200;
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule implements NestModule {

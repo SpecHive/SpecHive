@@ -6,12 +6,13 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Database, Transaction } from '@spechive/database';
 import { setTenantContext } from '@spechive/database';
-import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
+import { DATABASE_CONNECTION, extractPgError, parseExpiry } from '@spechive/nestjs-common';
 import type { JwtPayload } from '@spechive/nestjs-common';
 import { MembershipRole, asOrganizationId, asUserId } from '@spechive/shared-types';
 import type { OrganizationId, UserId } from '@spechive/shared-types';
@@ -103,7 +104,7 @@ export class AuthService {
         );
         break;
       } catch (err: unknown) {
-        const pgErr = this.extractPgError(err);
+        const pgErr = extractPgError(err);
         if (pgErr?.code === '23505') {
           const detail = pgErr.detail ?? '';
           if (detail.includes('email')) {
@@ -181,7 +182,7 @@ export class AuthService {
         )`,
       );
     } catch (err: unknown) {
-      const pgErr = this.extractPgError(err);
+      const pgErr = extractPgError(err);
       if (pgErr?.code === '23505') {
         const detail = pgErr.detail ?? '';
         if (detail.includes('email')) {
@@ -290,7 +291,7 @@ export class AuthService {
       const users = userProfileSchema.array().parse([...result]);
 
       if (users.length === 0) {
-        throw new UnauthorizedException('User not found');
+        throw new NotFoundException('User not found');
       }
 
       return users[0]!;
@@ -304,7 +305,7 @@ export class AuthService {
         sql`UPDATE users SET name = ${name} WHERE id = ${userId}::uuid RETURNING id`,
       );
       if (result.length === 0) {
-        throw new UnauthorizedException('User not found');
+        throw new NotFoundException('User not found');
       }
     });
   }
@@ -321,7 +322,7 @@ export class AuthService {
         sql`SELECT password_hash FROM users WHERE id = ${userId}::uuid FOR UPDATE`,
       );
       if (rows.length === 0) {
-        throw new UnauthorizedException('User not found');
+        throw new NotFoundException('User not found');
       }
 
       const isValid = await verify(rows[0]!.password_hash, currentPassword);
@@ -335,7 +336,11 @@ export class AuthService {
     });
   }
 
-  async switchOrganization(userId: UserId, targetOrgId: OrganizationId) {
+  async switchOrganization(
+    userId: UserId,
+    targetOrgId: OrganizationId,
+    currentRefreshToken?: string,
+  ) {
     const orgs = await this.db.execute<UserOrganization>(
       sql`SELECT * FROM get_user_organizations(${userId}::uuid)`,
     );
@@ -353,7 +358,14 @@ export class AuthService {
       role: targetOrg.role,
     });
 
-    const refreshToken = await this.createAndStoreRefreshToken(userId);
+    // Atomic: revoke old + create new refresh token
+    const refreshToken = await this.db.transaction(async (tx) => {
+      if (currentRefreshToken) {
+        const tokenHash = this.hashRefreshToken(currentRefreshToken);
+        await tx.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
+      }
+      return this.createAndStoreRefreshToken(userId, tx);
+    });
 
     return {
       token,
@@ -388,8 +400,11 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token has expired');
     }
 
-    // Revoke old refresh token (token rotation)
-    await this.db.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
+    // Atomic: revoke old + create new refresh token
+    const newRefreshToken = await this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT revoke_refresh_token(${tokenHash})`);
+      return this.createAndStoreRefreshToken(row.user_id, tx);
+    });
 
     const orgs = await this.db.execute<UserOrganization>(
       sql`SELECT * FROM get_user_organizations(${row.user_id}::uuid)`,
@@ -415,8 +430,6 @@ export class AuthService {
       organizationId: selectedOrg.organization_id,
       role: selectedOrg.role,
     });
-
-    const newRefreshToken = await this.createAndStoreRefreshToken(row.user_id);
 
     return {
       token,
@@ -451,20 +464,6 @@ export class AuthService {
       slug: o.organization_slug,
       role: o.role as MembershipRole,
     }));
-  }
-
-  /** Extract PostgreSQL error from either a direct or Drizzle-wrapped error. */
-  private extractPgError(err: unknown): { code: string; detail: string | undefined } | null {
-    if (err instanceof Error && 'code' in err) {
-      return { code: (err as { code: string }).code, detail: (err as { detail?: string }).detail };
-    }
-    if (err instanceof Error && err.cause instanceof Error && 'code' in err.cause) {
-      return {
-        code: (err.cause as { code: string }).code,
-        detail: (err.cause as { detail?: string }).detail,
-      };
-    }
-    return null;
   }
 
   private normalizeEmail(email: string): string {
@@ -505,32 +504,14 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private parseExpiry(str: string): Date {
-    const match = str.match(/^(\d+)([smhd])$/);
-    if (!match) {
-      throw new Error(`Invalid expiry format: ${str}`);
-    }
-
-    const value = parseInt(match[1]!, 10);
-    const unit = match[2]!;
-
-    const multipliers: Record<string, number> = {
-      s: 1000,
-      m: 60 * 1000,
-      h: 60 * 60 * 1000,
-      d: 24 * 60 * 60 * 1000,
-    };
-
-    return new Date(Date.now() + value * multipliers[unit]!);
-  }
-
-  private async createAndStoreRefreshToken(userId: string): Promise<string> {
+  private async createAndStoreRefreshToken(userId: string, tx?: Transaction): Promise<string> {
     const raw = this.generateRefreshToken();
     const hash = this.hashRefreshToken(raw);
     const id = randomUUID();
-    const expiresAt = this.parseExpiry(this.refreshExpiresIn);
+    const expiresAt = parseExpiry(this.refreshExpiresIn);
+    const executor = tx ?? this.db;
 
-    await this.db.execute(
+    await executor.execute(
       sql`SELECT store_refresh_token(${id}::uuid, ${userId}::uuid, ${hash}, ${expiresAt.toISOString()}::timestamptz)`,
     );
 

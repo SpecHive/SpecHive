@@ -171,6 +171,14 @@ export function RunsPage() {
                     <tr
                       key={run.id}
                       onClick={() => navigate(`/runs/${run.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/runs/${run.id}`);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
                       className="cursor-pointer border-b transition-colors hover:bg-accent"
                     >
                       <td className="py-3 pr-4">

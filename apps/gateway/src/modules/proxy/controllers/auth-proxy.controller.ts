@@ -25,12 +25,14 @@ export class AuthProxyController {
 
   @Post('refresh')
   @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   refresh(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
     return this.proxy.forwardToQuery(req, reply, '/v1/auth/refresh');
   }
 
   @Post('logout')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   logout(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
     return this.proxy.forwardToQuery(req, reply, '/v1/auth/logout');
   }

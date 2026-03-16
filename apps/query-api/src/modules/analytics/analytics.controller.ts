@@ -1,5 +1,5 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
-import { IS_PRODUCTION, throwZodBadRequest } from '@spechive/nestjs-common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
 import type { ProjectId } from '@spechive/shared-types';
 import { z } from 'zod';
@@ -20,81 +20,58 @@ const flakyQuerySchema = trendQuerySchema.extend({
 
 @Controller('v1/projects/:projectId/analytics')
 export class AnalyticsController {
-  constructor(
-    private readonly analyticsService: AnalyticsService,
-    @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
-  ) {}
-
-  private validateParams<T extends z.ZodType>(
-    projectId: string,
-    query: Record<string, string>,
-    querySchema: T,
-  ): { projectId: ProjectId; query: z.infer<T> } {
-    const paramResult = projectIdParamSchema.safeParse(projectId);
-    if (!paramResult.success)
-      throwZodBadRequest(paramResult.error, 'Invalid projectId', this.isProduction);
-
-    const queryResult = querySchema.safeParse(query);
-    if (!queryResult.success)
-      throwZodBadRequest(queryResult.error, 'Invalid query parameters', this.isProduction);
-
-    return { projectId: paramResult.data as ProjectId, query: queryResult.data as z.infer<T> };
-  }
+  constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('summary')
   async getSummary(
     @CurrentUser() user: UserContext,
-    @Param('projectId') projectId: string,
-    @Query() query: Record<string, string>,
+    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
+    @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getProjectSummary(
       user.organizationId,
-      params.projectId,
-      params.query.days,
+      projectId as ProjectId,
+      query.days,
     );
   }
 
   @Get('pass-rate-trend')
   async getPassRateTrend(
     @CurrentUser() user: UserContext,
-    @Param('projectId') projectId: string,
-    @Query() query: Record<string, string>,
+    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
+    @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getPassRateTrend(
       user.organizationId,
-      params.projectId,
-      params.query.days,
+      projectId as ProjectId,
+      query.days,
     );
   }
 
   @Get('duration-trend')
   async getDurationTrend(
     @CurrentUser() user: UserContext,
-    @Param('projectId') projectId: string,
-    @Query() query: Record<string, string>,
+    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
+    @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    const params = this.validateParams(projectId, query, trendQuerySchema);
     return this.analyticsService.getDurationTrend(
       user.organizationId,
-      params.projectId,
-      params.query.days,
+      projectId as ProjectId,
+      query.days,
     );
   }
 
   @Get('flaky-tests')
   async getFlakyTests(
     @CurrentUser() user: UserContext,
-    @Param('projectId') projectId: string,
-    @Query() query: Record<string, string>,
+    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
+    @Query(new ZodValidationPipe(flakyQuerySchema)) query: z.infer<typeof flakyQuerySchema>,
   ) {
-    const params = this.validateParams(projectId, query, flakyQuerySchema);
     return this.analyticsService.getFlakyTests(
       user.organizationId,
-      params.projectId,
-      params.query.days,
-      params.query.limit,
+      projectId as ProjectId,
+      query.days,
+      query.limit,
     );
   }
 }

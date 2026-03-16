@@ -53,6 +53,28 @@ const DEFAULT_GATEWAY_PROJECT_CONTEXT: ProjectContext = {
 };
 
 /**
+ * Mock JwtAuthGuard that always passes and injects a configurable user context.
+ * Use static fields to change the role per-test without recreating the app.
+ */
+export class MockJwtAuthGuard {
+  static role = 'admin';
+  static userId = '00000000-0000-4000-a000-000000000001';
+  static organizationId = '00000000-0000-4000-a000-000000000099';
+
+  canActivate(executionContext: {
+    switchToHttp(): { getRequest(): Record<string, unknown> };
+  }): boolean {
+    const request = executionContext.switchToHttp().getRequest();
+    request.user = {
+      userId: MockJwtAuthGuard.userId,
+      organizationId: MockJwtAuthGuard.organizationId,
+      role: MockJwtAuthGuard.role,
+    };
+    return true;
+  }
+}
+
+/**
  * Mock GatewayTrustGuard that always passes and injects mock user and/or project context.
  */
 export class MockGatewayTrustGuard {

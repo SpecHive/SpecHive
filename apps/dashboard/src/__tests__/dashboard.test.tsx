@@ -19,6 +19,7 @@ vi.mock('@/lib/api-client', () => ({
     setToken: vi.fn(),
     setOnUnauthorized: vi.fn(),
     setOnTokenRefresh: vi.fn(),
+    silentRefresh: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -54,6 +55,7 @@ const mockSummary = {
   failedTests: 30,
   skippedTests: 15,
   flakyTests: 5,
+  retriedTests: 7,
   passRate: 90.0,
   avgDurationMs: 125000,
 };

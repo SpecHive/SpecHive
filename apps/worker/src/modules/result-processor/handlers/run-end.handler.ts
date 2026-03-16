@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { runs } from '@spechive/database';
 import type { RunEndEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
@@ -19,37 +19,29 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
   private readonly logger = new Logger(RunEndHandler.name);
 
   async handle(event: RunEndEvent, ctx: EventHandlerContext): Promise<void> {
-    const [current] = await ctx.tx
-      .select({ status: runs.status })
-      .from(runs)
-      .where(eq(runs.id, event.runId));
+    const targetStatus = event.payload.status as RunStatus;
+    const validSources = Object.entries(VALID_TRANSITIONS)
+      .filter(([, targets]) => targets.includes(targetStatus))
+      .map(([source]) => source);
 
-    if (!current) {
-      this.logger.warn(`Run ${event.runId} not found, skipping status update`);
+    if (validSources.length === 0) {
+      this.logger.warn(`Invalid target status '${targetStatus}' for run.end event`);
       return;
     }
 
-    const allowedTargets = VALID_TRANSITIONS[current.status];
-
-    if (!allowedTargets) {
-      this.logger.warn(`Run ${event.runId} already in terminal state '${current.status}'`);
-      return;
-    }
-
-    if (!allowedTargets.includes(event.payload.status as RunStatus)) {
-      this.logger.warn(
-        `Invalid transition from '${current.status}' to '${event.payload.status}' for run ${event.runId}`,
-      );
-      return;
-    }
-
-    await ctx.tx
+    const result = await ctx.tx
       .update(runs)
       .set({
         status: event.payload.status,
         finishedAt: new Date(event.timestamp),
       })
-      .where(eq(runs.id, event.runId));
+      .where(and(eq(runs.id, event.runId), inArray(runs.status, validSources)))
+      .returning({ id: runs.id });
+
+    if (result.length === 0) {
+      this.logger.warn(`Run ${event.runId} not found or already in terminal state, skipping`);
+      return;
+    }
 
     this.logger.log(`Finished run ${event.runId} with status ${event.payload.status}`);
   }

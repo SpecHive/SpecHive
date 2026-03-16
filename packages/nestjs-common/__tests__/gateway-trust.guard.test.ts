@@ -140,9 +140,11 @@ describe('GatewayTrustGuard', () => {
   });
 
   it('uses first value when headers are arrays', () => {
+    const altUserId = '019caa05-18f9-73f3-979e-a91d0dd05532';
+    const altOrgId = '019caa05-18f9-73f3-979e-a91d0dd05533';
     const ctx = makeContext({
-      'x-user-id': ['id1', 'id2'],
-      'x-organization-id': [ORG_ID, 'other-org'],
+      'x-user-id': [altUserId, USER_ID],
+      'x-organization-id': [altOrgId, ORG_ID],
       'x-user-role': ['member', 'admin'],
     });
 
@@ -151,8 +153,8 @@ describe('GatewayTrustGuard', () => {
     expect(result).toBe(true);
     const { request } = ctx as unknown as { request: Record<string, unknown> };
     expect(request.user).toEqual({
-      userId: 'id1',
-      organizationId: ORG_ID,
+      userId: altUserId,
+      organizationId: altOrgId,
       role: 'member',
     });
   });

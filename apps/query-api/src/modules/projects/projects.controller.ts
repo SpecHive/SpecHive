@@ -1,10 +1,12 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
+import { MembershipRole } from '@spechive/shared-types';
 import { z } from 'zod';
 
 import { paginationSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
+import { Roles } from '../../decorators/roles.decorator';
 
 import { ProjectsService } from './projects.service';
 
@@ -23,6 +25,7 @@ export class ProjectsController {
   }
 
   @Post()
+  @Roles(MembershipRole.Owner, MembershipRole.Admin)
   async create(
     @CurrentUser() user: UserContext,
     @Body(new ZodValidationPipe(createProjectSchema)) body: z.infer<typeof createProjectSchema>,
