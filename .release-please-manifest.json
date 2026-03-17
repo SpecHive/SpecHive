@@ -10,5 +10,6 @@
   "apps/query-api": "0.0.3",
   "apps/ingestion-api": "0.0.3",
   "apps/worker": "0.0.3",
-  "apps/dashboard": "0.0.3"
+  "apps/dashboard": "0.0.3",
+  "apps/gateway": "0.0.1"
 }

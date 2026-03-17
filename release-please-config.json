@@ -21,6 +21,7 @@
     "apps/query-api": {},
     "apps/ingestion-api": {},
     "apps/worker": {},
-    "apps/dashboard": {}
+    "apps/dashboard": {},
+    "apps/gateway": {}
   }
 }

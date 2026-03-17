@@ -122,6 +122,12 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish @spechive/gateway
+        if: contains(needs.release-please.outputs.paths_released, 'apps/gateway')
+        run: pnpm --filter @spechive/gateway publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       # Layer 5: playwright-reporter (bundles deps, no chain dependency)
       - name: Publish @spechive/playwright-reporter
         if: contains(needs.release-please.outputs.paths_released, 'packages/playwright-reporter')
@@ -155,6 +161,9 @@ jobs:
           - image: query-api
             dockerfile: apps/query-api/Dockerfile
             path: apps/query-api
+          - image: gateway
+            dockerfile: apps/gateway/Dockerfile
+            path: apps/gateway
           - image: dashboard
             dockerfile: apps/dashboard/Dockerfile
             path: apps/dashboard
