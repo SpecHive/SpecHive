@@ -9,23 +9,23 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./migrate": {
       "import": "./dist/migrate.js",
-      "types": "./dist/migrate.d.ts",
-      "default": "./dist/migrate.js"
+      "default": "./dist/migrate.js",
+      "types": "./dist/migrate.d.ts"
     },
     "./schema": {
-      "types": "./dist/schema/index.d.ts",
       "import": "./dist/schema/index.js",
-      "default": "./dist/schema/index.js"
+      "default": "./dist/schema/index.js",
+      "types": "./dist/schema/index.d.ts"
     },
     "./seed": {
-      "types": "./dist/seed.d.ts",
       "import": "./dist/seed.js",
-      "default": "./dist/seed.js"
+      "default": "./dist/seed.js",
+      "types": "./dist/seed.d.ts"
     }
   },
   "scripts": {
