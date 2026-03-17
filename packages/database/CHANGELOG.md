@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.4](https://github.com/SpecHive/SpecHive/compare/database-v0.0.3...database-v0.0.4) (2026-03-17)
+
+
+### Features
+
+* **analytics:** implement daily pre-aggregation and analytics service ([#2](https://github.com/SpecHive/SpecHive/issues/2).2/[#2](https://github.com/SpecHive/SpecHive/issues/2).3) ([ecc5ec9](https://github.com/SpecHive/SpecHive/commit/ecc5ec9b449f2bf61e0ba09402327d292fe48086))
+* **database:** add pre-aggregation tables and partition tests/test_attempts ([85bce24](https://github.com/SpecHive/SpecHive/commit/85bce240b03726cfa510436cd4ab7e3c7ab0bcad))
+
+
+### Bug Fixes
+
+* pre-release security hardening, RBAC, and code quality sweep ([f7cee0d](https://github.com/SpecHive/SpecHive/commit/f7cee0dfe2fd6e4f6b46f9aef218ef70b92a149d))
+* **worker,tests:** fix Date serialization in analytics handlers and seed stats tables in tests ([e1e9054](https://github.com/SpecHive/SpecHive/commit/e1e9054e88dd3fe9b9654f46fb242c7512fc0d08))
+
 ## [0.0.3](https://github.com/SpecHive/SpecHive/compare/database-v0.0.2...database-v0.0.3) (2026-03-15)
 
 
