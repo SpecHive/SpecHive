@@ -6,16 +6,17 @@ import { z } from 'zod';
 
 import { CurrentUser } from '../../decorators/current-user.decorator';
 
+import { ANALYTICS_MAX_DAYS, ANALYTICS_MAX_FLAKY_LIMIT } from './analytics.constants';
 import { AnalyticsService } from './analytics.service';
 
 const projectIdParamSchema = z.string().uuid();
 
 const trendQuerySchema = z.object({
-  days: z.coerce.number().int().min(1).max(90).default(30),
+  days: z.coerce.number().int().min(1).max(ANALYTICS_MAX_DAYS).default(30),
 });
 
 const flakyQuerySchema = trendQuerySchema.extend({
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  limit: z.coerce.number().int().min(1).max(ANALYTICS_MAX_FLAKY_LIMIT).default(10),
 });
 
 @Controller('v1/projects/:projectId/analytics')

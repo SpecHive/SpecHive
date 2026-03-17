@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { runs, tests, testAttempts } from '@spechive/database';
+import { dailyFlakyTestStats, runs, tests, testAttempts } from '@spechive/database';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
 import { TestStatus, stripAnsi } from '@spechive/shared-types';
 import { and, eq, sql } from 'drizzle-orm';
@@ -17,7 +17,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
     const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
       event.payload;
 
-    await ctx.tx
+    const [updatedTest] = await ctx.tx
       .update(tests)
       .set({
         status,
@@ -27,7 +27,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
       })
-      .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
+      .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)))
+      .returning({ name: tests.name });
 
     if (attempts?.length) {
       await ctx.tx
@@ -69,6 +70,26 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
         ...counterUpdates,
       })
       .where(eq(runs.id, event.runId));
+
+    if (updatedTest) {
+      const isFlaky = status === TestStatus.Flaky;
+      const testDay = new Date(event.timestamp);
+      await ctx.tx.execute(sql`
+        INSERT INTO ${dailyFlakyTestStats} (
+          project_id, organization_id, test_name, day,
+          flaky_count, total_count, total_retries
+        )
+        VALUES (
+          ${ctx.projectId}, ${ctx.organizationId}, ${updatedTest.name},
+          date_trunc('day', ${testDay}::timestamptz AT TIME ZONE 'UTC')::date,
+          ${isFlaky ? 1 : 0}, 1, ${isFlaky ? (retryCount ?? 0) : 0}
+        )
+        ON CONFLICT (project_id, test_name, day) DO UPDATE SET
+          flaky_count = ${dailyFlakyTestStats.flakyCount} + EXCLUDED.flaky_count,
+          total_count = ${dailyFlakyTestStats.totalCount} + EXCLUDED.total_count,
+          total_retries = ${dailyFlakyTestStats.totalRetries} + EXCLUDED.total_retries
+      `);
+    }
 
     this.logger.log(`Test ${testId} ended with status ${status} in run ${event.runId}`);
   }

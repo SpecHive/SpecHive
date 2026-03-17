@@ -3,6 +3,26 @@
   "version": "0.0.1",
   "license": "AGPL-3.0-only",
   "description": "SpecHive API gateway — single external entry point with auth and rate limiting",
+  "exports": {
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "default": "./dist/modules/index.js"
+    },
+    "./config": {
+      "types": "./dist/modules/config/env.validation.d.ts",
+      "default": "./dist/modules/config/env.validation.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "modules": [
+        "dist/modules/index.d.ts"
+      ],
+      "config": [
+        "dist/modules/config/env.validation.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "README.md",

@@ -8,6 +8,7 @@ import type {
   TestId,
   UserId,
 } from '@spechive/shared-types';
+import { z } from 'zod';
 
 import type { PaginatedResponse } from './pagination.js';
 
@@ -119,39 +120,45 @@ export interface UserProfile {
   name: string;
 }
 
-export interface ProjectAnalyticsSummary {
-  totalRuns: number;
-  totalTests: number;
-  passedTests: number;
-  failedTests: number;
-  skippedTests: number;
-  flakyTests: number;
-  passRate: number;
-  avgDurationMs: number;
-  retriedTests: number;
-}
+export const projectAnalyticsSummarySchema = z.object({
+  totalRuns: z.number(),
+  totalTests: z.number(),
+  passedTests: z.number(),
+  failedTests: z.number(),
+  skippedTests: z.number(),
+  flakyTests: z.number(),
+  passRate: z.number(),
+  avgDurationMs: z.number(),
+  retriedTests: z.number(),
+});
 
-export interface PassRateTrendPoint {
-  date: string;
-  passRate: number;
-  totalTests: number;
-  passedTests: number;
-  failedTests: number;
-}
+export const passRateTrendPointSchema = z.object({
+  date: z.string(),
+  passRate: z.number(),
+  totalTests: z.number(),
+  passedTests: z.number(),
+  failedTests: z.number(),
+});
 
-export interface DurationTrendPoint {
-  date: string;
-  avgDurationMs: number;
-  minDurationMs: number;
-  maxDurationMs: number;
-}
+export const durationTrendPointSchema = z.object({
+  date: z.string(),
+  avgDurationMs: z.number(),
+  // null when no run in this bucket had a known startedAt — excluded from duration aggregates
+  minDurationMs: z.number().nullable(),
+  maxDurationMs: z.number().nullable(),
+});
 
-export interface FlakyTestSummary {
-  testName: string;
-  flakyCount: number;
-  totalRuns: number;
-  avgRetries: number;
-}
+export const flakyTestSummarySchema = z.object({
+  testName: z.string(),
+  flakyCount: z.number(),
+  totalRuns: z.number(),
+  avgRetries: z.number(),
+});
+
+export type ProjectAnalyticsSummary = z.infer<typeof projectAnalyticsSummarySchema>;
+export type PassRateTrendPoint = z.infer<typeof passRateTrendPointSchema>;
+export type DurationTrendPoint = z.infer<typeof durationTrendPointSchema>;
+export type FlakyTestSummary = z.infer<typeof flakyTestSummarySchema>;
 
 export interface CreateProjectRequest {
   name: string;

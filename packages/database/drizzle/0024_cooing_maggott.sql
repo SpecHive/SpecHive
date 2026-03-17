@@ -1,0 +1,1 @@
+ALTER TABLE "daily_run_stats" ADD COLUMN "retried_tests" integer DEFAULT 0 NOT NULL;

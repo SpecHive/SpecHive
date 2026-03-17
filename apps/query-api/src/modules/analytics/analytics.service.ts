@@ -5,53 +5,23 @@ import type {
   PassRateTrendPoint,
   ProjectAnalyticsSummary,
 } from '@spechive/api-types';
+import {
+  durationTrendPointSchema,
+  flakyTestSummarySchema,
+  passRateTrendPointSchema,
+  projectAnalyticsSummarySchema,
+} from '@spechive/api-types';
 import type { Database } from '@spechive/database';
-import { runs, tests, setTenantContext } from '@spechive/database';
+import { dailyFlakyTestStats, dailyRunStats, setTenantContext } from '@spechive/database';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
-import { z } from 'zod';
 
-const MAX_DAYS = 90;
-const MAX_FLAKY_LIMIT = 100;
+import { ANALYTICS_MAX_DAYS, ANALYTICS_MAX_FLAKY_LIMIT } from './analytics.constants';
 
 function clampDays(days: number): number {
-  return Math.min(Math.max(days, 1), MAX_DAYS);
+  return Math.min(Math.max(days, 1), ANALYTICS_MAX_DAYS);
 }
-
-const projectAnalyticsSummarySchema = z.object({
-  totalRuns: z.number(),
-  totalTests: z.number(),
-  passedTests: z.number(),
-  failedTests: z.number(),
-  skippedTests: z.number(),
-  flakyTests: z.number(),
-  passRate: z.number(),
-  avgDurationMs: z.number(),
-  retriedTests: z.number(),
-});
-
-const passRateTrendPointSchema = z.object({
-  date: z.string(),
-  passRate: z.number(),
-  totalTests: z.number(),
-  passedTests: z.number(),
-  failedTests: z.number(),
-});
-
-const durationTrendPointSchema = z.object({
-  date: z.string(),
-  avgDurationMs: z.number(),
-  minDurationMs: z.number(),
-  maxDurationMs: z.number(),
-});
-
-const flakyTestSummarySchema = z.object({
-  testName: z.string(),
-  flakyCount: z.number(),
-  totalRuns: z.number(),
-  avgRetries: z.number(),
-});
 
 @Injectable()
 export class AnalyticsService {
@@ -66,63 +36,39 @@ export class AnalyticsService {
     days = 30,
   ): Promise<ProjectAnalyticsSummary> {
     const clampedDays = clampDays(days);
+    // Inclusive lookback: days=30 → today + 29 previous calendar days = 30 days total
+    const lookbackDays = clampedDays - 1;
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const finishedRunsFilter = sql`
-        ${runs.projectId} = ${projectId}
-        AND ${runs.finishedAt} IS NOT NULL
-        AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-      `;
+      const result = await tx.execute(sql`
+        SELECT
+          COALESCE(SUM(${dailyRunStats.totalRuns}), 0)::int AS "totalRuns",
+          COALESCE(SUM(${dailyRunStats.totalTests}), 0)::int AS "totalTests",
+          COALESCE(SUM(${dailyRunStats.passedTests}), 0)::int AS "passedTests",
+          COALESCE(SUM(${dailyRunStats.failedTests}), 0)::int AS "failedTests",
+          COALESCE(SUM(${dailyRunStats.skippedTests}), 0)::int AS "skippedTests",
+          COALESCE(SUM(${dailyRunStats.flakyTests}), 0)::int AS "flakyTests",
+          CASE
+            WHEN SUM(${dailyRunStats.totalTests}) > 0
+            THEN ROUND((SUM(${dailyRunStats.passedTests})::numeric / SUM(${dailyRunStats.totalTests})::numeric) * 100, 2)
+            ELSE 0
+          END::float AS "passRate",
+          CASE
+            WHEN SUM(${dailyRunStats.totalRuns}) > 0
+            THEN (SUM(${dailyRunStats.sumDurationMs})::float / SUM(${dailyRunStats.totalRuns})::float)
+            ELSE 0
+          END AS "avgDurationMs",
+          COALESCE(SUM(${dailyRunStats.retriedTests}), 0)::int AS "retriedTests"
+        FROM ${dailyRunStats}
+        WHERE ${dailyRunStats.projectId} = ${projectId}
+          AND ${dailyRunStats.organizationId} = ${organizationId}
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+      `);
 
-      const [summaryResult, retriedResult] = await Promise.all([
-        tx.execute(sql`
-          SELECT
-            COUNT(*)::int AS "totalRuns",
-            COALESCE(SUM(${runs.totalTests}), 0)::int AS "totalTests",
-            COALESCE(SUM(${runs.passedTests}), 0)::int AS "passedTests",
-            COALESCE(SUM(${runs.failedTests}), 0)::int AS "failedTests",
-            COALESCE(SUM(${runs.skippedTests}), 0)::int AS "skippedTests",
-            COALESCE(SUM(${runs.flakyTests}), 0)::int AS "flakyTests",
-            CASE
-              WHEN SUM(${runs.totalTests}) > 0
-              THEN ROUND((SUM(${runs.passedTests})::numeric / SUM(${runs.totalTests})::numeric) * 100, 2)
-              ELSE 0
-            END::float AS "passRate",
-            COALESCE(AVG(
-              EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000
-            ), 0)::float AS "avgDurationMs"
-          FROM ${runs}
-          WHERE ${finishedRunsFilter}
-        `),
-        tx.execute(sql`
-          SELECT COUNT(*)::int AS "retriedTests"
-          FROM ${tests}
-            INNER JOIN ${runs} ON ${runs.id} = ${tests.runId}
-          WHERE ${finishedRunsFilter}
-            AND ${tests.retryCount} > 0
-        `),
-      ]);
-
-      if (summaryResult.length === 0) {
-        return {
-          totalRuns: 0,
-          totalTests: 0,
-          passedTests: 0,
-          failedTests: 0,
-          skippedTests: 0,
-          flakyTests: 0,
-          passRate: 0,
-          avgDurationMs: 0,
-          retriedTests: 0,
-        };
-      }
-
-      const summary = summaryResult[0] as Record<string, unknown>;
-      const retriedTests = (retriedResult[0] as Record<string, unknown>)?.retriedTests ?? 0;
-
-      return projectAnalyticsSummarySchema.parse({ ...summary, retriedTests });
+      // Aggregate queries without GROUP BY always return exactly one row (NULLs become 0 via COALESCE)
+      return projectAnalyticsSummarySchema.parse(result[0]);
     });
   }
 
@@ -132,27 +78,27 @@ export class AnalyticsService {
     days = 30,
   ): Promise<PassRateTrendPoint[]> {
     const clampedDays = clampDays(days);
+    const lookbackDays = clampedDays - 1;
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
       const result = await tx.execute(sql`
         SELECT
-          date_trunc('day', ${runs.finishedAt})::date::text AS "date",
-          COALESCE(SUM(${runs.totalTests}), 0)::int AS "totalTests",
-          COALESCE(SUM(${runs.passedTests}), 0)::int AS "passedTests",
-          COALESCE(SUM(${runs.failedTests}), 0)::int AS "failedTests",
+          ${dailyRunStats.day}::text AS "date",
+          ${dailyRunStats.totalTests} AS "totalTests",
+          ${dailyRunStats.passedTests} AS "passedTests",
+          ${dailyRunStats.failedTests} AS "failedTests",
           CASE
-            WHEN SUM(${runs.totalTests}) > 0
-            THEN ROUND((SUM(${runs.passedTests})::numeric / SUM(${runs.totalTests})::numeric) * 100, 2)
+            WHEN ${dailyRunStats.totalTests} > 0
+            THEN ROUND((${dailyRunStats.passedTests}::numeric / ${dailyRunStats.totalTests}::numeric) * 100, 2)
             ELSE 0
           END::float AS "passRate"
-        FROM ${runs}
-        WHERE ${runs.projectId} = ${projectId}
-          AND ${runs.finishedAt} IS NOT NULL
-          AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-        GROUP BY date_trunc('day', ${runs.finishedAt})
-        ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
+        FROM ${dailyRunStats}
+        WHERE ${dailyRunStats.projectId} = ${projectId}
+          AND ${dailyRunStats.organizationId} = ${organizationId}
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+        ORDER BY ${dailyRunStats.day} ASC
       `);
 
       return passRateTrendPointSchema.array().parse(result);
@@ -165,23 +111,26 @@ export class AnalyticsService {
     days = 30,
   ): Promise<DurationTrendPoint[]> {
     const clampedDays = clampDays(days);
+    const lookbackDays = clampedDays - 1;
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
       const result = await tx.execute(sql`
         SELECT
-          date_trunc('day', ${runs.finishedAt})::date::text AS "date",
-          COALESCE(AVG(EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000), 0)::float AS "avgDurationMs",
-          COALESCE(MIN(EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000), 0)::float AS "minDurationMs",
-          COALESCE(MAX(EXTRACT(EPOCH FROM (${runs.finishedAt} - ${runs.startedAt})) * 1000), 0)::float AS "maxDurationMs"
-        FROM ${runs}
-        WHERE ${runs.projectId} = ${projectId}
-          AND ${runs.finishedAt} IS NOT NULL
-          AND ${runs.startedAt} IS NOT NULL
-          AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-        GROUP BY date_trunc('day', ${runs.finishedAt})
-        ORDER BY date_trunc('day', ${runs.finishedAt}) ASC
+          ${dailyRunStats.day}::text AS "date",
+          CASE
+            WHEN ${dailyRunStats.totalRuns} > 0
+            THEN (${dailyRunStats.sumDurationMs}::float / ${dailyRunStats.totalRuns}::float)
+            ELSE 0
+          END AS "avgDurationMs",
+          ${dailyRunStats.minDurationMs} AS "minDurationMs",
+          ${dailyRunStats.maxDurationMs} AS "maxDurationMs"
+        FROM ${dailyRunStats}
+        WHERE ${dailyRunStats.projectId} = ${projectId}
+          AND ${dailyRunStats.organizationId} = ${organizationId}
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+        ORDER BY ${dailyRunStats.day} ASC
       `);
 
       return durationTrendPointSchema.array().parse(result);
@@ -195,25 +144,29 @@ export class AnalyticsService {
     limit = 10,
   ): Promise<FlakyTestSummary[]> {
     const clampedDays = clampDays(days);
-    const clampedLimit = Math.min(Math.max(limit, 1), MAX_FLAKY_LIMIT);
+    const lookbackDays = clampedDays - 1;
+    const clampedLimit = Math.min(Math.max(limit, 1), ANALYTICS_MAX_FLAKY_LIMIT);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
       const result = await tx.execute(sql`
         SELECT
-          ${tests.name} AS "testName",
-          COUNT(*) FILTER (WHERE ${tests.status} = 'flaky')::int AS "flakyCount",
-          COUNT(DISTINCT ${tests.runId})::int AS "totalRuns",
-          COALESCE(AVG(${tests.retryCount}) FILTER (WHERE ${tests.status} = 'flaky'), 0)::float AS "avgRetries"
-        FROM ${tests}
-          INNER JOIN ${runs} ON ${runs.id} = ${tests.runId}
-        WHERE ${runs.projectId} = ${projectId}
-          AND ${runs.finishedAt} IS NOT NULL
-          AND ${runs.finishedAt} >= NOW() - INTERVAL '1 day' * ${clampedDays}
-        GROUP BY ${tests.name}
-        HAVING COUNT(*) FILTER (WHERE ${tests.status} = 'flaky') > 0
-        ORDER BY (COUNT(*) FILTER (WHERE ${tests.status} = 'flaky'))::float / COUNT(DISTINCT ${tests.runId}) DESC
+          ${dailyFlakyTestStats.testName} AS "testName",
+          SUM(${dailyFlakyTestStats.flakyCount})::int AS "flakyCount",
+          SUM(${dailyFlakyTestStats.totalCount})::int AS "totalRuns",
+          CASE
+            WHEN SUM(${dailyFlakyTestStats.flakyCount}) > 0
+            THEN (SUM(${dailyFlakyTestStats.totalRetries})::float / SUM(${dailyFlakyTestStats.flakyCount})::float)
+            ELSE 0
+          END AS "avgRetries"
+        FROM ${dailyFlakyTestStats}
+        WHERE ${dailyFlakyTestStats.projectId} = ${projectId}
+          AND ${dailyFlakyTestStats.organizationId} = ${organizationId}
+          AND ${dailyFlakyTestStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+        GROUP BY ${dailyFlakyTestStats.testName}
+        HAVING SUM(${dailyFlakyTestStats.flakyCount}) > 0
+        ORDER BY (SUM(${dailyFlakyTestStats.flakyCount})::float / NULLIF(SUM(${dailyFlakyTestStats.totalCount}), 0)) DESC NULLS LAST
         LIMIT ${clampedLimit}
       `);
 

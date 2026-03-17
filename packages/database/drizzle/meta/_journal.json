@@ -169,6 +169,13 @@
       "when": 1773670590609,
       "tag": "0023_organic_mesmero",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1773681487155,
+      "tag": "0024_cooing_maggott",
+      "breakpoints": true
     }
   ]
 }

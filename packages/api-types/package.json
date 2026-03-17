@@ -38,7 +38,8 @@
     "typescript"
   ],
   "dependencies": {
-    "@spechive/shared-types": "workspace:*"
+    "@spechive/shared-types": "workspace:*",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@spechive/typescript-config": "workspace:*",

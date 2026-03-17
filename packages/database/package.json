@@ -36,7 +36,8 @@
     "db:generate": "node --require tsx/cjs node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
-    "perf:baseline": "tsx src/perf-baseline.ts"
+    "perf:baseline": "tsx src/perf-baseline.ts",
+    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts"
   },
   "files": [
     "dist",

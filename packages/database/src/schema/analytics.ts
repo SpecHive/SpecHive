@@ -23,6 +23,7 @@ export const dailyRunStats = pgTable(
     failedTests: integer('failed_tests').notNull().default(0),
     skippedTests: integer('skipped_tests').notNull().default(0),
     flakyTests: integer('flaky_tests').notNull().default(0),
+    retriedTests: integer('retried_tests').notNull().default(0),
     // mode: 'number' is safe here — daily sums won't approach Number.MAX_SAFE_INTEGER (~9 quadrillion ms)
     sumDurationMs: bigint('sum_duration_ms', { mode: 'number' }).notNull().default(0),
     minDurationMs: integer('min_duration_ms'),

@@ -1,38 +1,21 @@
 import { Test } from '@nestjs/testing';
-import type { OrganizationId, ProjectId, RunId, TestId } from '@spechive/shared-types';
+import type { RunId, TestId } from '@spechive/shared-types';
 import { TestStatus } from '@spechive/shared-types';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
-import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';
+import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
 import { TestEndHandler } from '../../src/modules/result-processor/handlers/test-end.handler';
 
 describe('TestEndHandler', () => {
   let handler: TestEndHandler;
-  let testUpdateWhere: ReturnType<typeof vi.fn>;
-  let testUpdateSet: ReturnType<typeof vi.fn>;
-  let runUpdateWhere: ReturnType<typeof vi.fn>;
-  let runUpdateSet: ReturnType<typeof vi.fn>;
-  let mockUpdate: ReturnType<typeof vi.fn>;
-  let ctx: EventHandlerContext;
+  let ctx: ReturnType<typeof createHandlerContext>['ctx'];
+  let mocks: ReturnType<typeof createHandlerContext>['mocks'];
 
   beforeEach(async () => {
-    let updateCallCount = 0;
-    testUpdateWhere = vi.fn();
-    testUpdateSet = vi.fn().mockReturnValue({ where: testUpdateWhere });
-    runUpdateWhere = vi.fn();
-    runUpdateSet = vi.fn().mockReturnValue({ where: runUpdateWhere });
+    ({ ctx, mocks } = createHandlerContext());
 
-    mockUpdate = vi.fn().mockImplementation(() => {
-      updateCallCount++;
-      // First update call is for tests table, second for runs table
-      return { set: updateCallCount === 1 ? testUpdateSet : runUpdateSet };
-    });
-
-    ctx = {
-      tx: { update: mockUpdate } as unknown as EventHandlerContext['tx'],
-      organizationId: 'org-1' as OrganizationId,
-      projectId: 'proj-1' as ProjectId,
-    };
+    // The tests table UPDATE returns the updated row with the test name
+    mocks.update.returning.mockResolvedValue([{ name: 'should login' }]);
 
     const module = await Test.createTestingModule({
       providers: [TestEndHandler],
@@ -56,18 +39,94 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // First call updates tests table
-    expect(testUpdateSet).toHaveBeenCalledWith(
+    // Two update calls: tests table then runs table
+    expect(mocks.update.update).toHaveBeenCalledTimes(2);
+    expect(mocks.update.set).toHaveBeenCalledWith(
       expect.objectContaining({
         status: TestStatus.Passed,
         durationMs: 150,
         finishedAt: new Date('2025-01-01T00:01:00.000Z'),
       }),
     );
+  });
 
-    // Second call updates runs table counters
-    expect(mockUpdate).toHaveBeenCalledTimes(2);
-    expect(runUpdateSet).toHaveBeenCalled();
+  it('returns test name via returning clause', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Passed,
+        durationMs: 150,
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.update.returning).toHaveBeenCalledWith(
+      expect.objectContaining({ name: expect.anything() }),
+    );
+  });
+
+  it('UPSERTs daily_flaky_test_stats for flaky test', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Flaky,
+        durationMs: 200,
+        retryCount: 3,
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('UPSERTs daily_flaky_test_stats for non-flaky test', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Passed,
+        durationMs: 150,
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    // Non-flaky tests also get a UPSERT (for accurate totalCount)
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips UPSERT when test update returns no rows', async () => {
+    mocks.update.returning.mockResolvedValue([]);
+
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Flaky,
+        durationMs: 200,
+        retryCount: 2,
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
 
   it('strips ANSI escape codes from errorMessage and stackTrace', async () => {
@@ -89,7 +148,7 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(testUpdateSet).toHaveBeenCalledWith(
+    expect(mocks.update.set).toHaveBeenCalledWith(
       expect.objectContaining({
         errorMessage: 'expect(received).toBeVisible()',
         stackTrace: 'Error: test failed\n    at Object.<anonymous> (test.ts:10:5)',
@@ -111,7 +170,7 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    expect(testUpdateSet).toHaveBeenCalledWith(
+    expect(mocks.update.set).toHaveBeenCalledWith(
       expect.objectContaining({
         durationMs: null,
         errorMessage: null,
@@ -119,5 +178,47 @@ describe('TestEndHandler', () => {
         retryCount: 0,
       }),
     );
+  });
+
+  it('inserts test attempts and calls onConflictDoNothing when attempts are provided', async () => {
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:01:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.end' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        status: TestStatus.Flaky,
+        durationMs: 200,
+        retryCount: 1,
+        attempts: [
+          {
+            retryIndex: 0,
+            status: TestStatus.Failed,
+            durationMs: 100,
+            startedAt: '2025-01-01T00:00:00.000Z',
+            finishedAt: '2025-01-01T00:00:01.000Z',
+          },
+          {
+            retryIndex: 1,
+            status: TestStatus.Passed,
+            durationMs: 100,
+            startedAt: '2025-01-01T00:00:01.000Z',
+            finishedAt: '2025-01-01T00:00:02.000Z',
+          },
+        ],
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.insert.insert).toHaveBeenCalledOnce();
+    expect(mocks.insert.values).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ retryIndex: 0, status: TestStatus.Failed }),
+        expect.objectContaining({ retryIndex: 1, status: TestStatus.Passed }),
+      ]),
+    );
+    expect(mocks.insert.onConflictDoNothing).toHaveBeenCalled();
   });
 });
