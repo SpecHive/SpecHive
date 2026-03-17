@@ -72,7 +72,7 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       )
       VALUES (
         ${ctx.projectId}, ${ctx.organizationId},
-        date_trunc('day', ${finishedAt}::timestamptz AT TIME ZONE 'UTC')::date,
+        date_trunc('day', ${finishedAt.toISOString()}::timestamptz AT TIME ZONE 'UTC')::date,
         1, ${run.totalTests}, ${run.passedTests}, ${run.failedTests}, ${run.skippedTests}, ${run.flakyTests},
         ${retriedTests}, COALESCE(${durationMs}::bigint, 0), ${durationMs}, ${durationMs}
       )

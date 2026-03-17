@@ -27,6 +27,7 @@ export class ProxyService {
     const upstream = `${this.ingestionApiUrl}${path}`;
     return reply.from(upstream, {
       rewriteRequestHeaders: (_origReq, headers) => this.injectHeaders(req, headers),
+      rewriteHeaders: (headers) => this.stripUpstreamCorsHeaders(headers),
     });
   }
 
@@ -34,7 +35,19 @@ export class ProxyService {
     const upstream = `${this.queryApiUrl}${path}`;
     return reply.from(upstream, {
       rewriteRequestHeaders: (_origReq, headers) => this.injectHeaders(req, headers),
+      rewriteHeaders: (headers) => this.stripUpstreamCorsHeaders(headers),
     });
+  }
+
+  /** Prevent upstream CORS headers from leaking through the proxy — the gateway owns CORS. */
+  private stripUpstreamCorsHeaders(headers: IncomingHttpHeaders): IncomingHttpHeaders {
+    delete headers['access-control-allow-origin'];
+    delete headers['access-control-allow-credentials'];
+    delete headers['access-control-allow-methods'];
+    delete headers['access-control-allow-headers'];
+    delete headers['access-control-expose-headers'];
+    delete headers['access-control-max-age'];
+    return headers;
   }
 
   private injectHeaders(req: FastifyRequest, headers: IncomingHttpHeaders): IncomingHttpHeaders {

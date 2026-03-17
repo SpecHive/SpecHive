@@ -73,7 +73,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
 
     if (updatedTest) {
       const isFlaky = status === TestStatus.Flaky;
-      const testDay = new Date(event.timestamp);
+      const testDay = new Date(event.timestamp).toISOString();
       await ctx.tx.execute(sql`
         INSERT INTO ${dailyFlakyTestStats} (
           project_id, organization_id, test_name, day,

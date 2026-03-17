@@ -109,11 +109,49 @@ describe('Analytics endpoints', () => {
           testIdx++;
         }
       }
+
+      // Seed daily_run_stats for this run (analytics endpoints query stats tables, not raw runs)
+      const durationMs = config.durationMinutes * 60 * 1000;
+      await sql`
+        INSERT INTO daily_run_stats (project_id, organization_id, day,
+          total_runs, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests,
+          retried_tests, sum_duration_ms, min_duration_ms, max_duration_ms)
+        VALUES (${SEED_PROJECT_ID}, ${SEED_ORG_ID},
+          date_trunc('day', ${startedAt.toISOString()}::timestamptz AT TIME ZONE 'UTC')::date,
+          1, ${totalTests}, ${config.passed}, ${config.failed}, ${config.skipped}, ${config.flaky},
+          0, ${durationMs}, ${durationMs}, ${durationMs})
+        ON CONFLICT (project_id, day) DO UPDATE SET
+          total_runs = daily_run_stats.total_runs + 1,
+          total_tests = daily_run_stats.total_tests + EXCLUDED.total_tests,
+          passed_tests = daily_run_stats.passed_tests + EXCLUDED.passed_tests,
+          failed_tests = daily_run_stats.failed_tests + EXCLUDED.failed_tests,
+          skipped_tests = daily_run_stats.skipped_tests + EXCLUDED.skipped_tests,
+          flaky_tests = daily_run_stats.flaky_tests + EXCLUDED.flaky_tests,
+          sum_duration_ms = daily_run_stats.sum_duration_ms + EXCLUDED.sum_duration_ms,
+          min_duration_ms = LEAST(daily_run_stats.min_duration_ms, EXCLUDED.min_duration_ms),
+          max_duration_ms = GREATEST(daily_run_stats.max_duration_ms, EXCLUDED.max_duration_ms)
+      `;
+
+      // Seed daily_flaky_test_stats for runs with flaky tests
+      for (let j = 0; j < config.flaky; j++) {
+        await sql`
+          INSERT INTO daily_flaky_test_stats (project_id, organization_id, test_name, day,
+            flaky_count, total_count, total_retries)
+          VALUES (${SEED_PROJECT_ID}, ${SEED_ORG_ID}, ${`flaky-test-${j}`},
+            date_trunc('day', ${startedAt.toISOString()}::timestamptz AT TIME ZONE 'UTC')::date,
+            1, 1, 0)
+          ON CONFLICT (project_id, test_name, day) DO UPDATE SET
+            flaky_count = daily_flaky_test_stats.flaky_count + 1,
+            total_count = daily_flaky_test_stats.total_count + 1
+        `;
+      }
     }
   }, 30_000);
 
   afterAll(async () => {
     // Clean up seeded data in reverse dependency order
+    await sql`DELETE FROM daily_flaky_test_stats WHERE project_id = ${SEED_PROJECT_ID}`;
+    await sql`DELETE FROM daily_run_stats WHERE project_id = ${SEED_PROJECT_ID}`;
     for (let i = 0; i < 5; i++) {
       await sql`DELETE FROM tests WHERE run_id = ${runId(i)}`;
       await sql`DELETE FROM suites WHERE id = ${suiteId(i)}`;

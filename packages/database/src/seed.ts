@@ -19,6 +19,7 @@ import {
 import { hash } from 'argon2';
 import { eq } from 'drizzle-orm';
 
+import { backfillDailyStats } from './backfill-daily-stats.js';
 import { createDbConnection, getRawClient } from './connection.js';
 import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
@@ -857,6 +858,9 @@ export async function seed(dbUrl: string, password?: string) {
     console.log(`  Organizations: 1`);
     console.log(`  Projects: ${PROJECTS.length}`);
     console.log(`  Total runs: ${PROJECTS.reduce((sum, p) => sum + p.runCount, 0)}`);
+
+    console.log('\nBackfilling analytics tables...');
+    await backfillDailyStats(dbUrl);
   } finally {
     const client = getRawClient(db);
     await client.end();

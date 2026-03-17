@@ -62,6 +62,16 @@ describe('Cross-tenant analytics isolation', () => {
       ON CONFLICT (id, created_at) DO NOTHING
     `;
 
+    // Analytics endpoints query daily_run_stats, not runs directly
+    await sql`
+      INSERT INTO daily_run_stats (project_id, organization_id, day,
+        total_runs, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests,
+        retried_tests, sum_duration_ms, min_duration_ms, max_duration_ms)
+      VALUES (${ORG_B_PROJECT_ID}, ${SEED_ORG2_ID}, CURRENT_DATE,
+        1, 1, 1, 0, 0, 0, 0, 100, 100, 100)
+      ON CONFLICT (project_id, day) DO NOTHING
+    `;
+
     tokenA = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD, {
       organizationId: SEED_ORG_ID,
     });
@@ -72,6 +82,7 @@ describe('Cross-tenant analytics isolation', () => {
 
   afterAll(async () => {
     // Delete Org B test data in reverse FK order
+    await sql`DELETE FROM daily_run_stats WHERE project_id = ${ORG_B_PROJECT_ID}`;
     await sql`DELETE FROM tests WHERE id = ${ORG_B_TEST_ID}`;
     await sql`DELETE FROM suites WHERE id = ${ORG_B_SUITE_ID}`;
     await sql`DELETE FROM runs WHERE id = ${ORG_B_RUN_ID}`;

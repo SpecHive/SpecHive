@@ -64,7 +64,7 @@ export class AnalyticsService {
         FROM ${dailyRunStats}
         WHERE ${dailyRunStats.projectId} = ${projectId}
           AND ${dailyRunStats.organizationId} = ${organizationId}
-          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
       `);
 
       // Aggregate queries without GROUP BY always return exactly one row (NULLs become 0 via COALESCE)
@@ -97,7 +97,7 @@ export class AnalyticsService {
         FROM ${dailyRunStats}
         WHERE ${dailyRunStats.projectId} = ${projectId}
           AND ${dailyRunStats.organizationId} = ${organizationId}
-          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
         ORDER BY ${dailyRunStats.day} ASC
       `);
 
@@ -129,7 +129,7 @@ export class AnalyticsService {
         FROM ${dailyRunStats}
         WHERE ${dailyRunStats.projectId} = ${projectId}
           AND ${dailyRunStats.organizationId} = ${organizationId}
-          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
         ORDER BY ${dailyRunStats.day} ASC
       `);
 
@@ -163,7 +163,7 @@ export class AnalyticsService {
         FROM ${dailyFlakyTestStats}
         WHERE ${dailyFlakyTestStats.projectId} = ${projectId}
           AND ${dailyFlakyTestStats.organizationId} = ${organizationId}
-          AND ${dailyFlakyTestStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays})
+          AND ${dailyFlakyTestStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
         GROUP BY ${dailyFlakyTestStats.testName}
         HAVING SUM(${dailyFlakyTestStats.flakyCount}) > 0
         ORDER BY (SUM(${dailyFlakyTestStats.flakyCount})::float / NULLIF(SUM(${dailyFlakyTestStats.totalCount}), 0)) DESC NULLS LAST
