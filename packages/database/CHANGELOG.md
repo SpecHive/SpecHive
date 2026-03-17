@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/SpecHive/SpecHive/compare/database-v0.0.4...database-v0.0.5) (2026-03-17)
+
+
+### Features
+
+* **typescript-config,database:** add nestjs-library tsconfig preset and fix exports order ([0b5494b](https://github.com/SpecHive/SpecHive/commit/0b5494bb020c00dad06edad857937fbf6563873c))
+
 ## [0.0.4](https://github.com/SpecHive/SpecHive/compare/database-v0.0.3...database-v0.0.4) (2026-03-17)
 
 
