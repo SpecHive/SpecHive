@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { REDIS_CLIENT } from '@spechive/nestjs-common';
+import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { LoginRateLimitService } from '../src/modules/auth/login-rate-limit.service';

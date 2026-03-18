@@ -18,13 +18,10 @@ export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 export { GLOBAL_RATE_LIMIT_TTL_MS } from './utils/rate-limit';
 export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard';
 
-export { DATABASE_CONNECTION, IS_PUBLIC_KEY, REDIS_CLIENT } from './constants';
+export { DATABASE_CONNECTION, IS_PUBLIC_KEY } from './constants';
 
 export { DatabaseModule } from './database/database.module';
 export { DatabaseShutdownService } from './database/database-shutdown.service';
-
-export { RedisModule } from './redis/redis.module';
-export { RedisShutdownService } from './redis/redis-shutdown.service';
 
 export { S3Module } from './s3/s3.module';
 export { S3Service } from './s3/s3.service';

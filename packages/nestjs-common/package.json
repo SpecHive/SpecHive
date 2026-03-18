@@ -7,6 +7,9 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
+      "redis": [
+        "./dist/redis/index.d.ts"
+      ],
       "testing": [
         "./dist/testing/throttle-test.helper.d.ts"
       ]
@@ -16,6 +19,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./redis": {
+      "types": "./dist/redis/index.d.ts",
+      "default": "./dist/redis/index.js"
     },
     "./testing": {
       "types": "./dist/testing/throttle-test.helper.d.ts",

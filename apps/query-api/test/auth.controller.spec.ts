@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { DATABASE_CONNECTION, IS_PRODUCTION, REDIS_CLIENT } from '@spechive/nestjs-common';
+import { DATABASE_CONNECTION, IS_PRODUCTION } from '@spechive/nestjs-common';
+import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 

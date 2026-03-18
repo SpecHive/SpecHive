@@ -7,10 +7,10 @@ import {
   GatewayTrustGuard,
   HealthModule,
   IsProductionModule,
-  RedisModule,
   RolesGuard,
   S3Module,
 } from '@spechive/nestjs-common';
+import { RedisModule } from '@spechive/nestjs-common/redis';
 
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ArtifactsModule } from './modules/artifacts/artifacts.module';

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { REDIS_CLIENT } from '@spechive/nestjs-common';
+import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import type { Redis } from 'ioredis';
 
 const MAX_FAILED_ATTEMPTS = 5;
