@@ -146,10 +146,14 @@ describe('Organization analytics endpoints', () => {
   }, 30_000);
 
   afterAll(async () => {
-    await sql`DELETE FROM daily_flaky_test_stats WHERE project_id IN (${SEED_PROJECT_ID}, ${PROJECT_B_ID})`;
-    await sql`DELETE FROM daily_run_stats WHERE project_id IN (${SEED_PROJECT_ID}, ${PROJECT_B_ID})`;
-    await sql`DELETE FROM projects WHERE id = ${PROJECT_B_ID}`;
-    await sql.end();
+    if (!sql) return;
+    try {
+      await sql`DELETE FROM daily_flaky_test_stats WHERE project_id IN (${SEED_PROJECT_ID}, ${PROJECT_B_ID})`;
+      await sql`DELETE FROM daily_run_stats WHERE project_id IN (${SEED_PROJECT_ID}, ${PROJECT_B_ID})`;
+      await sql`DELETE FROM projects WHERE id = ${PROJECT_B_ID}`;
+    } finally {
+      await sql.end();
+    }
   });
 
   // --- Summary ---
@@ -178,6 +182,15 @@ describe('Organization analytics endpoints', () => {
     expect(b['passRate']).toBeGreaterThan(80);
     expect(b['passRate']).toBeLessThan(95);
     expect(typeof b['avgDurationMs']).toBe('number');
+
+    // Period-over-period deltas (nullable)
+    expect(b).toHaveProperty('passRateDelta');
+    expect(b).toHaveProperty('flakyRate');
+    expect(b).toHaveProperty('flakyRateDelta');
+    // passRateDelta should be a number or null
+    expect(b['passRateDelta'] === null || typeof b['passRateDelta'] === 'number').toBe(true);
+    expect(typeof b['flakyRate']).toBe('number');
+    expect(b['flakyRateDelta'] === null || typeof b['flakyRateDelta'] === 'number').toBe(true);
   });
 
   // --- Pass rate trend ---
@@ -250,8 +263,13 @@ describe('Organization analytics endpoints', () => {
       expect(item).toHaveProperty('totalRuns');
       expect(item).toHaveProperty('projectId');
       expect(item).toHaveProperty('projectName');
+      expect(item).toHaveProperty('flakyCountDelta');
       expect(typeof item['projectId']).toBe('string');
       expect(typeof item['projectName']).toBe('string');
+      // flakyCountDelta: number or null
+      expect(item['flakyCountDelta'] === null || typeof item['flakyCountDelta'] === 'number').toBe(
+        true,
+      );
     }
 
     const testNames = items.map((item) => item['testName'] as string);
@@ -266,22 +284,67 @@ describe('Organization analytics endpoints', () => {
 
   // --- Project comparison ---
 
-  it('returns project comparison with per-project breakdown', async () => {
+  it('returns project comparison with enriched per-project breakdown', async () => {
     const { status, body } = await queryApi.analytics.orgProjectComparison(jwt);
 
     expect(status).toBe(200);
 
-    const items = body as Array<Record<string, unknown>>;
+    const response = body as Record<string, unknown>;
+    expect(response).toHaveProperty('projects');
+    expect(response).toHaveProperty('orgAverage');
+
+    // Verify orgAverage shape
+    const orgAvg = response['orgAverage'] as Record<string, unknown>;
+    expect(typeof orgAvg['passRate']).toBe('number');
+    expect(typeof orgAvg['flakyRate']).toBe('number');
+    expect(typeof orgAvg['skipRate']).toBe('number');
+    expect(typeof orgAvg['avgDurationMs']).toBe('number');
+    expect(typeof orgAvg['healthScore']).toBe('number');
+    expect(orgAvg['healthScore'] as number).toBeGreaterThanOrEqual(0);
+    expect(orgAvg['healthScore'] as number).toBeLessThanOrEqual(100);
+
+    const items = response['projects'] as Array<Record<string, unknown>>;
     expect(Array.isArray(items)).toBe(true);
     expect(items.length).toBeGreaterThanOrEqual(2);
 
     for (const item of items) {
+      // Original fields
       expect(item).toHaveProperty('projectId');
       expect(item).toHaveProperty('projectName');
       expect(item).toHaveProperty('totalRuns');
       expect(item).toHaveProperty('totalTests');
       expect(item).toHaveProperty('passRate');
       expect(item).toHaveProperty('avgDurationMs');
+
+      // New fields
+      expect(item).toHaveProperty('skippedTests');
+      expect(item).toHaveProperty('retriedTests');
+      expect(item).toHaveProperty('failRate');
+      expect(item).toHaveProperty('flakyRate');
+      expect(item).toHaveProperty('skipRate');
+      expect(item).toHaveProperty('avgTestsPerRun');
+      expect(item).toHaveProperty('healthScore');
+      expect(item).toHaveProperty('dailyPassRates');
+      expect(item).toHaveProperty('passRateDelta');
+      expect(item).toHaveProperty('flakyRateDelta');
+      expect(item).toHaveProperty('avgDurationDelta');
+
+      // healthScore bounds
+      expect(item['healthScore'] as number).toBeGreaterThanOrEqual(0);
+      expect(item['healthScore'] as number).toBeLessThanOrEqual(100);
+
+      // dailyPassRates is an array with date/passRate items
+      const sparkline = item['dailyPassRates'] as Array<Record<string, unknown>>;
+      expect(Array.isArray(sparkline)).toBe(true);
+      if (sparkline.length > 0) {
+        expect(sparkline[0]).toHaveProperty('date');
+        expect(sparkline[0]).toHaveProperty('passRate');
+      }
+
+      // Deltas are nullable
+      for (const field of ['passRateDelta', 'flakyRateDelta', 'avgDurationDelta']) {
+        expect(item[field] === null || typeof item[field] === 'number').toBe(true);
+      }
     }
 
     // Find our test projects

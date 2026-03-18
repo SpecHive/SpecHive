@@ -2,12 +2,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  FolderOpen,
+  EyeOff,
   PlayCircle,
   RefreshCw,
   XCircle,
 } from 'lucide-react';
 
+import { TrendIndicator } from '@/shared/components/trend-indicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import {
   Tooltip,
@@ -23,9 +24,11 @@ interface StatCardProps {
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
   tooltip: string;
+  delta?: number | null | undefined;
+  positiveIsGood?: boolean | undefined;
 }
 
-function StatCard({ title, value, icon: Icon, tooltip }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, tooltip, delta, positiveIsGood }: StatCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -43,6 +46,9 @@ function StatCard({ title, value, icon: Icon, tooltip }: StatCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        {delta != null && (
+          <TrendIndicator delta={delta} positiveIsGood={positiveIsGood} className="mt-1" />
+        )}
       </CardContent>
     </Card>
   );
@@ -72,6 +78,8 @@ export function StatsCards({ summary, isOrgView }: StatsCardsProps) {
             value={`${summary.passRate.toFixed(1)}%`}
             icon={CheckCircle}
             tooltip="Percentage of tests that passed: (passed / total) × 100."
+            delta={'passRateDelta' in summary ? summary.passRateDelta : undefined}
+            positiveIsGood={true}
           />
           <StatCard
             title="Failed Tests"
@@ -86,17 +94,23 @@ export function StatsCards({ summary, isOrgView }: StatsCardsProps) {
             tooltip="Mean execution time across all test runs in the selected period."
           />
           <StatCard
-            title="Flaky Tests"
-            value={summary.flakyTests}
+            title="Flaky Rate"
+            value={`${(summary.totalTests > 0 ? (summary.flakyTests / summary.totalTests) * 100 : 0).toFixed(1)}%`}
             icon={AlertTriangle}
-            tooltip="Tests with inconsistent pass/fail results across multiple runs."
+            tooltip="Percentage of tests with inconsistent pass/fail results — lower is better."
+            delta={
+              'flakyRateDelta' in summary
+                ? (summary as OrganizationAnalyticsSummary).flakyRateDelta
+                : undefined
+            }
+            positiveIsGood={false}
           />
           {isOrgView && 'projectCount' in summary ? (
             <StatCard
-              title="Active Projects"
-              value={summary.projectCount}
-              icon={FolderOpen}
-              tooltip="Projects with test data in the selected period."
+              title="Skip Rate"
+              value={`${summary.totalTests > 0 ? ((summary.skippedTests / summary.totalTests) * 100).toFixed(1) : '0.0'}%`}
+              icon={EyeOff}
+              tooltip="Percentage of tests skipped — high skip rates may hide failures."
             />
           ) : (
             <StatCard

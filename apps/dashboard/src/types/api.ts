@@ -19,6 +19,7 @@ export type {
   OrganizationAnalyticsSummary,
   OrganizationFlakyTestSummary,
   ProjectComparisonItem,
+  ProjectComparisonResponse,
   CreateProjectRequest,
   ProjectResponse,
   CreateTokenRequest,

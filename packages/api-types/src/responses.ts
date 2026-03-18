@@ -164,14 +164,23 @@ export type FlakyTestSummary = z.infer<typeof flakyTestSummarySchema>;
 
 export const organizationAnalyticsSummarySchema = projectAnalyticsSummarySchema.extend({
   projectCount: z.number(),
+  passRateDelta: z.number().nullable(),
+  flakyRate: z.number(),
+  flakyRateDelta: z.number().nullable(),
 });
 export type OrganizationAnalyticsSummary = z.infer<typeof organizationAnalyticsSummarySchema>;
 
 export const organizationFlakyTestSummarySchema = flakyTestSummarySchema.extend({
   projectId: z.string(),
   projectName: z.string(),
+  flakyCountDelta: z.number().nullable(),
 });
 export type OrganizationFlakyTestSummary = z.infer<typeof organizationFlakyTestSummarySchema>;
+
+export const sparklinePointSchema = z.object({
+  date: z.string(),
+  passRate: z.number(),
+});
 
 export const projectComparisonItemSchema = z.object({
   projectId: z.string(),
@@ -180,11 +189,41 @@ export const projectComparisonItemSchema = z.object({
   totalTests: z.number(),
   passedTests: z.number(),
   failedTests: z.number(),
+  skippedTests: z.number(),
   flakyTests: z.number(),
+  retriedTests: z.number(),
   passRate: z.number(),
+  failRate: z.number(),
+  flakyRate: z.number(),
+  skipRate: z.number(),
+  avgTestsPerRun: z.number(),
   avgDurationMs: z.number(),
+  minDurationMs: z.number().nullable(),
+  maxDurationMs: z.number().nullable(),
+  passRateDelta: z.number().nullable(),
+  flakyRateDelta: z.number().nullable(),
+  avgDurationDelta: z.number().nullable(),
+  dailyPassRates: sparklinePointSchema.array(),
+  healthScore: z.number(),
 });
 export type ProjectComparisonItem = z.infer<typeof projectComparisonItemSchema>;
+
+export const orgAverageSchema = z.object({
+  passRate: z.number(),
+  flakyRate: z.number(),
+  skipRate: z.number(),
+  avgDurationMs: z.number(),
+  healthScore: z.number(),
+  totalRuns: z.number(),
+  retriedTests: z.number(),
+  dailyPassRates: sparklinePointSchema.array(),
+});
+
+export const projectComparisonResponseSchema = z.object({
+  projects: projectComparisonItemSchema.array(),
+  orgAverage: orgAverageSchema,
+});
+export type ProjectComparisonResponse = z.infer<typeof projectComparisonResponseSchema>;
 
 export interface CreateProjectRequest {
   name: string;

@@ -1,4 +1,4 @@
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, TrendingDown, TrendingUp } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import type { FlakyTestSummary, OrganizationFlakyTestSummary } from '@/types/api';
@@ -35,6 +35,16 @@ export function FlakyTestsCard({ flakyTests, isOrgView, loading }: FlakyTestsCar
                   <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                     {test.flakyCount} flaky
                   </span>
+                  {'flakyCountDelta' in test &&
+                    test.flakyCountDelta != null &&
+                    test.flakyCountDelta > 0 && (
+                      <TrendingUp className="h-3 w-3 text-red-500" aria-hidden="true" />
+                    )}
+                  {'flakyCountDelta' in test &&
+                    test.flakyCountDelta != null &&
+                    test.flakyCountDelta < 0 && (
+                      <TrendingDown className="h-3 w-3 text-green-500" aria-hidden="true" />
+                    )}
                   {test.avgRetries > 0 && (
                     <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                       avg {test.avgRetries.toFixed(1)} retries

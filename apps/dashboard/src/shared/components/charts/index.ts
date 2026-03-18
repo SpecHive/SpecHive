@@ -1,4 +1,10 @@
 export { HorizontalBarChart } from './bar-chart';
 export type { HorizontalBarChartProps } from './bar-chart';
+export { DurationRangeChart } from './duration-range-chart';
+export type { DurationRangeChartProps } from './duration-range-chart';
 export { LineChart } from './line-chart';
 export type { LineChartLine, LineChartProps } from './line-chart';
+export { Sparkline } from './sparkline';
+export type { SparklineProps } from './sparkline';
+export { StackedBarChart } from './stacked-bar-chart';
+export type { StackedBarChartProps } from './stacked-bar-chart';

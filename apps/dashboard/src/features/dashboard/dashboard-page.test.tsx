@@ -164,8 +164,8 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Avg. Duration')).toBeInTheDocument();
     expect(screen.getByText('2m 5s')).toBeInTheDocument();
 
-    expect(screen.getByText('Flaky Tests')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('Flaky Rate')).toBeInTheDocument();
+    expect(screen.getByText('1.0%')).toBeInTheDocument();
   });
 
   it('renders period selector with 30d active by default', () => {

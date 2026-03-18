@@ -37,35 +37,33 @@ describe('AnalyticsService', () => {
   });
 
   describe('getOrganizationSummary', () => {
+    const zeroSummary = {
+      totalRuns: 0,
+      totalTests: 0,
+      passedTests: 0,
+      failedTests: 0,
+      skippedTests: 0,
+      flakyTests: 0,
+      passRate: 0,
+      avgDurationMs: 0,
+      retriedTests: 0,
+      projectCount: 0,
+    };
+
+    const zeroPrev = { totalTests: 0, passedTests: 0, flakyTests: 0 };
+
     it('returns zero values when no data exists', async () => {
-      mockExecute.mockResolvedValueOnce([
-        {
-          totalRuns: 0,
-          totalTests: 0,
-          passedTests: 0,
-          failedTests: 0,
-          skippedTests: 0,
-          flakyTests: 0,
-          passRate: 0,
-          avgDurationMs: 0,
-          retriedTests: 0,
-          projectCount: 0,
-        },
-      ]);
+      // getOrganizationSummary now runs 2 queries: current + previous period
+      mockExecute.mockResolvedValueOnce([zeroSummary]);
+      mockExecute.mockResolvedValueOnce([zeroPrev]);
 
       const result = await service.getOrganizationSummary(orgId);
 
       expect(result).toEqual({
-        totalRuns: 0,
-        totalTests: 0,
-        passedTests: 0,
-        failedTests: 0,
-        skippedTests: 0,
-        flakyTests: 0,
-        passRate: 0,
-        avgDurationMs: 0,
-        retriedTests: 0,
-        projectCount: 0,
+        ...zeroSummary,
+        passRateDelta: null,
+        flakyRate: 0,
+        flakyRateDelta: null,
       });
     });
 
@@ -83,31 +81,24 @@ describe('AnalyticsService', () => {
         projectCount: 2,
       };
       mockExecute.mockResolvedValueOnce([mockRow]);
+      mockExecute.mockResolvedValueOnce([zeroPrev]);
 
       const result = await service.getOrganizationSummary(orgId);
 
-      expect(result).toEqual(mockRow);
+      expect(result).toMatchObject(mockRow);
+      expect(result).toHaveProperty('passRateDelta');
+      expect(result).toHaveProperty('flakyRate');
+      expect(result).toHaveProperty('flakyRateDelta');
     });
 
     it('accepts optional projectIds filter', async () => {
-      mockExecute.mockResolvedValueOnce([
-        {
-          totalRuns: 1,
-          totalTests: 10,
-          passedTests: 10,
-          failedTests: 0,
-          skippedTests: 0,
-          flakyTests: 0,
-          passRate: 100,
-          avgDurationMs: 1000,
-          retriedTests: 0,
-          projectCount: 1,
-        },
-      ]);
+      mockExecute.mockResolvedValueOnce([zeroSummary]);
+      mockExecute.mockResolvedValueOnce([zeroPrev]);
 
       await service.getOrganizationSummary(orgId, 30, [projectId]);
 
-      expect(mockExecute).toHaveBeenCalledTimes(1);
+      // 2 queries: summary + previous period
+      expect(mockExecute).toHaveBeenCalledTimes(2);
       const sqlArg = mockExecute.mock.calls[0][0];
       // Recursively flatten nested SQL chunks to find the projectId parameter
       const flattenChunks = (chunks: unknown[]): unknown[] =>
@@ -123,20 +114,8 @@ describe('AnalyticsService', () => {
 
     it('calls setTenantContext with correct organizationId', async () => {
       const { setTenantContext } = await import('@spechive/database');
-      mockExecute.mockResolvedValueOnce([
-        {
-          totalRuns: 0,
-          totalTests: 0,
-          passedTests: 0,
-          failedTests: 0,
-          skippedTests: 0,
-          flakyTests: 0,
-          passRate: 0,
-          avgDurationMs: 0,
-          retriedTests: 0,
-          projectCount: 0,
-        },
-      ]);
+      mockExecute.mockResolvedValueOnce([zeroSummary]);
+      mockExecute.mockResolvedValueOnce([zeroPrev]);
 
       await service.getOrganizationSummary(orgId);
 
@@ -199,6 +178,7 @@ describe('AnalyticsService', () => {
           avgRetries: 2.5,
           projectId: 'p1',
           projectName: 'Proj 1',
+          flakyCountDelta: 2,
         },
         {
           testName: 'should logout',
@@ -207,6 +187,7 @@ describe('AnalyticsService', () => {
           avgRetries: 1.0,
           projectId: 'p1',
           projectName: 'Proj 1',
+          flakyCountDelta: null,
         },
       ];
       mockExecute.mockResolvedValueOnce(mockData);
@@ -242,6 +223,195 @@ describe('AnalyticsService', () => {
       const numericParams = sqlArg.queryChunks.filter((c): c is number => typeof c === 'number');
       expect(numericParams).toContain(100);
       expect(numericParams).not.toContain(500);
+    });
+  });
+
+  // ── getProjectComparison ─────────────────────────────────────────────
+  //
+  // Runs 4 parallel queries via Promise.all: current, prev, sparkline, orgSparkline.
+  // Each mockResolvedValueOnce call maps to one of these in order.
+
+  describe('getProjectComparison', () => {
+    /** Mocks all 4 queries as empty. */
+    function mockEmptyComparison() {
+      mockExecute.mockResolvedValueOnce([]); // Q1: current
+      mockExecute.mockResolvedValueOnce([]); // Q2: prev
+      mockExecute.mockResolvedValueOnce([]); // Q3: sparkline
+      mockExecute.mockResolvedValueOnce([]); // Q4: org sparkline
+    }
+
+    function makeProjectRow(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        projectId: 'proj-1',
+        projectName: 'Project A',
+        totalRuns: 10,
+        totalTests: 100,
+        passedTests: 90,
+        failedTests: 8,
+        skippedTests: 2,
+        flakyTests: 0,
+        retriedTests: 0,
+        passRate: 90.0,
+        avgDurationMs: 1000,
+        minDurationMs: 800,
+        maxDurationMs: 1200,
+        ...overrides,
+      };
+    }
+
+    it('returns empty projects and zero org averages when no data exists', async () => {
+      mockEmptyComparison();
+
+      const result = await service.getProjectComparison(orgId);
+
+      expect(result.projects).toEqual([]);
+      expect(result.orgAverage.passRate).toBe(0);
+      expect(result.orgAverage.totalRuns).toBe(0);
+      expect(result.orgAverage.healthScore).toBeGreaterThanOrEqual(0);
+      expect(result.orgAverage.healthScore).toBeLessThanOrEqual(100);
+    });
+
+    it('returns null deltas when no previous period data exists', async () => {
+      mockExecute.mockResolvedValueOnce([makeProjectRow()]);
+      mockExecute.mockResolvedValueOnce([]); // no previous period
+      mockExecute.mockResolvedValueOnce([]); // no sparklines
+      mockExecute.mockResolvedValueOnce([]); // no org sparkline
+
+      const result = await service.getProjectComparison(orgId);
+
+      expect(result.projects).toHaveLength(1);
+      expect(result.projects[0]!.passRateDelta).toBeNull();
+      expect(result.projects[0]!.flakyRateDelta).toBeNull();
+      expect(result.projects[0]!.avgDurationDelta).toBeNull();
+    });
+
+    it('computes correct deltas when previous period data exists', async () => {
+      mockExecute.mockResolvedValueOnce([makeProjectRow()]);
+      mockExecute.mockResolvedValueOnce([
+        {
+          projectId: 'proj-1',
+          totalTests: 100,
+          passedTests: 80,
+          flakyTests: 5,
+          passRate: 80.0,
+          flakyRate: 5.0,
+          avgDurationMs: 1200,
+        },
+      ]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+
+      const result = await service.getProjectComparison(orgId);
+      const proj = result.projects[0]!;
+
+      // passRate 90 - 80 = 10
+      expect(proj.passRateDelta).toBe(10);
+      // flakyRate 0 - 5 = -5
+      expect(proj.flakyRateDelta).toBe(-5);
+      // avgDuration 1000 - 1200 = -200
+      expect(proj.avgDurationDelta).toBe(-200);
+    });
+
+    it('associates sparkline data with correct projects', async () => {
+      mockExecute.mockResolvedValueOnce([
+        makeProjectRow({
+          projectId: 'proj-1',
+          projectName: 'A',
+          totalRuns: 5,
+          totalTests: 50,
+          passedTests: 45,
+        }),
+        makeProjectRow({
+          projectId: 'proj-2',
+          projectName: 'B',
+          totalRuns: 3,
+          totalTests: 30,
+          passedTests: 27,
+          avgDurationMs: 700,
+        }),
+      ]);
+      mockExecute.mockResolvedValueOnce([]); // no prev
+      mockExecute.mockResolvedValueOnce([
+        { projectId: 'proj-1', date: '2026-03-17', passRate: 85.0 },
+        { projectId: 'proj-1', date: '2026-03-18', passRate: 90.0 },
+        { projectId: 'proj-2', date: '2026-03-17', passRate: 88.0 },
+      ]);
+      mockExecute.mockResolvedValueOnce([
+        { date: '2026-03-17', passRate: 86.0 },
+        { date: '2026-03-18', passRate: 90.0 },
+      ]);
+
+      const result = await service.getProjectComparison(orgId);
+
+      expect(result.projects[0]!.dailyPassRates).toHaveLength(2);
+      expect(result.projects[1]!.dailyPassRates).toHaveLength(1);
+      expect(result.orgAverage.dailyPassRates).toHaveLength(2);
+    });
+
+    it('computes weighted org averages across multiple projects', async () => {
+      mockExecute.mockResolvedValueOnce([
+        makeProjectRow({
+          projectId: 'proj-1',
+          projectName: 'A',
+          totalRuns: 10,
+          totalTests: 100,
+          passedTests: 90,
+          failedTests: 5,
+          skippedTests: 3,
+          flakyTests: 2,
+          retriedTests: 1,
+          passRate: 90.0,
+          avgDurationMs: 1000,
+        }),
+        makeProjectRow({
+          projectId: 'proj-2',
+          projectName: 'B',
+          totalRuns: 10,
+          totalTests: 100,
+          passedTests: 80,
+          failedTests: 10,
+          skippedTests: 5,
+          flakyTests: 5,
+          retriedTests: 2,
+          passRate: 80.0,
+          avgDurationMs: 2000,
+        }),
+      ]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+
+      const result = await service.getProjectComparison(orgId);
+
+      // passRate: (90+80) / 200 * 100 = 85
+      expect(result.orgAverage.passRate).toBe(85);
+      // avgDurationMs: weighted by runs — (1000*10 + 2000*10) / 20 = 1500
+      expect(result.orgAverage.avgDurationMs).toBe(1500);
+      expect(result.orgAverage.totalRuns).toBe(20);
+      expect(result.orgAverage.retriedTests).toBe(3);
+      expect(result.orgAverage.healthScore).toBeGreaterThanOrEqual(0);
+      expect(result.orgAverage.healthScore).toBeLessThanOrEqual(100);
+    });
+
+    it('passes projectIds filter to queries', async () => {
+      mockEmptyComparison();
+
+      await service.getProjectComparison(orgId, 30, [projectId]);
+
+      // All 4 queries should contain the projectId
+      expect(mockExecute).toHaveBeenCalledTimes(4);
+      const flattenChunks = (chunks: unknown[]): unknown[] =>
+        chunks.flatMap((c) => {
+          if (typeof c === 'string') return [c];
+          if (c && typeof c === 'object' && 'queryChunks' in c)
+            return flattenChunks((c as { queryChunks: unknown[] }).queryChunks);
+          if (c && typeof c === 'object' && 'value' in c) return (c as { value: unknown[] }).value;
+          return [c];
+        });
+      const firstQueryChunks = flattenChunks(
+        (mockExecute.mock.calls[0]![0] as { queryChunks: unknown[] }).queryChunks,
+      );
+      expect(firstQueryChunks).toContain(projectId);
     });
   });
 });

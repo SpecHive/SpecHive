@@ -1,5 +1,6 @@
-import { Plus } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
 
 import { useProject } from '@/contexts/project-context';
@@ -156,6 +157,16 @@ export function DashboardPage() {
         </div>
       ) : (
         summary && <StatsCards summary={summary} isOrgView={isOrgView} />
+      )}
+
+      {isOrgView && (
+        <Link
+          to="/comparison"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Compare projects
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       )}
 
       <PeriodSelector options={options} value={days} onChange={setDays} />
