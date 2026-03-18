@@ -288,6 +288,8 @@ jobs:
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T postgres pg_isready -U spechive -d spechive; do sleep 2; done'
           echo "Waiting for minio to be healthy..."
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
+          echo "Waiting for redis to be healthy..."
+          timeout 30 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T redis redis-cli ping; do sleep 2; done'
           echo "Waiting for outboxy-api to be healthy..."
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T outboxy-api wget -qO- http://127.0.0.1:3100/health; do sleep 2; done'
           echo "All services are healthy!"
@@ -317,6 +319,7 @@ jobs:
           OUTBOXY_API_URL: http://localhost:3100
           WORKER_WEBHOOK_URL: http://host.docker.internal:3001/webhooks/outboxy
           JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
+          REDIS_URL: redis://localhost:6379
 
       - name: Wait for application services
         run: |
