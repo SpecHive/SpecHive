@@ -350,6 +350,7 @@ jobs:
           OUTBOXY_API_URL: http://localhost:3100
           POSTGRES_CONTAINER: spechive-ci-postgres-1
           GATEWAY_URL: http://localhost:3003
+          REDIS_URL: redis://localhost:6379
 
       - name: Cleanup Docker Compose stack
         if: always()

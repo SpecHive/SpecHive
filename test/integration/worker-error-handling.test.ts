@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
-import { INGESTION_URL, PROJECT_TOKEN, WORKER_URL } from '../helpers/constants';
+import { GATEWAY_URL, PROJECT_TOKEN, WORKER_URL } from '../helpers/constants';
 import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
 import { createRunStartEvent } from '../helpers/factories';
 import { createWebhookEventPayload } from '../helpers/factories/webhook.factory';
@@ -27,7 +27,7 @@ const WORKER_WEBHOOK_URL = process.env['WORKER_WEBHOOK_URL'] ?? `${WORKER_URL}/w
 
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production-min-32ch';
 
-const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
+const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
 
 /** Send a webhook event directly to the worker endpoint. */
 async function sendWebhookEvent(
@@ -67,6 +67,7 @@ describe('Worker error handling', () => {
 
   beforeAll(async () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
+    await waitForService(GATEWAY_URL);
     await waitForService(WORKER_URL);
   }, 30_000);
 
@@ -133,9 +134,9 @@ describe('Worker error handling', () => {
 
       expect(response.status).toBe(400);
 
-      const body = await response.json();
+      const body = (await response.json()) as Record<string, unknown>;
       expect(body).toHaveProperty('message');
-      expect(body.message).toContain('Invalid webhook payload');
+      expect(body['message']).toContain('Invalid webhook payload');
     });
 
     it('rejects webhook payload with invalid field types', async () => {

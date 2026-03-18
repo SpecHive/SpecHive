@@ -138,8 +138,8 @@ describe('Cross-tenant org-level analytics isolation', () => {
 
     expect(status).toBe(200);
 
-    const items = body as Array<Record<string, unknown>>;
-    const projectIds = items.map((i) => i['projectId'] as string);
+    const response = body as { projects: Array<Record<string, unknown>> };
+    const projectIds = response.projects.map((i) => i['projectId'] as string);
 
     // Should not contain Org B's project
     expect(projectIds).not.toContain(ORG_B_PROJECT_ID);

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 import { BaseClient, type ApiResponse } from './base-client';
 
-/** HTTP client for the analytics endpoints (`/v1/projects/:id/analytics/*`). */
+/** HTTP client for the analytics endpoints (`/v1/analytics/*`). */
 export class AnalyticsClient extends BaseClient {
   private authHeaders(token: string, forwardedIp?: string): Record<string, string> {
     return {
@@ -11,43 +11,47 @@ export class AnalyticsClient extends BaseClient {
     };
   }
 
-  /** GET /v1/projects/:id/analytics/summary — KPI summary for a project. */
+  /** GET /v1/analytics/summary?projectIds=:id — KPI summary for a project. */
   async summary(
     token: string,
     projectId: string,
     days = 30,
     forwardedIp?: string,
   ): Promise<ApiResponse> {
-    return this.request('GET', `/v1/projects/${projectId}/analytics/summary?days=${days}`, {
+    return this.request('GET', `/v1/analytics/summary?projectIds=${projectId}&days=${days}`, {
       headers: this.authHeaders(token, forwardedIp),
     });
   }
 
-  /** GET /v1/projects/:id/analytics/pass-rate-trend — daily pass-rate trend. */
+  /** GET /v1/analytics/pass-rate-trend?projectIds=:id — daily pass-rate trend. */
   async passRateTrend(
     token: string,
     projectId: string,
     days = 30,
     forwardedIp?: string,
   ): Promise<ApiResponse> {
-    return this.request('GET', `/v1/projects/${projectId}/analytics/pass-rate-trend?days=${days}`, {
-      headers: this.authHeaders(token, forwardedIp),
-    });
+    return this.request(
+      'GET',
+      `/v1/analytics/pass-rate-trend?projectIds=${projectId}&days=${days}`,
+      { headers: this.authHeaders(token, forwardedIp) },
+    );
   }
 
-  /** GET /v1/projects/:id/analytics/duration-trend — daily duration trend. */
+  /** GET /v1/analytics/duration-trend?projectIds=:id — daily duration trend. */
   async durationTrend(
     token: string,
     projectId: string,
     days = 30,
     forwardedIp?: string,
   ): Promise<ApiResponse> {
-    return this.request('GET', `/v1/projects/${projectId}/analytics/duration-trend?days=${days}`, {
-      headers: this.authHeaders(token, forwardedIp),
-    });
+    return this.request(
+      'GET',
+      `/v1/analytics/duration-trend?projectIds=${projectId}&days=${days}`,
+      { headers: this.authHeaders(token, forwardedIp) },
+    );
   }
 
-  /** GET /v1/projects/:id/analytics/flaky-tests — top flaky tests. */
+  /** GET /v1/analytics/flaky-tests?projectIds=:id — top flaky tests. */
   async flakyTests(
     token: string,
     projectId: string,
@@ -57,14 +61,16 @@ export class AnalyticsClient extends BaseClient {
   ): Promise<ApiResponse> {
     return this.request(
       'GET',
-      `/v1/projects/${projectId}/analytics/flaky-tests?days=${days}&limit=${limit}`,
+      `/v1/analytics/flaky-tests?projectIds=${projectId}&days=${days}&limit=${limit}`,
       { headers: this.authHeaders(token, forwardedIp) },
     );
   }
 
   /** Raw request for unauthorized/invalid tests. */
   async summaryRaw(projectId: string, headers?: Record<string, string>): Promise<Response> {
-    return this.requestRaw('GET', `/v1/projects/${projectId}/analytics/summary`, { headers });
+    return this.requestRaw('GET', `/v1/analytics/summary?projectIds=${projectId}`, {
+      headers: headers ?? {},
+    });
   }
 
   // --- Organization-level endpoints (no projectId) ---
@@ -111,6 +117,6 @@ export class AnalyticsClient extends BaseClient {
 
   /** Raw request for org summary — for error testing. */
   async orgSummaryRaw(headers?: Record<string, string>): Promise<Response> {
-    return this.requestRaw('GET', '/v1/analytics/summary', { headers });
+    return this.requestRaw('GET', '/v1/analytics/summary', { headers: headers ?? {} });
   }
 }

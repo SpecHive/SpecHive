@@ -17,10 +17,23 @@ export class EventsClient extends BaseClient {
   }
 
   /** Send an event and return the raw Response (for status checks). */
-  async sendRaw(event: Record<string, unknown>): Promise<Response> {
+  async sendRaw(
+    event: Record<string, unknown>,
+    options?: { signal?: AbortSignal },
+  ): Promise<Response> {
     return this.requestRaw('POST', '/v1/events', {
       headers: { 'x-project-token': this.projectToken },
       body: event,
+      ...(options?.signal ? { signal: options.signal } : {}),
+    });
+  }
+
+  /** Send a raw string body (for malformed JSON testing). */
+  async sendRawBody(rawBody: string): Promise<Response> {
+    return fetch(`${this.baseUrl}/v1/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-project-token': this.projectToken },
+      body: rawBody,
     });
   }
 

@@ -13,7 +13,7 @@ import { execSync } from 'node:child_process';
 import { describe, it, expect, beforeAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
-import { INGESTION_URL, WORKER_URL, PROJECT_TOKEN } from '../helpers/constants';
+import { GATEWAY_URL, INGESTION_URL, WORKER_URL, PROJECT_TOKEN } from '../helpers/constants';
 import { createRunStartEvent, createWebhookPayload } from '../helpers/factories';
 import { waitForService } from '../helpers/wait';
 
@@ -25,7 +25,7 @@ const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://127.0.0.1:3100';
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
 const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'spechive-postgres-1';
 
-const ingestionApi = new IngestionApiClient(INGESTION_URL, PROJECT_TOKEN);
+const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
 
 const RUN_ID = crypto.randomUUID();
 const VALID_TIMESTAMP = '2026-02-24T10:00:00.000Z';
@@ -82,33 +82,28 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void>
 
 describe('Crash simulation: ingestion-api', () => {
   beforeAll(async () => {
+    await waitForService(GATEWAY_URL);
     await waitForService(INGESTION_URL);
   }, 30_000);
 
   it('aborted run.start request leaves no partial state', async () => {
     const controller = new AbortController();
 
-    const body = JSON.stringify({
+    const event = {
       version: '1',
       timestamp: VALID_TIMESTAMP,
       runId: RUN_ID,
       eventType: 'run.start',
       payload: {},
-    });
+    };
 
     let requestError: unknown = null;
 
-    const sendPromise = fetch(`${INGESTION_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body,
-      signal: controller.signal,
-    }).catch((err: unknown) => {
-      requestError = err;
-    });
+    const sendPromise = ingestionApi.events
+      .sendRaw(event, { signal: controller.signal })
+      .catch((err: unknown) => {
+        requestError = err;
+      });
 
     controller.abort();
     await sendPromise;
@@ -136,14 +131,7 @@ describe('Crash simulation: ingestion-api', () => {
   });
 
   it('malformed JSON body returns a 4xx and does not crash the service', async () => {
-    const res = await fetch(`${INGESTION_URL}/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-project-token': PROJECT_TOKEN,
-      },
-      body: '{ not valid json >>>',
-    });
+    const res = await ingestionApi.events.sendRawBody('{ not valid json >>>');
 
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(res.status).toBeLessThan(500);
