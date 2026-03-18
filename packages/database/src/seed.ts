@@ -164,6 +164,7 @@ interface ProjectConfig {
   passRate: number;
   testNames: string[];
   durationRange: { min: number; max: number };
+  runDurationRange: { min: number; max: number };
 }
 
 const FRONTEND_E2E_TESTS = [
@@ -364,6 +365,7 @@ const PROJECTS: ProjectConfig[] = [
     passRate: 0.7,
     testNames: FRONTEND_E2E_TESTS,
     durationRange: { min: 50, max: 8000 },
+    runDurationRange: { min: 300_000, max: 900_000 },
   },
   {
     name: 'Backend API',
@@ -374,6 +376,7 @@ const PROJECTS: ProjectConfig[] = [
     passRate: 0.85,
     testNames: BACKEND_API_TESTS,
     durationRange: { min: 5, max: 1000 },
+    runDurationRange: { min: 60_000, max: 300_000 },
   },
   {
     name: 'Unit Tests',
@@ -384,6 +387,7 @@ const PROJECTS: ProjectConfig[] = [
     passRate: 0.95,
     testNames: UNIT_TESTS,
     durationRange: { min: 1, max: 100 },
+    runDurationRange: { min: 20_000, max: 90_000 },
   },
 ];
 
@@ -427,6 +431,21 @@ function generateStackTrace(): string {
     frames.push(rng.pick(STACK_TRACE_FRAGMENTS));
   }
   return frames.join('\n    ');
+}
+
+/**
+ * Deterministic base duration for a test name within a given range.
+ * Uses a string hash so the same test always gets a similar duration.
+ * Quadratic skew: most tests are fast, few are slow (realistic distribution).
+ */
+function getTestBaseDuration(testName: string, range: { min: number; max: number }): number {
+  let hash = 0;
+  for (let i = 0; i < testName.length; i++) {
+    hash = ((hash << 5) - hash + testName.charCodeAt(i)) | 0;
+  }
+  const normalized = (((hash % 10_000) + 10_000) % 10_000) / 10_000;
+  const skewed = normalized * normalized;
+  return Math.round(range.min + skewed * (range.max - range.min));
 }
 
 // ============================================================================
@@ -652,6 +671,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
       dailyPassRate: number;
       testCount: number;
       runIndex: number;
+      daysAgo: number;
     }
 
     const allRunRows: (typeof runs.$inferInsert)[] = [];
@@ -673,7 +693,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
         const startedAt = generateTimestamp(daysAgo, rng.nextInt(0, 23));
         const testCount = rng.nextInt(config.testsPerRun.min, config.testsPerRun.max);
         const dailyPassRate = getDailyPassRate(config.passRate, daysAgo, regressionDays);
-        const runSpeedFactor = 0.5 + rng.next() * 1.5;
+        const runSpeedFactor = 0.9 + rng.next() * 0.2;
 
         let runStatus: RunStatus;
         if (runIndex < 2 && rng.next() < 0.3) {
@@ -689,7 +709,12 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
           }
         }
 
-        const runDurationMs = Math.round(rng.nextInt(30_000, 900_000) * runSpeedFactor);
+        const timeGrowth = 1 + 0.18 * (1 - daysAgo / timeWindowDays);
+        const runDurationMs = Math.round(
+          rng.nextInt(config.runDurationRange.min, config.runDurationRange.max) *
+            runSpeedFactor *
+            timeGrowth,
+        );
         const finishedAt =
           runStatus === RunStatus.Running ? null : new Date(startedAt.getTime() + runDurationMs);
 
@@ -738,6 +763,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
           dailyPassRate,
           testCount,
           runIndex,
+          daysAgo,
         });
       }
     }
@@ -847,9 +873,10 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
               }
             }
 
-            const duration = Math.round(
-              rng.nextInt(config.durationRange.min, config.durationRange.max) * meta.speedFactor,
-            );
+            const baseDuration = getTestBaseDuration(testName, config.durationRange);
+            const noise = 0.9 + rng.next() * 0.2;
+            const testTimeGrowth = 1 + 0.18 * (1 - meta.daysAgo / timeWindowDays);
+            const duration = Math.round(baseDuration * noise * testTimeGrowth);
             const testStartedAt = new Date(meta.startedAt.getTime() + rng.nextInt(0, 60_000));
             const testFinishedAt = new Date(testStartedAt.getTime() + duration);
 
