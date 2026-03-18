@@ -5,6 +5,7 @@ import { envSchema } from '../src/modules/config/env.validation';
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
   JWT_SECRET: 'dev-secret-min-16!',
+  REDIS_URL: 'redis://localhost:6379',
 };
 
 const VALID_PRODUCTION_ENV = {

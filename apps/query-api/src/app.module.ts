@@ -7,6 +7,7 @@ import {
   GatewayTrustGuard,
   HealthModule,
   IsProductionModule,
+  RedisModule,
   RolesGuard,
   S3Module,
 } from '@spechive/nestjs-common';
@@ -30,6 +31,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),
+    RedisModule.forRootFromEnv(),
     S3Module.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<EnvConfig>) => createS3ModuleOptions(config),

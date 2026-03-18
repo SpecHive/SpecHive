@@ -44,7 +44,7 @@ export function Sidebar() {
               )
             }
           >
-            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
             {label}
           </NavLink>
         ))}

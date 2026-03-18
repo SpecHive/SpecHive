@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 export interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string }>;
 }
 
 export interface RouteConfig {
@@ -17,7 +17,7 @@ export interface DashboardPlugin {
   id: string;
   routes?: RouteConfig[];
   navItems?: NavItem[];
-  settingsNavItems?: { label: string; href: string }[];
+  settingsNavItems?: NavItem[];
 }
 
 interface PluginContextValue {

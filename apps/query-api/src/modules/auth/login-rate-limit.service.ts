@@ -1,73 +1,53 @@
-import { Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { REDIS_CLIENT } from '@spechive/nestjs-common';
+import type { Redis } from 'ioredis';
 
 const MAX_FAILED_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
-const CLEANUP_INTERVAL_MS = WINDOW_MS;
-
-interface FailureRecord {
-  count: number;
-  firstAttemptAt: number;
-}
+const WINDOW_SECONDS = 900; // 15 minutes
+const KEY_PREFIX = 'login:ratelimit:';
 
 /**
- * In-memory login rate limiting — effective for single-instance deployments only.
- * Resets on process restart and is per-process (bypassed with multiple replicas).
- * The gateway's global throttle provides baseline brute-force protection.
- *
- * TODO: Migrate to Redis-backed rate limiting for multi-replica deployments.
+ * Redis-backed login rate limiting — tracks failed login attempts per email
+ * and blocks further attempts after exceeding the threshold within the window.
+ * Fails open: if Redis is unavailable, login attempts are allowed through.
  */
 @Injectable()
-export class LoginRateLimitService implements OnModuleDestroy {
-  private readonly failures = new Map<string, FailureRecord>();
-  private readonly cleanupTimer: ReturnType<typeof setInterval>;
+export class LoginRateLimitService {
+  private readonly logger = new Logger(LoginRateLimitService.name);
 
-  constructor() {
-    this.cleanupTimer = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
-  }
+  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
 
-  onModuleDestroy(): void {
-    clearInterval(this.cleanupTimer);
-  }
-
-  isBlocked(email: string): boolean {
-    const key = email.toLowerCase();
-    const record = this.failures.get(key);
-    if (!record) return false;
-
-    if (Date.now() - record.firstAttemptAt > WINDOW_MS) {
-      this.failures.delete(key);
+  async isBlocked(email: string): Promise<boolean> {
+    try {
+      const count = await this.redis.get(this.key(email));
+      return count !== null && parseInt(count, 10) >= MAX_FAILED_ATTEMPTS;
+    } catch (error) {
+      this.logger.warn(`Redis unavailable for rate-limit check: ${(error as Error).message}`);
       return false;
     }
-
-    return record.count >= MAX_FAILED_ATTEMPTS;
   }
 
-  recordFailure(email: string): void {
-    const key = email.toLowerCase();
-    const record = this.failures.get(key);
-    const now = Date.now();
-
-    if (!record || now - record.firstAttemptAt > WINDOW_MS) {
-      this.failures.set(key, { count: 1, firstAttemptAt: now });
-    } else {
-      record.count++;
+  async recordFailure(email: string): Promise<void> {
+    try {
+      const key = this.key(email);
+      const pipeline = this.redis.pipeline();
+      pipeline.incr(key);
+      pipeline.expire(key, WINDOW_SECONDS, 'NX');
+      await pipeline.exec();
+    } catch (error) {
+      this.logger.warn(`Redis unavailable for recording failure: ${(error as Error).message}`);
     }
   }
 
-  recordSuccess(email: string): void {
-    this.failures.delete(email.toLowerCase());
-  }
-
-  clearAll(): void {
-    this.failures.clear();
-  }
-
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, record] of this.failures) {
-      if (now - record.firstAttemptAt > WINDOW_MS) {
-        this.failures.delete(key);
-      }
+  async recordSuccess(email: string): Promise<void> {
+    try {
+      await this.redis.del(this.key(email));
+    } catch (error) {
+      this.logger.warn(`Redis unavailable for clearing rate-limit: ${(error as Error).message}`);
     }
+  }
+
+  private key(email: string): string {
+    return `${KEY_PREFIX}${email.toLowerCase()}`;
   }
 }

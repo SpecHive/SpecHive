@@ -8,6 +8,7 @@ export const queryApiEnvShape = baseEnvSchema.extend({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
   DASHBOARD_URL: z.string().url().optional(),
+  REDIS_URL: z.string().url(),
   ...minioEnvSchema.shape,
 });
 

@@ -117,19 +117,19 @@ export class AuthController {
   ) {
     const { email, password, organizationId } = body;
 
-    if (this.loginRateLimit.isBlocked(email)) {
+    if (await this.loginRateLimit.isBlocked(email)) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
     try {
       const result = await this.authService.login(email, password, organizationId);
-      this.loginRateLimit.recordSuccess(email);
+      await this.loginRateLimit.recordSuccess(email);
       this.setRefreshCookie(reply, result.refreshToken);
       const { refreshToken: _, ...rest } = result;
       return rest;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        this.loginRateLimit.recordFailure(email);
+        await this.loginRateLimit.recordFailure(email);
       }
       throw error;
     }

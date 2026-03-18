@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { DATABASE_CONNECTION, IS_PRODUCTION } from '@spechive/nestjs-common';
+import { DATABASE_CONNECTION, IS_PRODUCTION, REDIS_CLIENT } from '@spechive/nestjs-common';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
@@ -43,6 +43,19 @@ describe('AuthController', () => {
       providers: [
         AuthService,
         LoginRateLimitService,
+        {
+          provide: REDIS_CLIENT,
+          useValue: {
+            get: vi.fn().mockResolvedValue(null),
+            del: vi.fn().mockResolvedValue(1),
+            pipeline: vi.fn(() => ({
+              incr: vi.fn().mockReturnThis(),
+              expire: vi.fn().mockReturnThis(),
+              exec: vi.fn().mockResolvedValue([]),
+            })),
+            quit: vi.fn().mockResolvedValue('OK'),
+          },
+        },
         { provide: DATABASE_CONNECTION, useValue: { execute: mockExecute } },
         { provide: IS_PRODUCTION, useValue: false },
         {

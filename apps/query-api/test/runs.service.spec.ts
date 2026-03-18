@@ -64,7 +64,7 @@ describe('RunsService', () => {
           }),
         });
 
-      const result = await service.listRuns('org-1' as OrganizationId, 'proj-1' as ProjectId, {
+      const result = await service.listRuns('org-1' as OrganizationId, ['proj-1' as ProjectId], {
         page: 1,
         pageSize: 20,
       });

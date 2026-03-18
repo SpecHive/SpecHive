@@ -64,6 +64,7 @@
     "@nestjs/throttler": "^6.0.0",
     "@outboxy/dialect-postgres": "^1.1.4",
     "drizzle-orm": ">=0.45.0",
+    "ioredis": "^5.10.0",
     "jose": "^6.0.0",
     "zod": "^4.0.0"
   },

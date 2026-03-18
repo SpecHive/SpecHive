@@ -26,6 +26,13 @@ services:
       - '9000:9000'
       - '9001:9001'
 
+  redis:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '6379:6379'
+
   outboxy-api:
     networks:
       - internal
