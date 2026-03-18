@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.2...gateway-v0.0.3) (2026-03-18)
+
+
+### Features
+
+* **dashboard,query-api:** refactor to feature-based architecture with org-level APIs ([8e5e5ec](https://github.com/SpecHive/SpecHive/commit/8e5e5ec5019e2032d02aef540daf2ea7e38b8bf3))
+
 ## [0.0.2](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.1...gateway-v0.0.2) (2026-03-17)
 
 
