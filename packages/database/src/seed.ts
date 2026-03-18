@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 
 import {
   type ProjectId,
-  type SuiteId,
   ArtifactType,
   MembershipRole,
   RunStatus,
@@ -15,12 +14,13 @@ import {
   asProjectId,
   asRunId,
   asSuiteId,
+  asTestId,
 } from '@spechive/shared-types';
 import { hash } from 'argon2';
-import { eq } from 'drizzle-orm';
+import { uuidv7 } from 'uuidv7';
 
 import { backfillDailyStats } from './backfill-daily-stats.js';
-import { createDbConnection, getRawClient } from './connection.js';
+import { type Database, createDbConnection, getRawClient } from './connection.js';
 import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
@@ -56,6 +56,67 @@ function createPRNG(seed: number) {
 const rng = createPRNG(42);
 
 // ============================================================================
+// Scale Configuration
+// ============================================================================
+
+export type SeedScale = 'small' | 'medium' | 'large';
+
+interface ScaleConfig {
+  runMultiplier: number;
+  timeWindowDays: number;
+  regressionDays: number[];
+}
+
+const SCALE_CONFIGS: Record<SeedScale, ScaleConfig> = {
+  small: {
+    runMultiplier: 1,
+    timeWindowDays: 30,
+    regressionDays: [5, 12, 20, 27],
+  },
+  medium: {
+    runMultiplier: 10,
+    timeWindowDays: 60,
+    regressionDays: [5, 12, 20, 27, 35, 42, 50, 57],
+  },
+  large: {
+    runMultiplier: 50,
+    timeWindowDays: 90,
+    regressionDays: [5, 12, 20, 27, 35, 42, 50, 57, 65, 72, 80, 87],
+  },
+};
+
+// ============================================================================
+// Batch Insert Helpers
+// ============================================================================
+
+const PG_PARAM_LIMIT = 65_534;
+
+async function insertBatched(
+  db: Database,
+  table: Parameters<Database['insert']>[0],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: any[],
+  columnsPerRow: number,
+): Promise<void> {
+  if (rows.length === 0) return;
+  const chunkSize = Math.floor(PG_PARAM_LIMIT / columnsPerRow);
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    await db
+      .insert(table)
+      .values(rows.slice(i, i + chunkSize))
+      .onConflictDoNothing();
+  }
+}
+
+function logProgress(entity: string, current: number, total: number): void {
+  const pct = Math.round((current / total) * 100);
+  process.stdout.write(
+    `\r  ${entity}: ${current.toLocaleString()}/${total.toLocaleString()} (${pct}%)`,
+  );
+  if (current >= total) process.stdout.write('\n');
+}
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -71,8 +132,7 @@ function generateCommitSha(): string {
 }
 
 /** Returns a daily pass rate with deliberate variation to simulate regressions */
-function getDailyPassRate(baseRate: number, dayIndex: number): number {
-  const regressionDays = [5, 12, 20, 27];
+function getDailyPassRate(baseRate: number, dayIndex: number, regressionDays: number[]): number {
   const isRegressionDay = regressionDays.includes(dayIndex);
   const modifier = isRegressionDay ? -0.25 : rng.next() * 0.1 - 0.05;
   return Math.max(0.3, Math.min(1.0, baseRate + modifier));
@@ -419,32 +479,64 @@ function generateSuiteHierarchy(
   return suites;
 }
 
-function getLeafSuites(suites: SuiteContext[]): SuiteContext[] {
-  const leaves: SuiteContext[] = [];
-  function traverse(suite: SuiteContext) {
-    if (suite.children.length === 0) {
-      leaves.push(suite);
-    } else {
-      for (const child of suite.children) {
-        traverse(child);
+interface FlatSuiteRow {
+  id: string;
+  runId: string;
+  organizationId: string;
+  name: string;
+  parentSuiteId: string | null;
+}
+
+/**
+ * Flatten a suite hierarchy into insert-ready rows with pre-generated UUIDs (parent-first order).
+ * Deduplicates by name within a run because suites have a unique constraint on (run_id, name).
+ */
+function flattenSuiteHierarchy(
+  hierarchy: SuiteContext[],
+  runId: string,
+  orgId: string,
+): { rows: FlatSuiteRow[]; leafSuiteIds: string[] } {
+  const rows: FlatSuiteRow[] = [];
+  const leafSuiteIds: string[] = [];
+  const nameToId = new Map<string, string>();
+
+  function walk(nodes: SuiteContext[], parentId: string | null) {
+    for (const node of nodes) {
+      let realId = nameToId.get(node.name);
+      if (!realId) {
+        realId = uuidv7();
+        nameToId.set(node.name, realId);
+        rows.push({
+          id: realId,
+          runId,
+          organizationId: orgId,
+          name: node.name,
+          parentSuiteId: parentId,
+        });
+      }
+      if (node.children.length === 0) {
+        leafSuiteIds.push(realId);
+      } else {
+        walk(node.children, realId);
       }
     }
   }
-  for (const suite of suites) {
-    traverse(suite);
-  }
-  return leaves;
+
+  walk(hierarchy, null);
+  return { rows, leafSuiteIds: [...new Set(leafSuiteIds)] };
 }
 
 // ============================================================================
 // Main Seed Function
 // ============================================================================
 
-export async function seed(dbUrl: string, password?: string) {
+export async function seed(dbUrl: string, password?: string, scale: SeedScale = 'small') {
   const db = createDbConnection(dbUrl);
+  const scaleConfig = SCALE_CONFIGS[scale];
+  const { runMultiplier, timeWindowDays, regressionDays } = scaleConfig;
 
   try {
-    console.log('Seeding database with enhanced test data...');
+    console.log(`Seeding database (scale: ${scale}, multiplier: ${runMultiplier}x)...`);
 
     // ========================================================================
     // Organization & User Setup
@@ -547,31 +639,42 @@ export async function seed(dbUrl: string, password?: string) {
     }
 
     // ========================================================================
-    // Generate Runs, Suites, Tests, and Artifacts for Each Project
+    // Phase 1: Generate & Insert All Runs
     // ========================================================================
 
-    for (const { id: projectId, config } of createdProjects) {
-      console.log(`\nGenerating data for ${config.name}...`);
+    interface RunMeta {
+      id: string;
+      projectId: string;
+      configIndex: number;
+      status: RunStatus;
+      startedAt: Date;
+      speedFactor: number;
+      dailyPassRate: number;
+      testCount: number;
+      runIndex: number;
+    }
 
-      // Distribute runs across last 30 days
+    const allRunRows: (typeof runs.$inferInsert)[] = [];
+    const runMetas: RunMeta[] = [];
+
+    for (const { id: projectId, config } of createdProjects) {
+      const scaledRunCount = config.runCount * runMultiplier;
+      const configIndex = createdProjects.findIndex((p) => p.id === projectId);
+
+      // Distribute runs across the time window
       const runDates: number[] = [];
-      for (let i = 0; i < config.runCount; i++) {
-        runDates.push(Math.floor((i / config.runCount) * 30));
+      for (let i = 0; i < scaledRunCount; i++) {
+        runDates.push(Math.floor((i / scaledRunCount) * timeWindowDays));
       }
       const shuffledDates = rng.shuffle(runDates);
-      runDates.length = 0;
-      runDates.push(...shuffledDates);
 
-      for (let runIndex = 0; runIndex < config.runCount; runIndex++) {
-        const daysAgo = runDates[runIndex]!;
+      for (let runIndex = 0; runIndex < scaledRunCount; runIndex++) {
+        const daysAgo = shuffledDates[runIndex]!;
         const startedAt = generateTimestamp(daysAgo, rng.nextInt(0, 23));
         const testCount = rng.nextInt(config.testsPerRun.min, config.testsPerRun.max);
-        const dailyPassRate = getDailyPassRate(config.passRate, daysAgo);
-
-        // Per-run speed factor: some runs 0.5x-2x speed
+        const dailyPassRate = getDailyPassRate(config.passRate, daysAgo, regressionDays);
         const runSpeedFactor = 0.5 + rng.next() * 1.5;
 
-        // Determine run status based on daily pass rate (most recent runs may be running)
         let runStatus: RunStatus;
         if (runIndex < 2 && rng.next() < 0.3) {
           runStatus = RunStatus.Running;
@@ -586,13 +689,11 @@ export async function seed(dbUrl: string, password?: string) {
           }
         }
 
-        // Vary run durations: 30s to 15min, scaled by speed factor
         const runDurationMs = Math.round(rng.nextInt(30_000, 900_000) * runSpeedFactor);
         const finishedAt =
           runStatus === RunStatus.Running ? null : new Date(startedAt.getTime() + runDurationMs);
 
         const runName = RUN_NAMES[runIndex % RUN_NAMES.length] ?? null;
-
         const seedBranch = rng.pick([
           'main',
           'develop',
@@ -603,116 +704,124 @@ export async function seed(dbUrl: string, password?: string) {
         const seedCommitSha = generateCommitSha();
         const seedCiProvider = rng.pick(['github-actions', 'gitlab-ci', 'jenkins', 'circleci']);
 
-        const [run] = await db
-          .insert(runs)
-          .values({
-            projectId,
-            organizationId: seedOrg.id,
-            name: runName,
-            status: runStatus,
-            totalTests: testCount,
-            passedTests: 0, // Will update after creating tests
-            failedTests: 0,
-            skippedTests: 0,
-            startedAt,
-            finishedAt,
-            branch: seedBranch,
-            commitSha: seedCommitSha,
-            ciProvider: seedCiProvider,
-            ciUrl: `https://ci.example.com/builds/${1000 + runIndex}`,
-            metadata: {
-              buildNumber: 1000 + runIndex,
-              triggeredBy: rng.pick(['push', 'schedule', 'manual', 'webhook']),
-            },
-          })
-          .onConflictDoNothing()
-          .returning();
+        const runId = asRunId(uuidv7());
 
-        if (!run) {
-          console.log(`  Run ${runIndex + 1} already exists, skipping...`);
-          continue;
-        }
+        allRunRows.push({
+          id: runId,
+          projectId,
+          organizationId: seedOrg.id,
+          name: runName,
+          status: runStatus,
+          totalTests: 0,
+          passedTests: 0,
+          failedTests: 0,
+          skippedTests: 0,
+          startedAt,
+          finishedAt,
+          branch: seedBranch,
+          commitSha: seedCommitSha,
+          ciProvider: seedCiProvider,
+          ciUrl: `https://ci.example.com/builds/${1000 + runIndex}`,
+          metadata: {
+            buildNumber: 1000 + runIndex,
+            triggeredBy: rng.pick(['push', 'schedule', 'manual', 'webhook']),
+          },
+        });
 
-        // Generate suite hierarchy
-        const suiteHierarchy = generateSuiteHierarchy(
-          config.suiteConfig.depth,
-          config.suiteConfig.suitesPerLevel,
-        );
+        runMetas.push({
+          id: runId,
+          projectId,
+          configIndex,
+          status: runStatus,
+          startedAt,
+          speedFactor: runSpeedFactor,
+          dailyPassRate,
+          testCount,
+          runIndex,
+        });
+      }
+    }
 
-        // Insert suites recursively and track IDs
-        const suiteIdMap = new Map<string, string>();
+    const totalRuns = allRunRows.length;
+    console.log(`\nPhase 1: Inserting ${totalRuns.toLocaleString()} runs...`);
+    await insertBatched(db, runs, allRunRows, 16);
+    logProgress('Runs', totalRuns, totalRuns);
 
-        async function insertSuites(
-          suitesToInsert: SuiteContext[],
-          parentSuiteId: SuiteId | null = null,
-        ): Promise<void> {
-          for (const suite of suitesToInsert) {
-            const [inserted] = await db
-              .insert(suites)
-              .values({
-                runId: run.id,
-                organizationId: seedOrg.id,
-                name: suite.name,
-                parentSuiteId,
-              })
-              .onConflictDoNothing()
-              .returning();
+    // ========================================================================
+    // Phase 2: Generate & Insert All Suites
+    // ========================================================================
 
-            if (!inserted) continue;
+    // runId -> leafSuiteIds
+    const runLeafSuiteMap = new Map<string, string[]>();
+    const allSuiteRows: FlatSuiteRow[] = [];
 
-            suiteIdMap.set(suite.id, inserted.id);
-            await insertSuites(suite.children, asSuiteId(inserted.id));
-          }
-        }
+    for (const meta of runMetas) {
+      const config = createdProjects[meta.configIndex]!.config;
+      const hierarchy = generateSuiteHierarchy(
+        config.suiteConfig.depth,
+        config.suiteConfig.suitesPerLevel,
+      );
+      const { rows, leafSuiteIds } = flattenSuiteHierarchy(hierarchy, meta.id, seedOrg.id);
+      allSuiteRows.push(...rows);
+      runLeafSuiteMap.set(meta.id, leafSuiteIds);
+    }
 
-        await insertSuites(suiteHierarchy);
+    const totalSuites = allSuiteRows.length;
+    console.log(`Phase 2: Inserting ${totalSuites.toLocaleString()} suites...`);
+    await insertBatched(db, suites, allSuiteRows, 5);
+    logProgress('Suites', totalSuites, totalSuites);
 
-        // Get leaf suites to assign tests
-        const leafSuites = getLeafSuites(suiteHierarchy);
-        const leafSuiteIds = leafSuites
-          .map((s) => suiteIdMap.get(s.id))
-          .filter((id): id is string => id !== undefined)
-          .map((id) => asSuiteId(id));
+    // ========================================================================
+    // Phase 3: Generate & Insert Tests + Artifacts (per project)
+    // ========================================================================
 
-        if (leafSuiteIds.length === 0) {
-          // Fallback: create a single suite if hierarchy generation failed
-          const [fallbackSuite] = await db
-            .insert(suites)
-            .values({
-              runId: run.id,
-              organizationId: seedOrg.id,
-              name: 'Tests',
-            })
-            .onConflictDoNothing()
-            .returning();
+    let totalTests = 0;
+    let totalArtifacts = 0;
 
-          if (fallbackSuite) {
-            leafSuiteIds.push(asSuiteId(fallbackSuite.id));
-          }
-        }
+    for (const { id: projectId, config } of createdProjects) {
+      const projectRunMetas = runMetas.filter((m) => m.projectId === projectId);
+      const scaledRunCount = projectRunMetas.length;
 
-        // Distribute tests across leaf suites
-        const testsPerSuite = Math.ceil(testCount / leafSuiteIds.length);
-        const testsToCreate: (typeof tests.$inferInsert)[] = [];
+      console.log(
+        `\nPhase 3: Generating tests for ${config.name} (${scaledRunCount.toLocaleString()} runs)...`,
+      );
+
+      const allTests: (typeof tests.$inferInsert)[] = [];
+      const allArtifacts: (typeof artifacts.$inferInsert)[] = [];
+      const runCountUpdates: {
+        runId: string;
+        total: number;
+        passed: number;
+        failed: number;
+        skipped: number;
+        flaky: number;
+      }[] = [];
+
+      for (const meta of projectRunMetas) {
+        const leafSuiteIds = runLeafSuiteMap.get(meta.id);
+        if (!leafSuiteIds || leafSuiteIds.length === 0) continue;
+
+        const testsPerSuite = Math.ceil(meta.testCount / leafSuiteIds.length);
         const testStatusCounts = { passed: 0, failed: 0, skipped: 0, flaky: 0 };
 
-        // Shuffle and select test names
         const shuffledNames = rng.shuffle(config.testNames);
         let testNameIndex = 0;
+        const runTestStart = allTests.length;
 
         for (const suiteId of leafSuiteIds) {
-          const suiteTestCount = Math.min(testsPerSuite, testCount - testsToCreate.length);
-
+          const suiteTestCount = Math.min(
+            testsPerSuite,
+            meta.testCount - (allTests.length - runTestStart),
+          );
           for (let t = 0; t < suiteTestCount && testNameIndex < shuffledNames.length; t++) {
             const testName = shuffledNames[testNameIndex]!;
             testNameIndex++;
 
-            // Determine test status based on run status and daily pass rate
             let testStatus: TestStatus;
-            if (runStatus === RunStatus.Running) {
+            if (meta.status === RunStatus.Running) {
               testStatus = rng.pick([TestStatus.Passed, TestStatus.Running, TestStatus.Pending]);
               if (testStatus === TestStatus.Passed) testStatusCounts.passed++;
-            } else if (runStatus === RunStatus.Cancelled) {
+            } else if (meta.status === RunStatus.Cancelled) {
               testStatus = rng.pick([TestStatus.Passed, TestStatus.Skipped, TestStatus.Failed]);
               testStatusCounts[
                 testStatus === TestStatus.Passed
@@ -729,7 +838,7 @@ export async function seed(dbUrl: string, password?: string) {
               } else if (statusRoll < 0.05 + 0.05) {
                 testStatus = TestStatus.Skipped;
                 testStatusCounts.skipped++;
-              } else if (statusRoll < 0.1 + (1 - dailyPassRate)) {
+              } else if (statusRoll < 0.1 + (1 - meta.dailyPassRate)) {
                 testStatus = TestStatus.Failed;
                 testStatusCounts.failed++;
               } else {
@@ -739,14 +848,17 @@ export async function seed(dbUrl: string, password?: string) {
             }
 
             const duration = Math.round(
-              rng.nextInt(config.durationRange.min, config.durationRange.max) * runSpeedFactor,
+              rng.nextInt(config.durationRange.min, config.durationRange.max) * meta.speedFactor,
             );
-            const testStartedAt = new Date(startedAt.getTime() + rng.nextInt(0, 60_000));
+            const testStartedAt = new Date(meta.startedAt.getTime() + rng.nextInt(0, 60_000));
             const testFinishedAt = new Date(testStartedAt.getTime() + duration);
 
-            testsToCreate.push({
-              suiteId,
-              runId: run.id,
+            const testId = asTestId(uuidv7());
+
+            allTests.push({
+              id: testId,
+              suiteId: asSuiteId(suiteId),
+              runId: asRunId(meta.id),
               organizationId: seedOrg.id,
               name: testName,
               status: testStatus,
@@ -758,106 +870,134 @@ export async function seed(dbUrl: string, password?: string) {
               finishedAt: testFinishedAt,
               createdAt: testStartedAt,
             });
+
+            // Generate artifacts inline (using pre-generated testId)
+            if (
+              config.name === 'Frontend E2E' &&
+              config.artifactTypes.includes(ArtifactType.Video)
+            ) {
+              allArtifacts.push({
+                testId,
+                organizationId: seedOrg.id,
+                type: ArtifactType.Video,
+                name: `${testName}.webm`,
+                storagePath: `spechive-artifacts/${projectId}/${meta.id}/${testId}/video.webm`,
+                sizeBytes: rng.nextInt(500_000, 5_000_000),
+                mimeType: 'video/webm',
+              });
+            }
+
+            if (
+              config.artifactTypes.includes(ArtifactType.Screenshot) &&
+              (config.name === 'Frontend E2E' || testStatus === TestStatus.Failed)
+            ) {
+              allArtifacts.push({
+                testId,
+                organizationId: seedOrg.id,
+                type: ArtifactType.Screenshot,
+                name: `${testName}.png`,
+                storagePath: `spechive-artifacts/${projectId}/${meta.id}/${testId}/screenshot.png`,
+                sizeBytes: rng.nextInt(50_000, 500_000),
+                mimeType: 'image/png',
+              });
+            }
+
+            if (
+              testStatus === TestStatus.Failed &&
+              config.artifactTypes.includes(ArtifactType.Trace)
+            ) {
+              allArtifacts.push({
+                testId,
+                organizationId: seedOrg.id,
+                type: ArtifactType.Trace,
+                name: `${testName}.trace`,
+                storagePath: `spechive-artifacts/${projectId}/${meta.id}/${testId}/trace.json`,
+                sizeBytes: rng.nextInt(100_000, 2_000_000),
+                mimeType: 'application/json',
+              });
+            }
+
+            if (config.name === 'Backend API' && config.artifactTypes.includes(ArtifactType.Log)) {
+              allArtifacts.push({
+                testId,
+                organizationId: seedOrg.id,
+                type: ArtifactType.Log,
+                name: `${testName}.log`,
+                storagePath: `spechive-artifacts/${projectId}/${meta.id}/${testId}/test.log`,
+                sizeBytes: rng.nextInt(1_000, 50_000),
+                mimeType: 'text/plain',
+              });
+            }
           }
         }
 
-        // Batch insert tests
-        const insertedTests = await db
-          .insert(tests)
-          .values(testsToCreate)
-          .onConflictDoNothing()
-          .returning();
-
-        // Update run with actual test counts
-        await db
-          .update(runs)
-          .set({
-            totalTests: testsToCreate.length,
-            passedTests: testStatusCounts.passed,
-            failedTests: testStatusCounts.failed,
-            skippedTests: testStatusCounts.skipped,
-            flakyTests: testStatusCounts.flaky,
-          })
-          .where(eq(runs.id, asRunId(run.id)));
-
-        // Create artifacts based on project config
-        const artifactsToCreate: (typeof artifacts.$inferInsert)[] = [];
-
-        for (const test of insertedTests) {
-          // Always add video for E2E tests
-          if (config.name === 'Frontend E2E' && config.artifactTypes.includes(ArtifactType.Video)) {
-            artifactsToCreate.push({
-              testId: test.id,
-              organizationId: seedOrg.id,
-              type: ArtifactType.Video,
-              name: `${test.name}.webm`,
-              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/video.webm`,
-              sizeBytes: rng.nextInt(500_000, 5_000_000),
-              mimeType: 'video/webm',
-            });
-          }
-
-          // Add screenshot for all tests (E2E) or just failed tests
-          if (
-            config.artifactTypes.includes(ArtifactType.Screenshot) &&
-            (config.name === 'Frontend E2E' || test.status === TestStatus.Failed)
-          ) {
-            artifactsToCreate.push({
-              testId: test.id,
-              organizationId: seedOrg.id,
-              type: ArtifactType.Screenshot,
-              name: `${test.name}.png`,
-              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/screenshot.png`,
-              sizeBytes: rng.nextInt(50_000, 500_000),
-              mimeType: 'image/png',
-            });
-          }
-
-          // Add trace for failed E2E tests
-          if (
-            test.status === TestStatus.Failed &&
-            config.artifactTypes.includes(ArtifactType.Trace)
-          ) {
-            artifactsToCreate.push({
-              testId: test.id,
-              organizationId: seedOrg.id,
-              type: ArtifactType.Trace,
-              name: `${test.name}.trace`,
-              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/trace.json`,
-              sizeBytes: rng.nextInt(100_000, 2_000_000),
-              mimeType: 'application/json',
-            });
-          }
-
-          // Add log for backend tests
-          if (config.name === 'Backend API' && config.artifactTypes.includes(ArtifactType.Log)) {
-            artifactsToCreate.push({
-              testId: test.id,
-              organizationId: seedOrg.id,
-              type: ArtifactType.Log,
-              name: `${test.name}.log`,
-              storagePath: `spechive-artifacts/${projectId}/${run.id}/${test.id}/test.log`,
-              sizeBytes: rng.nextInt(1_000, 50_000),
-              mimeType: 'text/plain',
-            });
-          }
-        }
-
-        if (artifactsToCreate.length > 0) {
-          await db.insert(artifacts).values(artifactsToCreate).onConflictDoNothing();
-        }
-
-        console.log(
-          `  Run ${runIndex + 1}: ${runStatus} - ${testsToCreate.length} tests, ${artifactsToCreate.length} artifacts`,
-        );
+        runCountUpdates.push({
+          runId: meta.id,
+          total: allTests.length - runTestStart,
+          passed: testStatusCounts.passed,
+          failed: testStatusCounts.failed,
+          skipped: testStatusCounts.skipped,
+          flaky: testStatusCounts.flaky,
+        });
       }
+
+      // Batch insert tests
+      console.log(`  Inserting ${allTests.length.toLocaleString()} tests...`);
+      await insertBatched(db, tests, allTests, 13);
+      logProgress('Tests', allTests.length, allTests.length);
+
+      // Batch insert artifacts
+      if (allArtifacts.length > 0) {
+        console.log(`  Inserting ${allArtifacts.length.toLocaleString()} artifacts...`);
+        await insertBatched(db, artifacts, allArtifacts, 8);
+        logProgress('Artifacts', allArtifacts.length, allArtifacts.length);
+      }
+
+      // Batch update run counts via raw SQL
+      if (runCountUpdates.length > 0) {
+        const client = getRawClient(db);
+        // Process in chunks to avoid oversized queries
+        const updateChunkSize = 5000;
+        for (let i = 0; i < runCountUpdates.length; i += updateChunkSize) {
+          const chunk = runCountUpdates.slice(i, i + updateChunkSize);
+          await client`
+            UPDATE runs AS r SET
+              total_tests = v.total,
+              passed_tests = v.passed,
+              failed_tests = v.failed,
+              skipped_tests = v.skipped,
+              flaky_tests = v.flaky
+            FROM (
+              SELECT
+                unnest(${chunk.map((u) => u.runId)}::uuid[]) AS id,
+                unnest(${chunk.map((u) => u.total)}::int[]) AS total,
+                unnest(${chunk.map((u) => u.passed)}::int[]) AS passed,
+                unnest(${chunk.map((u) => u.failed)}::int[]) AS failed,
+                unnest(${chunk.map((u) => u.skipped)}::int[]) AS skipped,
+                unnest(${chunk.map((u) => u.flaky)}::int[]) AS flaky
+            ) AS v
+            WHERE r.id = v.id
+          `;
+        }
+      }
+
+      totalTests += allTests.length;
+      totalArtifacts += allArtifacts.length;
+
+      console.log(
+        `  ${config.name}: ${allTests.length.toLocaleString()} tests, ${allArtifacts.length.toLocaleString()} artifacts`,
+      );
     }
 
     console.log('\nSeed completed successfully!');
     console.log('\nSummary:');
+    console.log(`  Scale: ${scale} (${runMultiplier}x)`);
     console.log(`  Organizations: 1`);
     console.log(`  Projects: ${PROJECTS.length}`);
-    console.log(`  Total runs: ${PROJECTS.reduce((sum, p) => sum + p.runCount, 0)}`);
+    console.log(`  Total runs: ${totalRuns.toLocaleString()}`);
+    console.log(`  Total suites: ${totalSuites.toLocaleString()}`);
+    console.log(`  Total tests: ${totalTests.toLocaleString()}`);
+    console.log(`  Total artifacts: ${totalArtifacts.toLocaleString()}`);
 
     console.log('\nBackfilling analytics tables...');
     await backfillDailyStats(dbUrl);
@@ -878,7 +1018,15 @@ if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
     console.error('SEED_DATABASE_URL or DATABASE_URL environment variable is required');
     process.exit(1);
   }
-  seed(url, process.env['SEED_USER_PASSWORD']).catch((err) => {
+
+  const rawScale = process.env['SEED_SCALE'] ?? 'small';
+  if (!['small', 'medium', 'large'].includes(rawScale)) {
+    console.error(`Invalid SEED_SCALE="${rawScale}". Must be: small, medium, or large`);
+    process.exit(1);
+  }
+  const scale = rawScale as SeedScale;
+
+  seed(url, process.env['SEED_USER_PASSWORD'], scale).catch((err) => {
     console.error('Seed failed:', err);
     process.exit(1);
   });

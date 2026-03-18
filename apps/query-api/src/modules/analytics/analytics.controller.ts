@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
 import type { ProjectId } from '@spechive/shared-types';
@@ -9,9 +9,12 @@ import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ANALYTICS_MAX_DAYS, ANALYTICS_MAX_FLAKY_LIMIT } from './analytics.constants';
 import { AnalyticsService } from './analytics.service';
 
-const projectIdParamSchema = z.string().uuid();
-
 const trendQuerySchema = z.object({
+  projectIds: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',').filter(Boolean) : undefined))
+    .pipe(z.string().uuid().array().optional()),
   days: z.coerce.number().int().min(1).max(ANALYTICS_MAX_DAYS).default(30),
 });
 
@@ -19,60 +22,71 @@ const flakyQuerySchema = trendQuerySchema.extend({
   limit: z.coerce.number().int().min(1).max(ANALYTICS_MAX_FLAKY_LIMIT).default(10),
 });
 
-@Controller('v1/projects/:projectId/analytics')
+const comparisonQuerySchema = trendQuerySchema;
+
+@Controller('v1/analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('summary')
   async getSummary(
     @CurrentUser() user: UserContext,
-    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
     @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    return this.analyticsService.getProjectSummary(
+    return this.analyticsService.getOrganizationSummary(
       user.organizationId,
-      projectId as ProjectId,
       query.days,
+      query.projectIds as ProjectId[] | undefined,
     );
   }
 
   @Get('pass-rate-trend')
   async getPassRateTrend(
     @CurrentUser() user: UserContext,
-    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
     @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    return this.analyticsService.getPassRateTrend(
+    return this.analyticsService.getOrganizationPassRateTrend(
       user.organizationId,
-      projectId as ProjectId,
       query.days,
+      query.projectIds as ProjectId[] | undefined,
     );
   }
 
   @Get('duration-trend')
   async getDurationTrend(
     @CurrentUser() user: UserContext,
-    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
     @Query(new ZodValidationPipe(trendQuerySchema)) query: z.infer<typeof trendQuerySchema>,
   ) {
-    return this.analyticsService.getDurationTrend(
+    return this.analyticsService.getOrganizationDurationTrend(
       user.organizationId,
-      projectId as ProjectId,
       query.days,
+      query.projectIds as ProjectId[] | undefined,
     );
   }
 
   @Get('flaky-tests')
   async getFlakyTests(
     @CurrentUser() user: UserContext,
-    @Param('projectId', new ZodValidationPipe(projectIdParamSchema)) projectId: string,
     @Query(new ZodValidationPipe(flakyQuerySchema)) query: z.infer<typeof flakyQuerySchema>,
   ) {
-    return this.analyticsService.getFlakyTests(
+    return this.analyticsService.getOrganizationFlakyTests(
       user.organizationId,
-      projectId as ProjectId,
       query.days,
       query.limit,
+      query.projectIds as ProjectId[] | undefined,
+    );
+  }
+
+  @Get('project-comparison')
+  async getProjectComparison(
+    @CurrentUser() user: UserContext,
+    @Query(new ZodValidationPipe(comparisonQuerySchema))
+    query: z.infer<typeof comparisonQuerySchema>,
+  ) {
+    return this.analyticsService.getProjectComparison(
+      user.organizationId,
+      query.days,
+      query.projectIds as ProjectId[] | undefined,
     );
   }
 }

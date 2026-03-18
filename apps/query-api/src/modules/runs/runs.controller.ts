@@ -11,7 +11,11 @@ import { CurrentUser } from '../../decorators/current-user.decorator';
 import { RunsService } from './runs.service';
 
 const listRunsSchema = paginationSchema.extend({
-  projectId: z.string().uuid(),
+  projectIds: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',').filter(Boolean) : undefined))
+    .pipe(z.string().uuid().array().optional()),
   status: z.nativeEnum(RunStatus).optional(),
   search: z.string().max(200).optional(),
   branch: z.string().max(500).optional(),
@@ -32,7 +36,7 @@ export class RunsController {
   ) {
     return this.runsService.listRuns(
       user.organizationId,
-      query.projectId as ProjectId,
+      query.projectIds as ProjectId[] | undefined,
       { page: query.page, pageSize: query.pageSize },
       query.status,
       query.search,

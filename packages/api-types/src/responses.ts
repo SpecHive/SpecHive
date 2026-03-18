@@ -160,6 +160,32 @@ export type PassRateTrendPoint = z.infer<typeof passRateTrendPointSchema>;
 export type DurationTrendPoint = z.infer<typeof durationTrendPointSchema>;
 export type FlakyTestSummary = z.infer<typeof flakyTestSummarySchema>;
 
+// --- Organization-level analytics ---
+
+export const organizationAnalyticsSummarySchema = projectAnalyticsSummarySchema.extend({
+  projectCount: z.number(),
+});
+export type OrganizationAnalyticsSummary = z.infer<typeof organizationAnalyticsSummarySchema>;
+
+export const organizationFlakyTestSummarySchema = flakyTestSummarySchema.extend({
+  projectId: z.string(),
+  projectName: z.string(),
+});
+export type OrganizationFlakyTestSummary = z.infer<typeof organizationFlakyTestSummarySchema>;
+
+export const projectComparisonItemSchema = z.object({
+  projectId: z.string(),
+  projectName: z.string(),
+  totalRuns: z.number(),
+  totalTests: z.number(),
+  passedTests: z.number(),
+  failedTests: z.number(),
+  flakyTests: z.number(),
+  passRate: z.number(),
+  avgDurationMs: z.number(),
+});
+export type ProjectComparisonItem = z.infer<typeof projectComparisonItemSchema>;
+
 export interface CreateProjectRequest {
   name: string;
 }
@@ -191,6 +217,8 @@ export interface TokenListItem {
   createdAt: string | null;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  projectId: ProjectId;
+  projectName: string;
 }
 
 export type TokenListResponse = PaginatedResponse<TokenListItem>;

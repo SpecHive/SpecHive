@@ -29,12 +29,12 @@ export class MutationProxyController {
     return this.proxy.forwardToQuery(req, reply, req.url);
   }
 
-  @Post('projects/:id/tokens')
+  @Post('tokens')
   createToken(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
     return this.proxy.forwardToQuery(req, reply, req.url);
   }
 
-  @Delete('projects/:id/tokens/:tokenId')
+  @Delete('tokens/:tokenId')
   revokeToken(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
     return this.proxy.forwardToQuery(req, reply, req.url);
   }

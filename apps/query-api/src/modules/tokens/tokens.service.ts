@@ -8,7 +8,7 @@ import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import type { OrganizationId, ProjectId, ProjectTokenId } from '@spechive/shared-types';
 import { TOKEN_PLAIN_PREFIX, TOKEN_PREFIX_LENGTH } from '@spechive/shared-types';
 import { hash } from 'argon2';
-import { and, count, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import type { PaginationParams } from '../../common/pagination';
@@ -59,27 +59,25 @@ export class TokensService {
 
   async listTokens(
     organizationId: OrganizationId,
-    projectId: ProjectId,
+    projectIds: ProjectId[] | undefined,
     pagination: PaginationParams,
     includeRevoked: boolean,
   ) {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const [project] = await tx
-        .select({ id: projects.id })
-        .from(projects)
-        .where(eq(projects.id, projectId));
-
-      if (!project) {
-        throw new NotFoundException('Project not found');
-      }
-
       const offset = getOffset(pagination.page, pagination.pageSize);
 
-      const baseConditions = includeRevoked
-        ? eq(projectTokens.projectId, projectId)
-        : and(eq(projectTokens.projectId, projectId), isNull(projectTokens.revokedAt));
+      const projectCondition = projectIds?.length
+        ? inArray(projectTokens.projectId, projectIds)
+        : undefined;
+
+      const activeCondition = includeRevoked ? undefined : isNull(projectTokens.revokedAt);
+
+      const baseConditions =
+        projectCondition && activeCondition
+          ? and(projectCondition, activeCondition)
+          : (projectCondition ?? activeCondition);
 
       const [rows, totalResult] = await Promise.all([
         tx
@@ -90,13 +88,20 @@ export class TokensService {
             createdAt: projectTokens.createdAt,
             lastUsedAt: projectTokens.lastUsedAt,
             revokedAt: projectTokens.revokedAt,
+            projectId: projectTokens.projectId,
+            projectName: projects.name,
           })
           .from(projectTokens)
+          .innerJoin(projects, eq(projectTokens.projectId, projects.id))
           .where(baseConditions)
           .orderBy(sql`${projectTokens.createdAt} DESC`)
           .limit(pagination.pageSize)
           .offset(offset),
-        tx.select({ count: count() }).from(projectTokens).where(baseConditions),
+        tx
+          .select({ count: count() })
+          .from(projectTokens)
+          .innerJoin(projects, eq(projectTokens.projectId, projects.id))
+          .where(baseConditions),
       ]);
 
       const total = totalResult[0]?.count ?? 0;
@@ -105,20 +110,14 @@ export class TokensService {
     });
   }
 
-  async revokeToken(organizationId: OrganizationId, projectId: ProjectId, tokenId: ProjectTokenId) {
+  async revokeToken(organizationId: OrganizationId, tokenId: ProjectTokenId) {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
       const result = await tx
         .update(projectTokens)
         .set({ revokedAt: sql`now()` })
-        .where(
-          and(
-            eq(projectTokens.id, tokenId),
-            eq(projectTokens.projectId, projectId),
-            isNull(projectTokens.revokedAt),
-          ),
-        )
+        .where(and(eq(projectTokens.id, tokenId), isNull(projectTokens.revokedAt)))
         .returning({ id: projectTokens.id });
 
       if (result.length === 0) {

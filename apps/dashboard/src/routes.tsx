@@ -1,19 +1,20 @@
 import { Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 
-import { AppLayout } from '@/components/layout/app-layout';
-import { ProtectedRoute } from '@/components/layout/protected-route';
-import { SettingsLayout } from '@/components/layout/settings-layout';
-import { usePlugins } from '@/lib/plugin-registry';
-import { DashboardPage } from '@/pages/dashboard';
-import { LoginPage } from '@/pages/login';
-import { NotFoundPage } from '@/pages/not-found';
-import { RegisterPage } from '@/pages/register';
-import { RunDetailPage } from '@/pages/run-detail';
-import { RunsPage } from '@/pages/runs';
-import { MembersPage } from '@/pages/settings/members';
-import { ProfilePage } from '@/pages/settings/profile';
-import { TokensPage } from '@/pages/tokens';
+import { usePlugins } from '@/contexts/plugin-registry';
+import { LoginPage } from '@/features/auth/login-page';
+import { RegisterPage } from '@/features/auth/register-page';
+import { ProjectComparisonPage } from '@/features/comparison/comparison-page';
+import { DashboardPage } from '@/features/dashboard/dashboard-page';
+import { RunDetailPage } from '@/features/run-detail/run-detail-page';
+import { RunsPage } from '@/features/runs/runs-page';
+import { MembersPage } from '@/features/settings/members/members-page';
+import { ProfilePage } from '@/features/settings/profile/profile-page';
+import { TokensPage } from '@/features/tokens/tokens-page';
+import { AppLayout } from '@/layout/app-layout';
+import { ProtectedRoute } from '@/layout/protected-route';
+import { SettingsLayout } from '@/layout/settings-layout';
+import { NotFoundPage } from '@/shared/components/not-found-page';
 
 export function AppRoutes() {
   const plugins = usePlugins();
@@ -31,6 +32,7 @@ export function AppRoutes() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/runs" element={<RunsPage />} />
           <Route path="/runs/:id" element={<RunDetailPage />} />
+          <Route path="/comparison" element={<ProjectComparisonPage />} />
           <Route path="/tokens" element={<TokensPage />} />
           {appRoutes.map((route) => (
             <Route

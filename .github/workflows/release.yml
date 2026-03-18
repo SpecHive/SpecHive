@@ -15,11 +15,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   release-please:
+    needs: [ci]
     runs-on: ubuntu-latest
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
+      ingestion-api-version: ${{ steps.release.outputs['apps/ingestion-api--version'] }}
+      worker-version: ${{ steps.release.outputs['apps/worker--version'] }}
+      query-api-version: ${{ steps.release.outputs['apps/query-api--version'] }}
+      gateway-version: ${{ steps.release.outputs['apps/gateway--version'] }}
+      dashboard-version: ${{ steps.release.outputs['apps/dashboard--version'] }}
+      database-version: ${{ steps.release.outputs['packages/database--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -155,22 +166,28 @@ jobs:
           - image: ingestion-api
             dockerfile: apps/ingestion-api/Dockerfile
             path: apps/ingestion-api
+            version-key: ingestion-api-version
           - image: worker
             dockerfile: apps/worker/Dockerfile
             path: apps/worker
+            version-key: worker-version
           - image: query-api
             dockerfile: apps/query-api/Dockerfile
             path: apps/query-api
+            version-key: query-api-version
           - image: gateway
             dockerfile: apps/gateway/Dockerfile
             path: apps/gateway
+            version-key: gateway-version
           - image: dashboard
             dockerfile: apps/dashboard/Dockerfile
             path: apps/dashboard
+            version-key: dashboard-version
           - image: migrate
             dockerfile: apps/ingestion-api/Dockerfile
             path: packages/database
             target: build
+            version-key: database-version
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -191,12 +208,8 @@ jobs:
       - name: Extract version from release
         id: version
         run: |
-          # Use the tag from the released path, or fall back to sha
-          VERSION=$(echo '${{ needs.release-please.outputs.paths_released }}' | jq -r 'to_entries[] | select(.key == "${{ matrix.path }}") | .value' 2>/dev/null || echo "")
-          if [ -z "$VERSION" ]; then
-            VERSION="${{ github.sha }}"
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          VERSION="${{ needs.release-please.outputs[matrix.version-key] }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Docker metadata
         id: meta
@@ -206,6 +219,7 @@ jobs:
           tags: |
             type=sha,prefix=
             type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }},enable=${{ steps.version.outputs.version != '' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6

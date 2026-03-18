@@ -36,9 +36,8 @@ describe('AnalyticsService', () => {
     service = module.get(AnalyticsService);
   });
 
-  describe('getProjectSummary', () => {
+  describe('getOrganizationSummary', () => {
     it('returns zero values when no data exists', async () => {
-      // SQL aggregate without GROUP BY always returns 1 row; COALESCE turns NULLs into 0
       mockExecute.mockResolvedValueOnce([
         {
           totalRuns: 0,
@@ -50,10 +49,11 @@ describe('AnalyticsService', () => {
           passRate: 0,
           avgDurationMs: 0,
           retriedTests: 0,
+          projectCount: 0,
         },
       ]);
 
-      const result = await service.getProjectSummary(orgId, projectId);
+      const result = await service.getOrganizationSummary(orgId);
 
       expect(result).toEqual({
         totalRuns: 0,
@@ -65,6 +65,7 @@ describe('AnalyticsService', () => {
         passRate: 0,
         avgDurationMs: 0,
         retriedTests: 0,
+        projectCount: 0,
       });
     });
 
@@ -79,15 +80,16 @@ describe('AnalyticsService', () => {
         passRate: 90.0,
         avgDurationMs: 5000,
         retriedTests: 3,
+        projectCount: 2,
       };
       mockExecute.mockResolvedValueOnce([mockRow]);
 
-      const result = await service.getProjectSummary(orgId, projectId);
+      const result = await service.getOrganizationSummary(orgId);
 
       expect(result).toEqual(mockRow);
     });
 
-    it('uses a single query instead of Promise.all', async () => {
+    it('accepts optional projectIds filter', async () => {
       mockExecute.mockResolvedValueOnce([
         {
           totalRuns: 1,
@@ -99,12 +101,24 @@ describe('AnalyticsService', () => {
           passRate: 100,
           avgDurationMs: 1000,
           retriedTests: 0,
+          projectCount: 1,
         },
       ]);
 
-      await service.getProjectSummary(orgId, projectId);
+      await service.getOrganizationSummary(orgId, 30, [projectId]);
 
       expect(mockExecute).toHaveBeenCalledTimes(1);
+      const sqlArg = mockExecute.mock.calls[0][0];
+      // Recursively flatten nested SQL chunks to find the projectId parameter
+      const flattenChunks = (chunks: unknown[]): unknown[] =>
+        chunks.flatMap((c) => {
+          if (typeof c === 'string') return [c];
+          if (c && typeof c === 'object' && 'queryChunks' in c)
+            return flattenChunks((c as { queryChunks: unknown[] }).queryChunks);
+          if (c && typeof c === 'object' && 'value' in c) return (c as { value: unknown[] }).value;
+          return [c];
+        });
+      expect(flattenChunks(sqlArg.queryChunks)).toContain(projectId);
     });
 
     it('calls setTenantContext with correct organizationId', async () => {
@@ -120,16 +134,17 @@ describe('AnalyticsService', () => {
           passRate: 0,
           avgDurationMs: 0,
           retriedTests: 0,
+          projectCount: 0,
         },
       ]);
 
-      await service.getProjectSummary(orgId, projectId);
+      await service.getOrganizationSummary(orgId);
 
       expect(setTenantContext).toHaveBeenCalledWith(mockTx, orgId);
     });
   });
 
-  describe('getPassRateTrend', () => {
+  describe('getOrganizationPassRateTrend', () => {
     it('returns typed array of PassRateTrendPoint', async () => {
       const mockData = [
         { date: '2026-01-01', passRate: 95.5, totalTests: 100, passedTests: 95, failedTests: 5 },
@@ -137,7 +152,7 @@ describe('AnalyticsService', () => {
       ];
       mockExecute.mockResolvedValueOnce(mockData);
 
-      const result = await service.getPassRateTrend(orgId, projectId, 30);
+      const result = await service.getOrganizationPassRateTrend(orgId, 30);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty('date');
@@ -146,14 +161,14 @@ describe('AnalyticsService', () => {
     });
   });
 
-  describe('getDurationTrend', () => {
+  describe('getOrganizationDurationTrend', () => {
     it('returns typed array of DurationTrendPoint', async () => {
       const mockData = [
         { date: '2026-01-01', avgDurationMs: 5000, minDurationMs: 1000, maxDurationMs: 10000 },
       ];
       mockExecute.mockResolvedValueOnce(mockData);
 
-      const result = await service.getDurationTrend(orgId, projectId, 30);
+      const result = await service.getOrganizationDurationTrend(orgId, 30);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveProperty('avgDurationMs');
@@ -167,38 +182,51 @@ describe('AnalyticsService', () => {
       ];
       mockExecute.mockResolvedValueOnce(mockData);
 
-      const result = await service.getDurationTrend(orgId, projectId, 30);
+      const result = await service.getOrganizationDurationTrend(orgId, 30);
 
       expect(result[0]!.minDurationMs).toBeNull();
       expect(result[0]!.maxDurationMs).toBeNull();
     });
   });
 
-  describe('getFlakyTests', () => {
-    it('returns typed array of FlakyTestSummary', async () => {
+  describe('getOrganizationFlakyTests', () => {
+    it('returns typed array of OrganizationFlakyTestSummary', async () => {
       const mockData = [
-        { testName: 'should login', flakyCount: 5, totalRuns: 10, avgRetries: 2.5 },
-        { testName: 'should logout', flakyCount: 2, totalRuns: 10, avgRetries: 1.0 },
+        {
+          testName: 'should login',
+          flakyCount: 5,
+          totalRuns: 10,
+          avgRetries: 2.5,
+          projectId: 'p1',
+          projectName: 'Proj 1',
+        },
+        {
+          testName: 'should logout',
+          flakyCount: 2,
+          totalRuns: 10,
+          avgRetries: 1.0,
+          projectId: 'p1',
+          projectName: 'Proj 1',
+        },
       ];
       mockExecute.mockResolvedValueOnce(mockData);
 
-      const result = await service.getFlakyTests(orgId, projectId, 30, 10);
+      const result = await service.getOrganizationFlakyTests(orgId, 30, 10);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty('testName');
       expect(result[0]).toHaveProperty('flakyCount');
       expect(result[0]).toHaveProperty('totalRuns');
+      expect(result[0]).toHaveProperty('projectId');
+      expect(result[0]).toHaveProperty('projectName');
       expect(result[0].totalRuns).toBeGreaterThanOrEqual(result[0].flakyCount);
-      expect(result[1].totalRuns).toBeGreaterThanOrEqual(result[1].flakyCount);
     });
 
     it('clamps days to max 90', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await service.getFlakyTests(orgId, projectId, 200, 10);
+      await service.getOrganizationFlakyTests(orgId, 200, 10);
 
-      // Verify the clamped lookbackDays (90 - 1 = 89) reaches the SQL, not the raw 199.
-      // Drizzle stores raw template expressions in queryChunks — numeric params are plain numbers.
       const sqlArg = mockExecute.mock.calls[0]![0] as { queryChunks: unknown[] };
       const numericParams = sqlArg.queryChunks.filter((c): c is number => typeof c === 'number');
       expect(numericParams).toContain(89);
@@ -208,10 +236,8 @@ describe('AnalyticsService', () => {
     it('clamps limit to max 100', async () => {
       mockExecute.mockResolvedValueOnce([]);
 
-      await service.getFlakyTests(orgId, projectId, 30, 500);
+      await service.getOrganizationFlakyTests(orgId, 30, 500);
 
-      // Verify the clamped limit (100) reaches the SQL, not the raw 500.
-      // Drizzle stores raw template expressions in queryChunks — numeric params are plain numbers.
       const sqlArg = mockExecute.mock.calls[0]![0] as { queryChunks: unknown[] };
       const numericParams = sqlArg.queryChunks.filter((c): c is number => typeof c === 'number');
       expect(numericParams).toContain(100);

@@ -8,32 +8,27 @@ interface TokenResponse {
   name: string;
 }
 
-/** HTTP client for the project tokens resource (`/v1/projects/:id/tokens`). */
+/** HTTP client for the tokens resource (`/v1/tokens`). */
 export class TokensClient extends BaseClient {
-  /** POST /v1/projects/:id/tokens — create a new project token. */
+  /** POST /v1/tokens — create a new project token. */
   async create(
     token: string,
     projectId: string,
     name: string,
     forwardedIp?: string,
   ): Promise<ApiResponse<TokenResponse>> {
-    return this.request<TokenResponse>('POST', `/v1/projects/${projectId}/tokens`, {
+    return this.request<TokenResponse>('POST', `/v1/tokens`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'X-Forwarded-For': forwardedIp ?? `10.test.${randomBytes(4).toString('hex')}`,
       },
-      body: { name },
+      body: { name, projectId },
     });
   }
 
-  /** DELETE /v1/projects/:id/tokens/:tokenId — revoke a project token. */
-  async revoke(
-    token: string,
-    projectId: string,
-    tokenId: string,
-    forwardedIp?: string,
-  ): Promise<Response> {
-    return this.requestRaw('DELETE', `/v1/projects/${projectId}/tokens/${tokenId}`, {
+  /** DELETE /v1/tokens/:tokenId — revoke a project token. */
+  async revoke(token: string, tokenId: string, forwardedIp?: string): Promise<Response> {
+    return this.requestRaw('DELETE', `/v1/tokens/${tokenId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'X-Forwarded-For': forwardedIp ?? `10.test.${randomBytes(4).toString('hex')}`,

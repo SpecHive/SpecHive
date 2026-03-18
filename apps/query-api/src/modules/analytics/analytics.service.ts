@@ -1,18 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   DurationTrendPoint,
-  FlakyTestSummary,
+  OrganizationAnalyticsSummary,
+  OrganizationFlakyTestSummary,
   PassRateTrendPoint,
-  ProjectAnalyticsSummary,
+  ProjectComparisonItem,
 } from '@spechive/api-types';
 import {
   durationTrendPointSchema,
-  flakyTestSummarySchema,
+  organizationAnalyticsSummarySchema,
+  organizationFlakyTestSummarySchema,
   passRateTrendPointSchema,
-  projectAnalyticsSummarySchema,
+  projectComparisonItemSchema,
 } from '@spechive/api-types';
 import type { Database } from '@spechive/database';
-import { dailyFlakyTestStats, dailyRunStats, setTenantContext } from '@spechive/database';
+import { dailyFlakyTestStats, dailyRunStats, projects, setTenantContext } from '@spechive/database';
 import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
 import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
@@ -30,14 +32,26 @@ export class AnalyticsService {
     private readonly db: Database,
   ) {}
 
-  async getProjectSummary(
+  private buildProjectFilter(
+    column: typeof dailyRunStats.projectId | typeof dailyFlakyTestStats.projectId,
+    projectIds?: ProjectId[],
+  ) {
+    return projectIds?.length
+      ? sql`AND ${column} = ANY(ARRAY[${sql.join(
+          projectIds.map((id) => sql`${id}`),
+          sql`, `,
+        )}]::uuid[])`
+      : sql``;
+  }
+
+  async getOrganizationSummary(
     organizationId: OrganizationId,
-    projectId: ProjectId,
     days = 30,
-  ): Promise<ProjectAnalyticsSummary> {
+    projectIds?: ProjectId[],
+  ): Promise<OrganizationAnalyticsSummary> {
     const clampedDays = clampDays(days);
-    // Inclusive lookback: days=30 → today + 29 previous calendar days = 30 days total
     const lookbackDays = clampedDays - 1;
+    const projectFilter = this.buildProjectFilter(dailyRunStats.projectId, projectIds);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -60,25 +74,26 @@ export class AnalyticsService {
             THEN (SUM(${dailyRunStats.sumDurationMs})::float / SUM(${dailyRunStats.totalRuns})::float)
             ELSE 0
           END AS "avgDurationMs",
-          COALESCE(SUM(${dailyRunStats.retriedTests}), 0)::int AS "retriedTests"
+          COALESCE(SUM(${dailyRunStats.retriedTests}), 0)::int AS "retriedTests",
+          COUNT(DISTINCT ${dailyRunStats.projectId})::int AS "projectCount"
         FROM ${dailyRunStats}
-        WHERE ${dailyRunStats.projectId} = ${projectId}
-          AND ${dailyRunStats.organizationId} = ${organizationId}
+        WHERE ${dailyRunStats.organizationId} = ${organizationId}
           AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
+          ${projectFilter}
       `);
 
-      // Aggregate queries without GROUP BY always return exactly one row (NULLs become 0 via COALESCE)
-      return projectAnalyticsSummarySchema.parse(result[0]);
+      return organizationAnalyticsSummarySchema.parse(result[0]);
     });
   }
 
-  async getPassRateTrend(
+  async getOrganizationPassRateTrend(
     organizationId: OrganizationId,
-    projectId: ProjectId,
     days = 30,
+    projectIds?: ProjectId[],
   ): Promise<PassRateTrendPoint[]> {
     const clampedDays = clampDays(days);
     const lookbackDays = clampedDays - 1;
+    const projectFilter = this.buildProjectFilter(dailyRunStats.projectId, projectIds);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -86,18 +101,19 @@ export class AnalyticsService {
       const result = await tx.execute(sql`
         SELECT
           ${dailyRunStats.day}::text AS "date",
-          ${dailyRunStats.totalTests} AS "totalTests",
-          ${dailyRunStats.passedTests} AS "passedTests",
-          ${dailyRunStats.failedTests} AS "failedTests",
+          SUM(${dailyRunStats.totalTests})::int AS "totalTests",
+          SUM(${dailyRunStats.passedTests})::int AS "passedTests",
+          SUM(${dailyRunStats.failedTests})::int AS "failedTests",
           CASE
-            WHEN ${dailyRunStats.totalTests} > 0
-            THEN ROUND((${dailyRunStats.passedTests}::numeric / ${dailyRunStats.totalTests}::numeric) * 100, 2)
+            WHEN SUM(${dailyRunStats.totalTests}) > 0
+            THEN ROUND((SUM(${dailyRunStats.passedTests})::numeric / SUM(${dailyRunStats.totalTests})::numeric) * 100, 2)
             ELSE 0
           END::float AS "passRate"
         FROM ${dailyRunStats}
-        WHERE ${dailyRunStats.projectId} = ${projectId}
-          AND ${dailyRunStats.organizationId} = ${organizationId}
+        WHERE ${dailyRunStats.organizationId} = ${organizationId}
           AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
+          ${projectFilter}
+        GROUP BY ${dailyRunStats.day}
         ORDER BY ${dailyRunStats.day} ASC
       `);
 
@@ -105,13 +121,14 @@ export class AnalyticsService {
     });
   }
 
-  async getDurationTrend(
+  async getOrganizationDurationTrend(
     organizationId: OrganizationId,
-    projectId: ProjectId,
     days = 30,
+    projectIds?: ProjectId[],
   ): Promise<DurationTrendPoint[]> {
     const clampedDays = clampDays(days);
     const lookbackDays = clampedDays - 1;
+    const projectFilter = this.buildProjectFilter(dailyRunStats.projectId, projectIds);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -120,16 +137,17 @@ export class AnalyticsService {
         SELECT
           ${dailyRunStats.day}::text AS "date",
           CASE
-            WHEN ${dailyRunStats.totalRuns} > 0
-            THEN (${dailyRunStats.sumDurationMs}::float / ${dailyRunStats.totalRuns}::float)
+            WHEN SUM(${dailyRunStats.totalRuns}) > 0
+            THEN (SUM(${dailyRunStats.sumDurationMs})::float / SUM(${dailyRunStats.totalRuns})::float)
             ELSE 0
           END AS "avgDurationMs",
-          ${dailyRunStats.minDurationMs} AS "minDurationMs",
-          ${dailyRunStats.maxDurationMs} AS "maxDurationMs"
+          MIN(${dailyRunStats.minDurationMs}) AS "minDurationMs",
+          MAX(${dailyRunStats.maxDurationMs}) AS "maxDurationMs"
         FROM ${dailyRunStats}
-        WHERE ${dailyRunStats.projectId} = ${projectId}
-          AND ${dailyRunStats.organizationId} = ${organizationId}
+        WHERE ${dailyRunStats.organizationId} = ${organizationId}
           AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
+          ${projectFilter}
+        GROUP BY ${dailyRunStats.day}
         ORDER BY ${dailyRunStats.day} ASC
       `);
 
@@ -137,15 +155,16 @@ export class AnalyticsService {
     });
   }
 
-  async getFlakyTests(
+  async getOrganizationFlakyTests(
     organizationId: OrganizationId,
-    projectId: ProjectId,
     days = 30,
     limit = 10,
-  ): Promise<FlakyTestSummary[]> {
+    projectIds?: ProjectId[],
+  ): Promise<OrganizationFlakyTestSummary[]> {
     const clampedDays = clampDays(days);
     const lookbackDays = clampedDays - 1;
     const clampedLimit = Math.min(Math.max(limit, 1), ANALYTICS_MAX_FLAKY_LIMIT);
+    const projectFilter = this.buildProjectFilter(dailyFlakyTestStats.projectId, projectIds);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -159,18 +178,66 @@ export class AnalyticsService {
             WHEN SUM(${dailyFlakyTestStats.flakyCount}) > 0
             THEN (SUM(${dailyFlakyTestStats.totalRetries})::float / SUM(${dailyFlakyTestStats.flakyCount})::float)
             ELSE 0
-          END AS "avgRetries"
+          END AS "avgRetries",
+          ${projects.id} AS "projectId",
+          ${projects.name} AS "projectName"
         FROM ${dailyFlakyTestStats}
-        WHERE ${dailyFlakyTestStats.projectId} = ${projectId}
-          AND ${dailyFlakyTestStats.organizationId} = ${organizationId}
+        JOIN ${projects} ON ${projects.id} = ${dailyFlakyTestStats.projectId}
+        WHERE ${dailyFlakyTestStats.organizationId} = ${organizationId}
           AND ${dailyFlakyTestStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
-        GROUP BY ${dailyFlakyTestStats.testName}
+          ${projectFilter}
+        GROUP BY ${dailyFlakyTestStats.testName}, ${projects.id}, ${projects.name}
         HAVING SUM(${dailyFlakyTestStats.flakyCount}) > 0
         ORDER BY (SUM(${dailyFlakyTestStats.flakyCount})::float / NULLIF(SUM(${dailyFlakyTestStats.totalCount}), 0)) DESC NULLS LAST
         LIMIT ${clampedLimit}
       `);
 
-      return flakyTestSummarySchema.array().parse(result);
+      return organizationFlakyTestSummarySchema.array().parse(result);
+    });
+  }
+
+  async getProjectComparison(
+    organizationId: OrganizationId,
+    days = 30,
+    projectIds?: ProjectId[],
+  ): Promise<ProjectComparisonItem[]> {
+    const clampedDays = clampDays(days);
+    const lookbackDays = clampedDays - 1;
+    const projectFilter = this.buildProjectFilter(dailyRunStats.projectId, projectIds);
+
+    return this.db.transaction(async (tx) => {
+      await setTenantContext(tx, organizationId);
+
+      const result = await tx.execute(sql`
+        SELECT
+          ${dailyRunStats.projectId} AS "projectId",
+          ${projects.name} AS "projectName",
+          SUM(${dailyRunStats.totalRuns})::int AS "totalRuns",
+          SUM(${dailyRunStats.totalTests})::int AS "totalTests",
+          SUM(${dailyRunStats.passedTests})::int AS "passedTests",
+          SUM(${dailyRunStats.failedTests})::int AS "failedTests",
+          SUM(${dailyRunStats.flakyTests})::int AS "flakyTests",
+          CASE
+            WHEN SUM(${dailyRunStats.totalTests}) > 0
+            THEN ROUND((SUM(${dailyRunStats.passedTests})::numeric / SUM(${dailyRunStats.totalTests})::numeric) * 100, 2)
+            ELSE 0
+          END::float AS "passRate",
+          CASE
+            WHEN SUM(${dailyRunStats.totalRuns}) > 0
+            THEN (SUM(${dailyRunStats.sumDurationMs})::float / SUM(${dailyRunStats.totalRuns})::float)
+            ELSE 0
+          END AS "avgDurationMs"
+        FROM ${dailyRunStats}
+        JOIN ${projects} ON ${projects.id} = ${dailyRunStats.projectId}
+        WHERE ${dailyRunStats.organizationId} = ${organizationId}
+          AND ${dailyRunStats.day} >= ((NOW() AT TIME ZONE 'UTC')::date - ${lookbackDays}::int)
+          ${projectFilter}
+        GROUP BY ${dailyRunStats.projectId}, ${projects.name}
+        HAVING SUM(${dailyRunStats.totalRuns}) > 0
+        ORDER BY SUM(${dailyRunStats.totalRuns}) DESC
+      `);
+
+      return projectComparisonItemSchema.array().parse(result);
     });
   }
 }

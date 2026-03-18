@@ -7,6 +7,7 @@ import { defineConfig } from 'vite';
 import pkg from './package.json';
 
 export default defineConfig({
+  envDir: resolve(__dirname, '../..'),
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

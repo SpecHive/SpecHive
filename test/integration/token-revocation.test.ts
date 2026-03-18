@@ -4,9 +4,9 @@
  * Verifies the full lifecycle:
  * 1. Login -> get JWT
  * 2. Create project via POST /v1/projects
- * 3. Create token via POST /v1/projects/:id/tokens -> get plain-text token
+ * 3. Create token via POST /v1/tokens -> get plain-text token
  * 4. Authenticate against ingestion-api with token -> expect success
- * 5. Revoke token via DELETE /v1/projects/:id/tokens/:tokenId
+ * 5. Revoke token via DELETE /v1/tokens/:tokenId
  * 6. Authenticate against ingestion-api with revoked token -> expect 401
  *
  * Requires the full Docker Compose stack running.
@@ -76,7 +76,7 @@ describe('Token revocation', () => {
     expect(ingestRes.status).not.toBe(401);
 
     // 4. Revoke token
-    const revokeRes = await queryApi.tokens.revoke(jwt, project.id, tokenId, TEST_IP);
+    const revokeRes = await queryApi.tokens.revoke(jwt, tokenId, TEST_IP);
     expect(revokeRes.status).toBe(204);
 
     // 5. Verify revoked token is rejected by ingestion-api (raw fetch — uses dynamic project token)

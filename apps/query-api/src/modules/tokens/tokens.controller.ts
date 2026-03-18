@@ -11,13 +11,21 @@ import { Roles } from '../../decorators/roles.decorator';
 
 import { TokensService } from './tokens.service';
 
-const createTokenSchema = z.object({ name: z.string().trim().min(1).max(100) });
+const createTokenSchema = z.object({
+  projectId: z.string().uuid(),
+  name: z.string().trim().min(1).max(100),
+});
 
 const tokenListSchema = paginationSchema.extend({
+  projectIds: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',').filter(Boolean) : undefined))
+    .pipe(z.string().uuid().array().optional()),
   includeRevoked: z.coerce.boolean().default(false),
 });
 
-@Controller('v1/projects/:id/tokens')
+@Controller('v1/tokens')
 export class TokensController {
   constructor(private readonly tokensService: TokensService) {}
 
@@ -25,22 +33,21 @@ export class TokensController {
   @Roles(MembershipRole.Owner, MembershipRole.Admin)
   async create(
     @CurrentUser() user: UserContext,
-    @Param('id', new ZodValidationPipe(uuidSchema)) projectId: ProjectId,
     @Body(new ZodValidationPipe(createTokenSchema)) body: z.infer<typeof createTokenSchema>,
   ) {
-    return this.tokensService.createToken(user.organizationId, projectId, body);
+    const { projectId, ...dto } = body;
+    return this.tokensService.createToken(user.organizationId, projectId as ProjectId, dto);
   }
 
   @Get()
   async list(
     @CurrentUser() user: UserContext,
-    @Param('id', new ZodValidationPipe(uuidSchema)) projectId: ProjectId,
     @Query(new ZodValidationPipe(tokenListSchema)) query: z.infer<typeof tokenListSchema>,
   ) {
-    const { includeRevoked, ...pagination } = query;
+    const { projectIds, includeRevoked, ...pagination } = query;
     return this.tokensService.listTokens(
       user.organizationId,
-      projectId,
+      projectIds as ProjectId[] | undefined,
       pagination,
       includeRevoked,
     );
@@ -51,9 +58,8 @@ export class TokensController {
   @Roles(MembershipRole.Owner, MembershipRole.Admin)
   async revoke(
     @CurrentUser() user: UserContext,
-    @Param('id', new ZodValidationPipe(uuidSchema)) projectId: ProjectId,
     @Param('tokenId', new ZodValidationPipe(uuidSchema)) tokenId: ProjectTokenId,
   ) {
-    await this.tokensService.revokeToken(user.organizationId, projectId, tokenId);
+    await this.tokensService.revokeToken(user.organizationId, tokenId);
   }
 }

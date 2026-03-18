@@ -96,6 +96,7 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/gateway/src:/app/apps/gateway/src:ro

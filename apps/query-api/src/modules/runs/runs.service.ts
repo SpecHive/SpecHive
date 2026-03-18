@@ -4,7 +4,7 @@ import { runs, setTenantContext, suites } from '@spechive/database';
 import { DATABASE_CONNECTION, escapeLikePattern } from '@spechive/nestjs-common';
 import type { OrganizationId, ProjectId, RunId } from '@spechive/shared-types';
 import { RunStatus } from '@spechive/shared-types';
-import { and, asc, count, desc, eq, ilike, isNotNull } from 'drizzle-orm';
+import { type SQL, and, asc, count, desc, eq, ilike, inArray, isNotNull } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import type { PaginationParams } from '../../common/pagination';
@@ -27,7 +27,7 @@ export class RunsService {
 
   async listRuns(
     organizationId: OrganizationId,
-    projectId: ProjectId,
+    projectIds: ProjectId[] | undefined,
     pagination: PaginationParams,
     status?: RunStatus,
     search?: string,
@@ -40,7 +40,10 @@ export class RunsService {
 
       const offset = getOffset(pagination.page, pagination.pageSize);
 
-      const conditions = [eq(runs.projectId, projectId)];
+      const conditions: SQL[] = [];
+      if (projectIds?.length) {
+        conditions.push(inArray(runs.projectId, projectIds));
+      }
       if (status) {
         conditions.push(eq(runs.status, status));
       }

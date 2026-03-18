@@ -101,32 +101,39 @@ describe('TokensService', () => {
         createdAt: new Date(),
         lastUsedAt: null,
         revokedAt: null,
+        projectId: PROJECT_ID,
+        projectName: 'My Project',
       };
 
-      // First select: project check
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ id: PROJECT_ID }]) }),
-      });
-      // Second select: token rows
+      // First select: token rows (includes innerJoin)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            orderBy: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                offset: vi.fn().mockResolvedValue([tokenRow]),
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  offset: vi.fn().mockResolvedValue([tokenRow]),
+                }),
               }),
             }),
           }),
         }),
       });
-      // Third select: count
+      // Second select: count (includes innerJoin to match data query)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 1 }]),
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 1 }]),
+          }),
         }),
       });
 
-      const result = await service.listTokens(ORG_ID, PROJECT_ID, { page: 1, pageSize: 20 }, false);
+      const result = await service.listTokens(
+        ORG_ID,
+        [PROJECT_ID],
+        { page: 1, pageSize: 20 },
+        false,
+      );
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0]).not.toHaveProperty('tokenHash');
@@ -134,14 +141,76 @@ describe('TokensService', () => {
       expect(result.meta.total).toBe(1);
     });
 
-    it('throws NotFoundException if project not found', async () => {
+    it('lists tokens across all projects when projectIds is absent', async () => {
+      const tokenRow = {
+        id: 'tok-2',
+        name: 'Global Token',
+        tokenPrefix: 'at_xyz',
+        createdAt: new Date(),
+        lastUsedAt: null,
+        revokedAt: null,
+        projectId: PROJECT_ID,
+        projectName: 'My Project',
+      };
+
+      // No project check select — projectId is undefined
       mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  offset: vi.fn().mockResolvedValue([tokenRow]),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 1 }]),
+          }),
+        }),
       });
 
-      await expect(
-        service.listTokens(ORG_ID, PROJECT_ID, { page: 1, pageSize: 20 }, false),
-      ).rejects.toThrow(NotFoundException);
+      const result = await service.listTokens(ORG_ID, undefined, { page: 1, pageSize: 20 }, false);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]!.projectName).toBe('My Project');
+    });
+
+    it('returns empty list when filtering by non-existent project', async () => {
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  offset: vi.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          }),
+        }),
+      });
+      mockSelect.mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue([{ count: 0 }]),
+          }),
+        }),
+      });
+
+      const result = await service.listTokens(
+        ORG_ID,
+        [PROJECT_ID],
+        { page: 1, pageSize: 20 },
+        false,
+      );
+      expect(result.data).toHaveLength(0);
+      expect(result.meta.total).toBe(0);
     });
   });
 
@@ -152,9 +221,7 @@ describe('TokensService', () => {
       });
       mockSet.mockReturnValue({ where: mockWhereChain });
 
-      await expect(
-        service.revokeToken(ORG_ID, PROJECT_ID, 'tok-1' as ProjectTokenId),
-      ).resolves.toBeUndefined();
+      await expect(service.revokeToken(ORG_ID, 'tok-1' as ProjectTokenId)).resolves.toBeUndefined();
     });
 
     it('throws NotFoundException if token not found or already revoked', async () => {
@@ -164,7 +231,7 @@ describe('TokensService', () => {
       mockSet.mockReturnValue({ where: mockWhereChain });
 
       await expect(
-        service.revokeToken(ORG_ID, PROJECT_ID, 'tok-nonexistent' as ProjectTokenId),
+        service.revokeToken(ORG_ID, 'tok-nonexistent' as ProjectTokenId),
       ).rejects.toThrow(NotFoundException);
     });
   });
