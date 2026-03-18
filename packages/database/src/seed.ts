@@ -557,6 +557,11 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
   try {
     console.log(`Seeding database (scale: ${scale}, multiplier: ${runMultiplier}x)...`);
 
+    // Reset database — safe because seed only runs in non-production environments
+    const rawClient = getRawClient(db);
+    await rawClient`TRUNCATE organizations, users CASCADE`;
+    console.log('Truncated all tables.');
+
     // ========================================================================
     // Organization & User Setup
     // ========================================================================
