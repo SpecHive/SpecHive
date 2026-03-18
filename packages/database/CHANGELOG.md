@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/database-v0.0.5...database-v0.0.6) (2026-03-18)
+
+
+### Features
+
+* **dashboard,query-api:** refactor to feature-based architecture with org-level APIs ([8e5e5ec](https://github.com/SpecHive/SpecHive/commit/8e5e5ec5019e2032d02aef540daf2ea7e38b8bf3))
+
+
+### Bug Fixes
+
+* **database:** differentiate seed durations per project for realistic analytics ([f4b8e5a](https://github.com/SpecHive/SpecHive/commit/f4b8e5a0925eca99af69637d21f6a9a01290b7d0))
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/database-v0.0.4...database-v0.0.5) (2026-03-17)
 
 

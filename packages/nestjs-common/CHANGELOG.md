@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.3...nestjs-common-v0.0.4) (2026-03-18)
+
+
+### Features
+
+* **query-api,nestjs-common:** add Redis-backed login rate limiting ([df56b71](https://github.com/SpecHive/SpecHive/commit/df56b71be05615881a48581e4eebdddac5da3554))
+
+
+### Bug Fixes
+
+* **nestjs-common:** move Redis exports to subpath to fix Docker ioredis crash ([6d92ede](https://github.com/SpecHive/SpecHive/commit/6d92ede0cbd0892b3d8e682be1c9eafb43d96be4))
+
 ## [0.0.3](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.2...nestjs-common-v0.0.3) (2026-03-17)
 
 

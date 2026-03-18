@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.4](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.3...query-api-v0.0.4) (2026-03-18)
+
+
+### Features
+
+* **analytics:** add health scores, sparklines, period-over-period deltas, and enriched comparison ([16fa453](https://github.com/SpecHive/SpecHive/commit/16fa4538a54705d9e88ab818a165d6b2d0da63c2))
+* **dashboard,query-api:** refactor to feature-based architecture with org-level APIs ([8e5e5ec](https://github.com/SpecHive/SpecHive/commit/8e5e5ec5019e2032d02aef540daf2ea7e38b8bf3))
+* **query-api,nestjs-common:** add Redis-backed login rate limiting ([df56b71](https://github.com/SpecHive/SpecHive/commit/df56b71be05615881a48581e4eebdddac5da3554))
+
+
+### Bug Fixes
+
+* **nestjs-common:** move Redis exports to subpath to fix Docker ioredis crash ([6d92ede](https://github.com/SpecHive/SpecHive/commit/6d92ede0cbd0892b3d8e682be1c9eafb43d96be4))
+
 ## [0.0.3](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.2...query-api-v0.0.3) (2026-03-17)
 
 
