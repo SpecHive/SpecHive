@@ -50,23 +50,25 @@ export function OrgSwitcher({ currentOrg, onSwitch }: OrgSwitcherProps) {
     [currentOrg.id, isSwitching, onSwitch],
   );
 
-  if (organizations.length <= 1) {
-    return <p className="truncate text-xs text-muted-foreground">{currentOrg.name}</p>;
+  const hasMultipleOrgs = organizations.length > 1;
+
+  if (!hasMultipleOrgs) {
+    return <span className="truncate text-sm font-semibold tracking-tight">{currentOrg.name}</span>;
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-1 rounded-md px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="flex w-full items-center justify-between gap-1 rounded-md py-0.5 text-sm font-semibold tracking-tight transition-colors hover:text-accent-foreground"
         onClick={() => setIsOpen((prev) => !prev)}
         disabled={isSwitching}
       >
         <span className="truncate">{currentOrg.name}</span>
-        <ChevronsUpDown className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
       {isOpen && (
-        <div className="absolute bottom-full left-0 z-50 mb-1 w-full rounded-md border bg-popover py-1 shadow-md">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border bg-popover py-1 shadow-md">
           {organizations.map((org) => (
             <button
               key={org.id}

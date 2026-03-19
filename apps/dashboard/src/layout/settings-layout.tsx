@@ -2,6 +2,7 @@ import { User, Users } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router';
 
 import { usePlugins, type NavItem } from '@/contexts/plugin-registry';
+import { PageHeader } from '@/layout/page-header';
 import { cn } from '@/shared/lib/utils';
 
 const settingsNavItems: NavItem[] = [
@@ -16,7 +17,13 @@ export function SettingsLayout() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Settings</h1>
+      <div className="mb-6">
+        <PageHeader
+          title="Settings"
+          description="Manage your account and team."
+          showProjectSelector={false}
+        />
+      </div>
       <div className="flex gap-8">
         <nav className="w-48 shrink-0">
           <ul className="space-y-1">

@@ -18,6 +18,7 @@ export interface DashboardPlugin {
   routes?: RouteConfig[];
   navItems?: NavItem[];
   settingsNavItems?: NavItem[];
+  sidebarWidgets?: React.ComponentType[];
 }
 
 interface PluginContextValue {

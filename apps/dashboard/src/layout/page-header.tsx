@@ -7,9 +7,15 @@ interface PageHeaderProps {
   title: string;
   description: string;
   actions?: React.ReactNode;
+  showProjectSelector?: boolean;
 }
 
-export function PageHeader({ title, description, actions }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+  showProjectSelector = true,
+}: PageHeaderProps) {
   const { projects, selectedProjectIds, setSelectedProjectIds, isAllSelected } = useProject();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,7 +77,7 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
         <p className="mt-1 text-muted-foreground">{description}</p>
       </div>
       <div className="flex items-center gap-3">
-        {projects.length > 0 && (
+        {showProjectSelector && projects.length > 0 && (
           <div ref={containerRef} className="relative">
             <button
               type="button"

@@ -2,11 +2,11 @@ import { BarChart3, Key, LayoutDashboard, LogOut, PlayCircle, Settings } from 'l
 import { NavLink } from 'react-router';
 
 import { OrgSwitcher } from './org-switcher';
+import { SpecHiveLogo } from './spechive-logo';
 import { ThemeToggle } from './theme-toggle';
 
 import { useAuth } from '@/contexts/auth-context';
 import { usePlugins, type NavItem } from '@/contexts/plugin-registry';
-import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/lib/utils';
 
 const navItems: NavItem[] = [
@@ -17,18 +17,35 @@ const navItems: NavItem[] = [
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
 export function Sidebar() {
   const { logout, user, organization, switchOrganization } = useAuth();
   const plugins = usePlugins();
   const pluginNavItems = plugins.flatMap((p) => p.navItems ?? []);
+  const sidebarWidgets = plugins.flatMap((p) => p.sidebarWidgets ?? []);
   const allNavItems = [...navItems, ...pluginNavItems];
 
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
-      <div className="flex h-16 items-center border-b px-6">
-        <span className="text-lg font-semibold tracking-tight">SpecHive</span>
+      {/* Top: Logo + Org context */}
+      <div className="flex h-14 items-center gap-2 border-b px-4">
+        <SpecHiveLogo className="h-5 w-5 shrink-0 text-green-500" />
+        {organization ? (
+          <OrgSwitcher currentOrg={organization} onSwitch={switchOrganization} />
+        ) : (
+          <span className="text-sm font-semibold tracking-tight">SpecHive</span>
+        )}
       </div>
 
+      {/* Middle: Navigation */}
       <nav className="flex-1 space-y-1 p-4" aria-label="Main navigation">
         {allNavItems.map(({ label, href, icon: Icon }) => (
           <NavLink
@@ -50,27 +67,35 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t p-4">
-        <div className="mb-2 flex gap-2">
-          <ThemeToggle />
+      {/* Plugin widgets */}
+      {sidebarWidgets.length > 0 && (
+        <div className="border-t px-4 py-3">
+          {sidebarWidgets.map((Widget, i) => (
+            <Widget key={i} />
+          ))}
         </div>
-        {user && organization && (
-          <div className="mb-2 px-1">
-            <p className="truncate text-sm font-medium">{user.name}</p>
-            <OrgSwitcher currentOrg={organization} onSwitch={switchOrganization} />
+      )}
+
+      {/* Bottom: Compact user row */}
+      {user && (
+        <div className="border-t px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+              {getInitials(user.name)}
+            </div>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">{user.name}</span>
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground"
-          onClick={logout}
-        >
-          <LogOut className="h-4 w-4" aria-hidden="true" />
-          Sign out
-        </Button>
-        <p className="mt-2 text-xs text-muted-foreground">v{__APP_VERSION__}</p>
-      </div>
+        </div>
+      )}
     </aside>
   );
 }
