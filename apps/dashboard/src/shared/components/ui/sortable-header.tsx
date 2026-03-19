@@ -41,6 +41,13 @@ export function SortableHeader({
     <th
       className={`cursor-pointer select-none pb-3 pr-4 ${className ?? ''}`}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      tabIndex={0}
       aria-sort={ariaSortValue}
     >
       <span className="inline-flex items-center gap-1">
