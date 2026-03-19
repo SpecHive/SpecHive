@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 import { apiClient } from '@/shared/lib/api-client';
 
-interface UseApiResult<T> {
+export interface UseApiResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;

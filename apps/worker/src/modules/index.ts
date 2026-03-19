@@ -10,7 +10,7 @@ export { ArtifactCleanupModule } from './artifact-cleanup/artifact-cleanup.modul
  */
 export { ResultProcessorModule } from './result-processor/result-processor.module';
 
-/** Requires: DatabaseModule (DATABASE_CONNECTION token) */
+/** Requires: DatabaseModule (DATABASE_CONNECTION token), ScheduleModule (uses @Cron) */
 export { RunCleanupModule } from './run-cleanup/run-cleanup.module';
 
 /** Requires: ResultProcessorModule (imports it internally) */

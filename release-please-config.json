@@ -9,6 +9,7 @@
     { "type": "refactor", "section": "Refactoring" },
     { "type": "perf", "section": "Performance" }
   ],
+  "plugins": ["node-workspace"],
   "packages": {
     "packages/typescript-config": {},
     "packages/eslint-config": {},
