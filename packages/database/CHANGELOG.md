@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/SpecHive/SpecHive/compare/database-v0.0.6...database-v0.0.7) (2026-03-19)
+
+
+### Bug Fixes
+
+* **ci:** prevent CI workflow from running twice on main ([a831e8b](https://github.com/SpecHive/SpecHive/commit/a831e8b045a20bb0b4a748027bcb8ad3b2b21d65))
+
 ## [0.0.6](https://github.com/SpecHive/SpecHive/compare/database-v0.0.5...database-v0.0.6) (2026-03-18)
 
 
