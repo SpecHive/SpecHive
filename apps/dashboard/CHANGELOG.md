@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.4...dashboard-v0.0.5) (2026-03-19)
+
+
+### Bug Fixes
+
+* **dashboard:** add keyboard accessibility to sortable table headers ([b7f906d](https://github.com/SpecHive/SpecHive/commit/b7f906d55608f48ace93ee0d7b9b5573cc894fb8))
+
 ## [0.0.4](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.3...dashboard-v0.0.4) (2026-03-18)
 
 
