@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.5...dashboard-v0.0.6) (2026-03-19)
+
+
+### Features
+
+* **dashboard:** redesign sidebar layout and add plugin widget support ([90a1d24](https://github.com/SpecHive/SpecHive/commit/90a1d24b72d14788183eeef10d7f42b15dab28ba))
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.4...dashboard-v0.0.5) (2026-03-19)
 
 
