@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.5](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.4...gateway-v0.0.5) (2026-03-20)
+
+
+### Bug Fixes
+
+* **docker:** use HUSKY=0 instead of --ignore-scripts to fix arm64 QEMU crash ([f605b37](https://github.com/SpecHive/SpecHive/commit/f605b37fc2e86d48a007faaf86377a50e52c47e7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.6
+
 ## [0.0.4](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.3...gateway-v0.0.4) (2026-03-19)
 
 
