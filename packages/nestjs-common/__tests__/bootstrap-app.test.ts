@@ -69,7 +69,7 @@ describe('bootstrapNestApp', () => {
     setupConfigMock();
     await bootstrapNestApp({ module: FakeModule });
 
-    expect(NestFactory.create).toHaveBeenCalledWith(FakeModule, expect.any(FastifyAdapter));
+    expect(NestFactory.create).toHaveBeenCalledWith(FakeModule, expect.any(FastifyAdapter), {});
   });
 
   it('enables shutdown hooks', async () => {
