@@ -25,7 +25,7 @@
     "db:reset-password": "tsx packages/database/src/reset-password.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
