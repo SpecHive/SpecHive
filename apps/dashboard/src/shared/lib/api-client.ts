@@ -54,6 +54,15 @@ class ApiClient {
     });
   }
 
+  async put<T>(path: string, body: unknown): Promise<T> {
+    this.assertConfigured();
+    return this.request<T>(`${this.baseUrl}${path}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  }
+
   async delete<T>(path: string): Promise<T> {
     this.assertConfigured();
     return this.request<T>(`${this.baseUrl}${path}`, { method: 'DELETE' });

@@ -30,7 +30,9 @@ export function Sidebar() {
   const { logout, user, organization, switchOrganization } = useAuth();
   const plugins = usePlugins();
   const pluginNavItems = plugins.flatMap((p) => p.navItems ?? []);
-  const sidebarWidgets = plugins.flatMap((p) => p.sidebarWidgets ?? []);
+  const allWidgets = plugins.flatMap((p) => p.widgets ?? []);
+  const orgHeaderWidgets = allWidgets.filter((w) => w.position === 'org-header');
+  const sidebarWidgets = allWidgets.filter((w) => w.position === 'sidebar');
   const allNavItems = [...navItems, ...pluginNavItems];
 
   return (
@@ -43,6 +45,9 @@ export function Sidebar() {
         ) : (
           <span className="text-sm font-semibold tracking-tight">SpecHive</span>
         )}
+        {orgHeaderWidgets.map((w, i) => (
+          <w.component key={i} />
+        ))}
       </div>
 
       {/* Middle: Navigation */}
@@ -69,9 +74,9 @@ export function Sidebar() {
 
       {/* Plugin widgets */}
       {sidebarWidgets.length > 0 && (
-        <div className="border-t px-4 py-3">
-          {sidebarWidgets.map((Widget, i) => (
-            <Widget key={i} />
+        <div className="border-t px-4 py-3 [&:not(:has(*))]:hidden">
+          {sidebarWidgets.map((w, i) => (
+            <w.component key={i} />
           ))}
         </div>
       )}

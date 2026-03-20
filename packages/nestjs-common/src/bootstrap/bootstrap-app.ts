@@ -13,6 +13,7 @@ export interface BootstrapOptions {
   bodyLimit?: number;
   cors?: boolean;
   cookies?: boolean;
+  rawBody?: boolean;
   fastifyPlugins?: (app: NestFastifyApplication) => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   const app = await NestFactory.create<NestFastifyApplication>(
     options.module,
     new FastifyAdapter(adapterOpts),
+    options.rawBody ? { rawBody: true } : {},
   );
   app.enableShutdownHooks();
 

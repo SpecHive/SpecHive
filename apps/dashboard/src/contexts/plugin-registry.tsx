@@ -13,12 +13,17 @@ export interface RouteConfig {
   layout: 'app' | 'settings';
 }
 
+export interface WidgetRegistration {
+  position: 'org-header' | 'sidebar';
+  component: React.ComponentType;
+}
+
 export interface DashboardPlugin {
   id: string;
   routes?: RouteConfig[];
   navItems?: NavItem[];
   settingsNavItems?: NavItem[];
-  sidebarWidgets?: React.ComponentType[];
+  widgets?: WidgetRegistration[];
 }
 
 interface PluginContextValue {
