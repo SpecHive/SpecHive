@@ -69,10 +69,9 @@ COPY packages/reporter-core-protocol/package.json ./packages/reporter-core-proto
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/nestjs-common/package.json ./packages/nestjs-common/
 
-# --ignore-scripts avoids the root prepare hook calling husky
 RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) \
-    pnpm install --frozen-lockfile --prod --ignore-scripts
+    HUSKY=0 pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/apps/worker/dist ./apps/worker/dist
 COPY --from=build /app/packages/database/dist ./packages/database/dist

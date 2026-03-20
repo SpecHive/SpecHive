@@ -73,11 +73,9 @@ COPY packages/reporter-core-protocol/package.json ./packages/reporter-core-proto
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 COPY packages/nestjs-common/package.json ./packages/nestjs-common/
 
-# Install production-only dependencies (--ignore-scripts avoids the root prepare hook calling husky)
 RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) \
-    pnpm install --frozen-lockfile --prod --ignore-scripts && \
-    pnpm rebuild argon2
+    HUSKY=0 pnpm install --frozen-lockfile --prod
 
 # Copy compiled output from build stage
 COPY --from=build /app/apps/ingestion-api/dist ./apps/ingestion-api/dist
