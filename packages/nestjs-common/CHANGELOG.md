@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.5...nestjs-common-v0.0.6) (2026-03-20)
+
+
+### Features
+
+* **dashboard:** add widget position registration and PUT/rawBody support ([1012f6a](https://github.com/SpecHive/SpecHive/commit/1012f6ad0247447620a76587e1c33e14033e8420))
+
+
+### Bug Fixes
+
+* **nestjs-common:** update bootstrap-app test to expect rawBody options arg ([770c4f0](https://github.com/SpecHive/SpecHive/commit/770c4f020230725005e759e3a06e20fe65bc297c))
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.4...nestjs-common-v0.0.5) (2026-03-19)
 
 
