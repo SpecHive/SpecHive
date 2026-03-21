@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/shared/components/ui/button';
@@ -23,6 +23,9 @@ export function LoginPage() {
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const rawFrom = (location.state as { from?: string } | null)?.from;
+  const from = rawFrom?.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : '/';
   const [successMessage] = useState(() => {
     const msg = sessionStorage.getItem('spechive_flash_message');
     if (msg) sessionStorage.removeItem('spechive_flash_message');
@@ -31,9 +34,9 @@ export function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, from]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

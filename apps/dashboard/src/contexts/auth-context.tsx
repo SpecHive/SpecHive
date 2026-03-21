@@ -117,18 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [sessionState.user]);
 
-  const handleAuthSuccess = useCallback(
-    (response: LoginResponse) => {
-      setUser(response.user);
-      setOrganization(response.organization);
-      setToken(response.token);
-      setRole(response.role);
-      apiClient.setToken(response.token);
-      persistSession(response.user, response.organization, response.role);
-      navigate('/');
-    },
-    [navigate],
-  );
+  const handleAuthSuccess = useCallback((response: LoginResponse) => {
+    setUser(response.user);
+    setOrganization(response.organization);
+    setToken(response.token);
+    setRole(response.role);
+    apiClient.setToken(response.token);
+    persistSession(response.user, response.organization, response.role);
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -164,8 +160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         organizationId,
       });
       handleAuthSuccess(response);
+      navigate('/');
     },
-    [handleAuthSuccess],
+    [handleAuthSuccess, navigate],
   );
 
   const updateUser = useCallback((updates: Partial<AuthUser>) => {
