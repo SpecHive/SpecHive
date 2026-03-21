@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.5...ingestion-api-v0.0.6) (2026-03-21)
+
+
+### Bug Fixes
+
+* remove outboxy-api service and harden env validation ([11f4b69](https://github.com/SpecHive/SpecHive/commit/11f4b693e5d3661ec02af8194ddc265a8b63fd8f))
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.4...ingestion-api-v0.0.5) (2026-03-20)
 
 
