@@ -8,7 +8,7 @@
   "packages/nestjs-common": "0.0.6",
   "packages/api-types": "0.0.4",
   "apps/query-api": "0.0.6",
-  "apps/ingestion-api": "0.0.5",
+  "apps/ingestion-api": "0.0.6",
   "apps/worker": "0.0.5",
   "apps/dashboard": "0.0.8",
   "apps/gateway": "0.0.5"
