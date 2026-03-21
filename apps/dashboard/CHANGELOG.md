@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.7...dashboard-v0.0.8) (2026-03-21)
+
+
+### Bug Fixes
+
+* **dashboard:** fix open redirect and duplicate navigation in auth flow ([aef600a](https://github.com/SpecHive/SpecHive/commit/aef600afbdfe31f560b35436d4a96a07be12820d))
+
 ## [0.0.7](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.6...dashboard-v0.0.7) (2026-03-20)
 
 
