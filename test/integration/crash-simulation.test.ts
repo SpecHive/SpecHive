@@ -21,8 +21,7 @@ import { waitForService } from '../helpers/wait';
 // Configuration
 // ---------------------------------------------------------------------------
 
-const OUTBOXY_URL = process.env['OUTBOXY_API_URL'] ?? 'http://127.0.0.1:3100';
-const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production';
+const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production-testing!!';
 const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'spechive-postgres-1';
 
 const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
@@ -254,77 +253,4 @@ describe('Crash simulation: postgres restart', () => {
     const afterHealth = await checkServiceHealth(INGESTION_URL);
     expect(afterHealth).toBe(true);
   }, 60_000);
-});
-
-describe('Crash simulation: Outboxy retry', () => {
-  beforeAll(async () => {
-    // Verify Outboxy is available - fail fast with clear message
-    try {
-      const res = await fetch(`${OUTBOXY_URL}/health`, { signal: AbortSignal.timeout(3_000) });
-      if (!res.ok) throw new Error('Unhealthy');
-    } catch {
-      throw new Error(
-        `Outboxy is not accessible at ${OUTBOXY_URL}. ` +
-          `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d outboxy`,
-      );
-    }
-  });
-
-  it('event is retried when worker returns 500', async () => {
-    const res = await fetch(`${OUTBOXY_URL}/health`);
-    expect(res.ok).toBe(true);
-
-    // Verify the worker is accepting webhooks (the delivery endpoint Outboxy uses)
-    const workerRes = await fetch(`${WORKER_URL}/webhooks/outboxy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-webhook-secret': WEBHOOK_SECRET,
-      },
-      body: createWebhookPayload({
-        eventType: 'run.start',
-        aggregateId: 'run-retry',
-        payload: { runId: 'run-retry' },
-      }),
-    });
-
-    expect(workerRes.status).toBe(200);
-  }, 30_000);
-
-  it('event is not duplicated when worker returns 200 after retry', async () => {
-    // Verify idempotent processing: sending the same event ID twice
-    // should not cause errors — the worker should handle it gracefully.
-    const dedupEventId = crypto.randomUUID();
-    const batchBody = createWebhookPayload({
-      eventId: dedupEventId,
-      aggregateId: 'run-dedup',
-      eventType: 'run.start',
-      payload: { runId: 'run-dedup' },
-    });
-
-    const first = await fetch(`${WORKER_URL}/webhooks/outboxy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-webhook-secret': WEBHOOK_SECRET,
-      },
-      body: batchBody,
-    });
-    expect(first.status).toBe(200);
-
-    // Re-deliver the same event (simulates Outboxy retry after timeout)
-    const second = await fetch(`${WORKER_URL}/webhooks/outboxy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-webhook-secret': WEBHOOK_SECRET,
-      },
-      body: batchBody,
-    });
-    expect(second.status).toBe(200);
-
-    // Service remains healthy after duplicate delivery
-    const healthRes = await fetch(`${WORKER_URL}/health`);
-    expect(healthRes.ok).toBe(true);
-  }, 30_000);
 });

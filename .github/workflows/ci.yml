@@ -290,8 +290,6 @@ jobs:
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
           echo "Waiting for redis to be healthy..."
           timeout 30 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T redis redis-cli ping; do sleep 2; done'
-          echo "Waiting for outboxy-api to be healthy..."
-          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T outboxy-api wget -qO- http://127.0.0.1:3100/health; do sleep 2; done'
           echo "All services are healthy!"
 
       - name: Run database migrations
@@ -316,7 +314,6 @@ jobs:
           MINIO_APP_SECRET_KEY: spechive-app-secret-key
           MINIO_BUCKET: spechive-artifacts
           MINIO_USE_SSL: 'false'
-          OUTBOXY_API_URL: http://localhost:3100
           WORKER_WEBHOOK_URL: http://host.docker.internal:3001/webhooks/outboxy
           JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
           REDIS_URL: redis://localhost:6379
@@ -347,7 +344,6 @@ jobs:
           MINIO_APP_SECRET_KEY: spechive-app-secret-key
           MINIO_BUCKET: spechive-artifacts
           MINIO_USE_SSL: 'false'
-          OUTBOXY_API_URL: http://localhost:3100
           POSTGRES_CONTAINER: spechive-ci-postgres-1
           GATEWAY_URL: http://localhost:3003
           REDIS_URL: redis://localhost:6379

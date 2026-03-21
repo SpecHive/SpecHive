@@ -33,13 +33,6 @@ services:
     ports:
       - '6379:6379'
 
-  outboxy-api:
-    networks:
-      - internal
-      - spechive-network
-    ports:
-      - '3100:3100'
-
   ingestion-api:
     read_only: false
     build:

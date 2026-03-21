@@ -177,7 +177,6 @@ See `.env.example` for the full list with comments. Key variables:
 | Variable             | Purpose                                       |
 | -------------------- | --------------------------------------------- |
 | `WEBHOOK_SECRET`     | Outboxy webhook authentication (min 32 chars) |
-| `OUTBOXY_API_URL`    | Outboxy REST API URL                          |
 | `WORKER_WEBHOOK_URL` | Worker's outboxy webhook endpoint             |
 
 ### Dashboard

@@ -93,28 +93,6 @@ services:
     environment:
       DATABASE_URL: postgres://spechive:spechive@postgres:5432/spechive
 
-  outboxy-api:
-    image: ghcr.io/outboxy/outboxy:v1.0.0
-    networks:
-      - spechive-network
-    ports:
-      - '3100:3100'
-    command: api
-    environment:
-      DATABASE_URL: postgres://outboxy:outboxy@postgres:5432/spechive
-      PORT: '3100'
-    healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3100/health']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    depends_on:
-      outboxy-migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-
   outboxy-worker:
     image: ghcr.io/outboxy/outboxy:v1.0.0
     networks:

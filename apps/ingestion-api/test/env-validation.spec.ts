@@ -17,7 +17,6 @@ const VALID_PRODUCTION_ENV = {
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
   MINIO_PUBLIC_ENDPOINT: 'cdn.spechive.dev:9000',
   TOKEN_HASH_KEY: 'a'.repeat(32),
-  OUTBOXY_API_URL: 'http://localhost:3100',
 };
 
 describe('ingestion-api envSchema', () => {
@@ -172,17 +171,11 @@ describe('ingestion-api envSchema', () => {
     });
 
     it('rejects empty string TOKEN_HASH_KEY in production', () => {
-      expect(() => envSchema.parse({ ...VALID_PRODUCTION_ENV, TOKEN_HASH_KEY: '' })).toThrow(
-        'TOKEN_HASH_KEY is required and must be at least 32 characters in production',
-      );
+      expect(() => envSchema.parse({ ...VALID_PRODUCTION_ENV, TOKEN_HASH_KEY: '' })).toThrow();
     });
 
-    it('allows short TOKEN_HASH_KEY in development', () => {
-      const result = envSchema.parse({
-        ...VALID_ENV,
-        TOKEN_HASH_KEY: 'short',
-      });
-      expect(result.TOKEN_HASH_KEY).toBe('short');
+    it('rejects TOKEN_HASH_KEY shorter than 32 chars in development', () => {
+      expect(() => envSchema.parse({ ...VALID_ENV, TOKEN_HASH_KEY: 'short' })).toThrow();
     });
 
     it('rejects TOKEN_HASH_KEY under 32 chars in production', () => {
@@ -228,27 +221,6 @@ describe('ingestion-api envSchema', () => {
         WEBHOOK_SECRET: 'change-me-in-production-min-32ch',
       });
       expect(result.WEBHOOK_SECRET).toBe('change-me-in-production-min-32ch');
-    });
-  });
-
-  describe('OUTBOXY_API_URL', () => {
-    it('is optional in development', () => {
-      const result = envSchema.parse(VALID_ENV);
-      expect(result.OUTBOXY_API_URL).toBeUndefined();
-    });
-
-    it('is required in production', () => {
-      const envWithout = Object.fromEntries(
-        Object.entries(VALID_PRODUCTION_ENV).filter(([k]) => k !== 'OUTBOXY_API_URL'),
-      );
-      expect(() => envSchema.parse(envWithout)).toThrow(
-        'OUTBOXY_API_URL is required in production',
-      );
-    });
-
-    it('accepts valid URL in production', () => {
-      const result = envSchema.parse(VALID_PRODUCTION_ENV);
-      expect(result.OUTBOXY_API_URL).toBe('http://localhost:3100');
     });
   });
 

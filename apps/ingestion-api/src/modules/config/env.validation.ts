@@ -6,10 +6,9 @@ export const envSchema = baseEnvSchema
     DATABASE_URL: z.string().url(),
     WORKER_WEBHOOK_URL: z.string().url().default('http://worker:3001/webhooks/outboxy'),
     CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
-    OUTBOXY_API_URL: z.string().url().optional(),
     WEBHOOK_SECRET: z.string().min(32),
     ...minioEnvSchema.shape,
-    TOKEN_HASH_KEY: z.string().optional(),
+    TOKEN_HASH_KEY: z.string().min(32).optional(),
   })
   .refine((env) => env.NODE_ENV !== 'production' || !env.CORS_ORIGIN.includes('localhost'), {
     message: 'CORS_ORIGIN must not contain localhost in production',
@@ -28,10 +27,6 @@ export const envSchema = baseEnvSchema
       message: 'TOKEN_HASH_KEY is required and must be at least 32 characters in production',
       path: ['TOKEN_HASH_KEY'],
     },
-  )
-  .refine((env) => env.NODE_ENV !== 'production' || !!env.OUTBOXY_API_URL, {
-    message: 'OUTBOXY_API_URL is required in production',
-    path: ['OUTBOXY_API_URL'],
-  });
+  );
 
 export type EnvConfig = z.infer<typeof envSchema>;
