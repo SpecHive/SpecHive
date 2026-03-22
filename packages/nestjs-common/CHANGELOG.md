@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.7](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.6...nestjs-common-v0.0.7) (2026-03-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.8
+
 ## [0.0.6](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.5...nestjs-common-v0.0.6) (2026-03-20)
 
 
