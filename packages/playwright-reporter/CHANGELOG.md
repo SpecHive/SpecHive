@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.2...playwright-reporter-v0.0.3) (2026-03-22)
+
+
+### Features
+
+* **playwright-reporter:** add configurable run name with smart defaults ([bed12d6](https://github.com/SpecHive/SpecHive/commit/bed12d614c1887bab8b52a5a700d60d42f4f1726))
+
 ## [0.0.2](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.1...playwright-reporter-v0.0.2) (2026-03-14)
 
 
