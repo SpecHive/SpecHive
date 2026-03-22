@@ -119,7 +119,7 @@ describe('SpecHiveReporter', () => {
   });
 
   describe('onBegin', () => {
-    it('sends run.start with project suite title', async () => {
+    it('sends run.start with Playwright prefix and project suite title', async () => {
       const projectSuite = makeSuite('my-project');
       const rootSuite = makeSuite('', [projectSuite]);
 
@@ -129,10 +129,10 @@ describe('SpecHiveReporter', () => {
       const events = sentEvents();
       const runStart = events.find((e) => e.eventType === 'run.start');
       expect(runStart).toBeDefined();
-      expect(runStart!.payload.runName).toBe('my-project');
+      expect(runStart!.payload.runName).toBe('Playwright · my-project');
     });
 
-    it('falls back to "Playwright Run" when no project suite', async () => {
+    it('defaults to "Playwright" when no project suite exists', async () => {
       const rootSuite = makeSuite('', []);
 
       await reporter.onBegin({} as FullConfig, rootSuite);
@@ -140,7 +140,45 @@ describe('SpecHiveReporter', () => {
 
       const events = sentEvents();
       const runStart = events.find((e) => e.eventType === 'run.start');
-      expect(runStart!.payload.runName).toBe('Playwright Run');
+      expect(runStart!.payload.runName).toBe('Playwright');
+    });
+
+    it('joins multiple non-empty project titles', async () => {
+      const root = makeSuite('', [
+        makeSuite('chromium'),
+        makeSuite('firefox'),
+        makeSuite('webkit'),
+      ]);
+
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload.runName).toBe('Playwright · chromium, firefox, webkit');
+    });
+
+    it('skips empty project titles when joining', async () => {
+      const root = makeSuite('', [makeSuite(''), makeSuite('chromium')]);
+
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload.runName).toBe('Playwright · chromium');
+    });
+
+    it('uses config runName over auto-derived name', async () => {
+      const r = new SpecHiveReporter({ ...makeConfig(), runName: 'Nightly E2E' });
+      const root = makeSuite('', [makeSuite('chromium')]);
+
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload.runName).toBe('Nightly E2E');
     });
 
     it('skips project suite and makes test files root level', async () => {
@@ -875,6 +913,34 @@ describe('SpecHiveReporter', () => {
 
       const r = new SpecHiveReporter();
       expect(r.isEnabled).toBe(true);
+    });
+
+    it('SPECHIVE_RUN_NAME env var sets run name', async () => {
+      vi.stubEnv('SPECHIVE_RUN_NAME', 'CI Deploy Tests');
+
+      const r = new SpecHiveReporter(makeConfig());
+      const root = makeSuite('', [makeSuite('chromium')]);
+
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload.runName).toBe('CI Deploy Tests');
+    });
+
+    it('config runName takes priority over SPECHIVE_RUN_NAME env var', async () => {
+      vi.stubEnv('SPECHIVE_RUN_NAME', 'From Env');
+
+      const r = new SpecHiveReporter({ ...makeConfig(), runName: 'From Config' });
+      const root = makeSuite('', [makeSuite('chromium')]);
+
+      await r.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const runStart = events.find((e) => e.eventType === 'run.start');
+      expect(runStart!.payload.runName).toBe('From Config');
     });
   });
 

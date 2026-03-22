@@ -65,17 +65,14 @@
     "@spechive/shared-types": "workspace:*",
     "argon2": "^0.44.0",
     "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.0",
     "postgres": "^3.4.5",
     "uuidv7": "^1.0.2"
-  },
-  "peerDependencies": {
-    "drizzle-orm": "^0.45.0"
   },
   "devDependencies": {
     "@spechive/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
     "drizzle-kit": "^0.31.9",
-    "drizzle-orm": "^0.45.0",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0"

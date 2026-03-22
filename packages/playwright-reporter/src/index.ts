@@ -42,6 +42,7 @@ interface ResolvedConfig {
   flushTimeout: number;
   failOnConnectionError: boolean;
   metadata: Record<string, unknown>;
+  runName: string | undefined;
 }
 
 function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
@@ -62,6 +63,7 @@ function resolveConfig(config: SpecHiveReporterConfig): ResolvedConfig {
     flushTimeout: config.flushTimeout ?? 30_000,
     failOnConnectionError: config.failOnConnectionError ?? false,
     metadata: config.metadata ?? {},
+    runName: config.runName ?? process.env.SPECHIVE_RUN_NAME ?? undefined,
   };
 
   if (!apiUrl || !projectToken) {
@@ -128,7 +130,7 @@ export default class SpecHiveReporter implements Reporter {
     }
 
     this.runId = asRunId(crypto.randomUUID());
-    const runName = suite.suites[0]?.title || 'Playwright Run';
+    const runName = this.config.runName ?? buildDefaultRunName(suite.suites);
     const ci = detectCi();
 
     this.enqueue({
@@ -453,6 +455,11 @@ function mapContentTypeToArtifactType(contentType: string): ArtifactType {
     default:
       return ArtifactType.Other;
   }
+}
+
+function buildDefaultRunName(suites: Suite[]): string {
+  const projects = suites.map((s) => s.title).filter(Boolean);
+  return projects.length > 0 ? `Playwright · ${projects.join(', ')}` : 'Playwright';
 }
 
 function mapRunStatus(status: FullResult['status']): RunStatus {

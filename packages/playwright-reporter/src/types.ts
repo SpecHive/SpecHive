@@ -8,4 +8,5 @@ export interface SpecHiveReporterConfig {
   flushTimeout?: number;
   failOnConnectionError?: boolean;
   metadata?: Record<string, unknown>;
+  runName?: string;
 }
