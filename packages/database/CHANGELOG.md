@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/SpecHive/SpecHive/compare/database-v0.0.9...database-v0.0.10) (2026-03-23)
+
+
+### Features
+
+* **database:** consolidate all DB setup into runMigrations() ([7829f7b](https://github.com/SpecHive/SpecHive/commit/7829f7bc8146d8db616435beb5fae9a0bed1c926))
+
 ## [0.0.9](https://github.com/SpecHive/SpecHive/compare/database-v0.0.8...database-v0.0.9) (2026-03-22)
 
 
