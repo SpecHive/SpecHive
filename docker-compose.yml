@@ -30,13 +30,10 @@ services:
       - internal
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-spechive}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-spechive}
-      SPECHIVE_APP_PASSWORD: ${SPECHIVE_APP_PASSWORD:-spechive_app}
-      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:-outboxy}
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-spechive} -d ${POSTGRES_DB:-spechive}']
       interval: 10s
@@ -96,17 +93,6 @@ services:
   # ---------------------------------------------------------------------------
   # Outboxy (transactional outbox)
   # ---------------------------------------------------------------------------
-  outboxy-migrate:
-    image: ghcr.io/outboxy/outboxy:v1.0.0
-    restart: on-failure
-    networks:
-      - internal
-    command: migrate
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-spechive}:${POSTGRES_PASSWORD:-spechive}@postgres:5432/${POSTGRES_DB:-spechive}
 
   outboxy-worker:
     image: ghcr.io/outboxy/outboxy:v1.0.0
@@ -129,13 +115,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      outboxy-migrate:
+      spechive-migrate:
         condition: service_completed_successfully
       worker:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # Database migration (runs once before application services start)
+  # Handles everything: extensions, roles, outboxy DDL, Drizzle migrations, grants.
   # ---------------------------------------------------------------------------
 
   spechive-migrate:
@@ -150,28 +137,11 @@ services:
     command: ['node', 'packages/database/dist/migrate.js']
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spechive}:${POSTGRES_PASSWORD:-spechive}@postgres:5432/${POSTGRES_DB:-spechive}
+      SPECHIVE_APP_PASSWORD: ${SPECHIVE_APP_PASSWORD:-spechive_app}
+      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:-outboxy}
     depends_on:
       postgres:
         condition: service_healthy
-    restart: 'no'
-
-  # Revoke application table access from the outboxy role after migrations create them.
-  restrict-outboxy:
-    image: postgres:16-alpine
-    networks:
-      - internal
-    volumes:
-      - ./docker/postgres/restrict-outboxy.sh:/restrict-outboxy.sh:ro
-    entrypoint: ['sh', '/restrict-outboxy.sh']
-    environment:
-      PGHOST: postgres
-      PGPORT: '5432'
-      POSTGRES_USER: ${POSTGRES_USER:-spechive}
-      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-spechive}
-    depends_on:
-      spechive-migrate:
-        condition: service_completed_successfully
     restart: 'no'
 
   # ---------------------------------------------------------------------------
@@ -216,7 +186,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      restrict-outboxy:
+      spechive-migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
@@ -258,7 +228,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      restrict-outboxy:
+      spechive-migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
@@ -304,7 +274,7 @@ services:
       retries: 5
       start_period: 30s
     depends_on:
-      restrict-outboxy:
+      spechive-migrate:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy

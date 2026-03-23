@@ -174,42 +174,6 @@ jobs:
       - name: Build api-types
         run: pnpm --filter @spechive/api-types build
 
-      - name: Install psql
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      - name: Create extensions and roles (mirrors docker/postgres/init.sh)
-        run: |
-          psql "$DATABASE_URL" -c "
-            CREATE EXTENSION IF NOT EXISTS pgcrypto;
-            CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
-
-            DO \$\$
-            BEGIN
-              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'spechive_app') THEN
-                CREATE ROLE spechive_app LOGIN PASSWORD 'spechive_app';
-              END IF;
-            END
-            \$\$;
-            GRANT CONNECT ON DATABASE spechive TO spechive_app;
-            GRANT USAGE ON SCHEMA public TO spechive_app;
-            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO spechive_app;
-            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO spechive_app;
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO spechive_app;
-            ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO spechive_app;
-
-            DO \$\$
-            BEGIN
-              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'outboxy') THEN
-                CREATE ROLE outboxy LOGIN PASSWORD 'outboxy';
-              END IF;
-            END
-            \$\$;
-            GRANT CONNECT ON DATABASE spechive TO outboxy;
-            GRANT USAGE ON SCHEMA public TO outboxy;
-          "
-        env:
-          DATABASE_URL: postgresql://spechive:spechive@localhost:5432/spechive
-
       - name: Run database migrations
         run: pnpm db:migrate
         env:

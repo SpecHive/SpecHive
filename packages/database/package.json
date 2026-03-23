@@ -62,6 +62,7 @@
     "rls"
   ],
   "dependencies": {
+    "@outboxy/migrations": "^0.2.0",
     "@spechive/shared-types": "workspace:*",
     "argon2": "^0.44.0",
     "dotenv": "^17.3.1",

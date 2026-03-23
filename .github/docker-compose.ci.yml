@@ -8,6 +8,10 @@ volumes:
   postgres-data:
   minio-data:
 
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,13 +21,10 @@ services:
       - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../docker/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
     environment:
       POSTGRES_USER: spechive
       POSTGRES_PASSWORD: spechive
       POSTGRES_DB: spechive
-      SPECHIVE_APP_PASSWORD: spechive_app
-      OUTBOXY_PASSWORD: outboxy
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U spechive -d spechive']
       interval: 10s
@@ -82,16 +83,24 @@ services:
     entrypoint: ['/bin/sh', '/init.sh']
     restart: 'no'
 
-  outboxy-migrate:
-    image: ghcr.io/outboxy/outboxy:v1.0.0
+  spechive-migrate:
+    build:
+      context: ..
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: build
+      secrets:
+        - npm_token
     networks:
       - spechive-network
-    command: migrate
+    command: ['node', 'packages/database/dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://spechive:spechive@postgres:5432/spechive
+      SPECHIVE_APP_PASSWORD: spechive_app
+      OUTBOXY_PASSWORD: outboxy
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://spechive:spechive@postgres:5432/spechive
+    restart: 'no'
 
   outboxy-worker:
     image: ghcr.io/outboxy/outboxy:v1.0.0
@@ -113,5 +122,5 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      outboxy-migrate:
+      spechive-migrate:
         condition: service_completed_successfully

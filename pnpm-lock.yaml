@@ -482,6 +482,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@outboxy/migrations':
+        specifier: ^0.2.0
+        version: 0.2.0(pg@8.18.0)
       '@spechive/shared-types':
         specifier: workspace:*
         version: link:../shared-types
@@ -2011,6 +2014,17 @@ packages:
 
   '@outboxy/dialect-postgres@1.1.4':
     resolution: {integrity: sha512-hf/xFj01vu1FWUS7JU18BHahFLITgwJCAchjuwcAERozQfxuadC/SIpqKfx1JUGIfPjCDjO/JVAUciSlOurJhg==}
+
+  '@outboxy/migrations@0.2.0':
+    resolution: {integrity: sha512-LRsL2MCmOjtAaa+cvY4URn6EktUAmbTsk1EGIFKP6Juclm+bKCoSQd8mLiZacfmpZj+1MvCHUI557IExH5NRgQ==}
+    peerDependencies:
+      mysql2: ^3.9.0
+      pg: ^8.11.0
+    peerDependenciesMeta:
+      mysql2:
+        optional: true
+      pg:
+        optional: true
 
   '@outboxy/schema@2.1.1':
     resolution: {integrity: sha512-sb9YtSmT/qg5EEjxKVPBCZsg9V49YHvopWpYg12zPwkDn/0PDALfHmCpma9SBIDa5g31Na3wo54EMbPwBmoqrw==}
@@ -7288,6 +7302,10 @@ snapshots:
     dependencies:
       '@outboxy/dialect-core': 1.1.1
       '@outboxy/schema': 2.1.1
+
+  '@outboxy/migrations@0.2.0(pg@8.18.0)':
+    optionalDependencies:
+      pg: 8.18.0
 
   '@outboxy/schema@2.1.1':
     dependencies:

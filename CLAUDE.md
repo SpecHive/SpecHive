@@ -25,14 +25,14 @@ packages/
 
 ## Key files
 
-| File                                  | Purpose                                              |
-| ------------------------------------- | ---------------------------------------------------- |
-| `packages/database/src/connection.ts` | `setTenantContext()` for RLS, `createDbConnection()` |
-| `packages/database/src/schema/*.ts`   | Drizzle schema definitions                           |
-| `docker/postgres/init.sh`             | Creates `spechive_app` and `outboxy` roles           |
-| `test/integration-global-setup.ts`    | Seeds test data (org, project, token, user)          |
-| `commitlint.config.js`                | Conventional commit rules                            |
-| `.env.example`                        | Full environment variable reference                  |
+| File                                  | Purpose                                                     |
+| ------------------------------------- | ----------------------------------------------------------- |
+| `packages/database/src/connection.ts` | `setTenantContext()` for RLS, `createDbConnection()`        |
+| `packages/database/src/schema/*.ts`   | Drizzle schema definitions                                  |
+| `packages/database/src/migrate.ts`    | `runMigrations()` — bootstrap, outboxy DDL, Drizzle, grants |
+| `test/integration-global-setup.ts`    | Seeds test data (org, project, token, user)                 |
+| `commitlint.config.js`                | Conventional commit rules                                   |
+| `.env.example`                        | Full environment variable reference                         |
 
 ## Prerequisites
 
@@ -103,7 +103,7 @@ Local development uses both compose files: `docker compose -f docker-compose.yml
 | `spechive_app` (app role) | `postgres://spechive_app:spechive_app@localhost:5432/spechive` | Application queries — subject to RLS policies |
 | `outboxy`                 | `postgres://outboxy:outboxy@localhost:5432/spechive`           | Outboxy transactional outbox                  |
 
-The app role is created by `docker/postgres/init.sh`, which runs on first Postgres startup.
+Both app roles are created by `runMigrations()` in `packages/database/src/migrate.ts` (idempotent — safe to re-run).
 
 ### Row-Level Security (RLS)
 
@@ -244,7 +244,7 @@ import { MockGatewayTrustGuard } from '../../../test/unit-helpers/mock-guards';
 - **NestJS apps compile to CJS**: Despite packages using ESM, the NestJS apps (`ingestion-api`, `worker`, `query-api`) produce CommonJS output via their build step. Do not add `"type": "module"` to their `package.json`.
 - **Migrations use the superuser role**: Never run `db:migrate` with `DATABASE_URL` pointing to `spechive_app` — the app role lacks DDL permissions.
 - **Seeding uses the superuser role**: The seed script (`pnpm db:seed`) must connect as the superuser to bypass RLS. It accepts `SEED_DATABASE_URL` or falls back to `DATABASE_URL`.
-- **Docker Postgres init.sh only runs once**: On a fresh volume. If you need to recreate the `spechive_app` role, either `docker compose down -v` and restart, or create the role manually.
+- **Role creation is idempotent**: `runMigrations()` creates/updates `spechive_app` and `outboxy` roles on every run. No manual role management needed.
 - **Build order matters**: `shared-types` → `reporter-core-protocol` → `database` → `nestjs-common` → apps. `pnpm build` handles this via workspace topology.
 - **Two-file compose strategy**: `docker-compose.yml` is the production base (no host port bindings). `docker-compose.dev.yml` adds host ports, hot-reload, and dev settings. Local development always uses both files.
 - **No backward compatibility required**: The platform has not been released yet. All components (reporter, protocol, worker, dashboard) can be changed in lockstep. No need to maintain dual-path support or deprecation shims when refactoring.
