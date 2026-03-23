@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.8](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.7...gateway-v0.0.8) (2026-03-23)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.10
+    * @spechive/nestjs-common bumped to 0.0.9
+
 ## [0.0.7](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.6...gateway-v0.0.7) (2026-03-22)
 
 
