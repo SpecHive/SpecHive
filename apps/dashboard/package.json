@@ -1,0 +1,75 @@
+{
+  "name": "@spechive/dashboard",
+  "version": "0.0.8",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/spechive-dashboard.d.ts",
+      "import": "./dist/lib/spechive-dashboard.js"
+    },
+    "./style.css": "./dist/lib/spechive-dashboard.css"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && vite build --config vite.config.lib.ts",
+    "build:lib": "vite build --config vite.config.lib.ts",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "apps/dashboard"
+  },
+  "keywords": [
+    "spechive",
+    "dashboard",
+    "react",
+    "test-reporting",
+    "ui"
+  ],
+  "dependencies": {
+    "@spechive/api-types": "workspace:*",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.1.1",
+    "recharts": "^3.7.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.0.0"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^28.1.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0",
+    "vite-plugin-dts": "^4.0.0",
+    "vitest": "^4.0.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^7.0.0"
+  }
+}

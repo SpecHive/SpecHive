@@ -1,0 +1,51 @@
+{
+  "name": "@spechive/reporter-core-protocol",
+  "version": "0.0.2",
+  "license": "MIT",
+  "description": "Core event protocol definitions for SpecHive reporters",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/reporter-core-protocol"
+  },
+  "keywords": [
+    "spechive",
+    "reporter",
+    "protocol",
+    "events",
+    "test-reporting"
+  ],
+  "dependencies": {
+    "@spechive/shared-types": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

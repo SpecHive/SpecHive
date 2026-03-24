@@ -1,0 +1,69 @@
+{
+  "name": "spechive",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@9.15.9",
+  "description": "SpecHive monorepo",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "pnpm -r run test",
+    "test:integration": "vitest run --config test/vitest.integration.config.ts",
+    "test:coverage": "vitest run --coverage",
+    "build": "pnpm -r run build",
+    "db:generate": "pnpm -r --filter='*' run db:generate",
+    "db:migrate": "pnpm -r --filter='*' run db:migrate",
+    "db:seed": "pnpm -r --filter='*' run db:seed",
+    "db:reset-password": "tsx packages/database/src/reset-password.ts",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "prepare": "husky || true"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "argon2",
+      "esbuild"
+    ],
+    "overrides": {
+      "minimatch@>=10.0.0 <10.2.3": ">=10.2.3",
+      "fast-xml-parser@>=5.0.0 <=5.5.6": ">=5.5.7",
+      "@nestjs/platform-fastify@>=11.0.0 <11.1.16": ">=11.1.16",
+      "minimatch@<3.1.4": ">=3.1.4",
+      "serialize-javascript@<7.0.3": ">=7.0.3",
+      "flatted@<3.4.2": ">=3.4.2",
+      "undici@>=7.0.0 <7.24.0": ">=7.24.0",
+      "file-type@>=21.0.0 <21.3.2": ">=21.3.2",
+      "ajv@>=8.0.0 <8.18.0": ">=8.18.0",
+      "esbuild@<0.25.0": ">=0.25.0"
+    }
+  },
+  "devDependencies": {
+    "@spechive/eslint-config": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
+    "@spechive/typescript-config": "workspace:*",
+    "drizzle-orm": "^0.45.0",
+    "@aws-sdk/client-s3": "^3.1000.0",
+    "@aws-sdk/s3-request-presigner": "^3.1000.0",
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@swc/core": "^1.15.17",
+    "argon2": "^0.44.0",
+    "eslint": "^9.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "postgres": "^3.4.5",
+    "prettier": "^3.4.2",
+    "typescript": "^5.9.3",
+    "unplugin-swc": "^1.5.9",
+    "@vitest/coverage-v8": "^4.0.0",
+    "vitest": "^4.0.0"
+  }
+}

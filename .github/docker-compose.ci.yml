@@ -1,0 +1,126 @@
+name: spechive-ci
+
+networks:
+  spechive-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  minio-data:
+
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    networks:
+      - spechive-network
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: spechive
+      POSTGRES_PASSWORD: spechive
+      POSTGRES_DB: spechive
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U spechive -d spechive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - spechive-network
+    ports:
+      - '6379:6379'
+    command: redis-server --maxmemory 64mb --maxmemory-policy volatile-lru --save ""
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
+    networks:
+      - spechive-network
+    ports:
+      - '9000:9000'
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
+    networks:
+      - spechive-network
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ../docker/minio/init.sh:/init.sh:ro
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_BUCKET: spechive-artifacts
+      MINIO_APP_ACCESS_KEY: spechive-app
+      MINIO_APP_SECRET_KEY: spechive-app-secret-key
+    entrypoint: ['/bin/sh', '/init.sh']
+    restart: 'no'
+
+  spechive-migrate:
+    build:
+      context: ..
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: build
+      secrets:
+        - npm_token
+    networks:
+      - spechive-network
+    command: ['node', 'packages/database/dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://spechive:spechive@postgres:5432/spechive
+      SPECHIVE_APP_PASSWORD: spechive_app
+      OUTBOXY_PASSWORD: outboxy
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  outboxy-worker:
+    image: ghcr.io/outboxy/outboxy:v1.0.0
+    networks:
+      - spechive-network
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    command: worker
+    environment:
+      DATABASE_URL: postgres://outboxy:outboxy@postgres:5432/spechive
+      PUBLISHER_TYPE: http
+      PUBLISHER_HTTP_DEFAULT_URL: http://host.docker.internal:3001/webhooks/outboxy
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spechive-migrate:
+        condition: service_completed_successfully

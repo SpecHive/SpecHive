@@ -1,0 +1,128 @@
+name: spechive
+
+# Development overrides: source volumes for hot reload, dev commands.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
+services:
+  postgres:
+    # Add non-internal network so Docker can publish the port to the host.
+    # The base compose puts postgres only on the `internal` (internal: true)
+    # network, which silently blocks host port-mapping.
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '5432:5432'
+
+  minio:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+
+  redis:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '6379:6379'
+
+  ingestion-api:
+    read_only: false
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
+    volumes:
+      # Workspace sources (read-only mount to avoid polluting host node_modules)
+      - ./apps/ingestion-api/src:/app/apps/ingestion-api/src:ro
+      - ./packages:/app/packages:ro
+
+  worker:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '3001:3001'
+    read_only: false
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
+    volumes:
+      - ./apps/worker/src:/app/apps/worker/src:ro
+      - ./packages:/app/packages:ro
+
+  query-api:
+    read_only: false
+    build:
+      context: .
+      dockerfile: apps/query-api/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
+    volumes:
+      - ./apps/query-api/src:/app/apps/query-api/src:ro
+      - ./packages:/app/packages:ro
+
+  gateway:
+    ports:
+      - '3000:3003'
+    read_only: false
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
+    command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
+    volumes:
+      - ./apps/gateway/src:/app/apps/gateway/src:ro
+      - ./packages:/app/packages:ro
+
+  dashboard:
+    ports:
+      - '5173:8080'
+    read_only: false
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      target: development
+      secrets:
+        - npm_token
+    environment:
+      NODE_ENV: development
+    command: ['node_modules/.bin/vite', '--host', '0.0.0.0', '--port', '8080']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./apps/dashboard/src:/app/apps/dashboard/src:ro
+      - ./apps/dashboard/public:/app/apps/dashboard/public:ro
+      - ./apps/dashboard/index.html:/app/apps/dashboard/index.html:ro
+      - ./packages:/app/packages:ro

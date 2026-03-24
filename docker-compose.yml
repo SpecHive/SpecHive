@@ -1,0 +1,351 @@
+# Pre-built images: use `docker compose -f docker-compose.yml -f docker-compose.prebuilt.yml up -d`
+# to pull from GHCR instead of building locally.
+
+name: spechive
+
+networks:
+  spechive-network:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres-data:
+  minio-data:
+
+secrets:
+  npm_token:
+    environment: NPM_TOKEN
+
+services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks:
+      - internal
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-spechive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-spechive}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-spechive} -d ${POSTGRES_DB:-spechive}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy volatile-lru --save ""
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
+    restart: unless-stopped
+    networks:
+      - internal
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
+    networks:
+      - internal
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./docker/minio/init.sh:/init.sh:ro
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
+    entrypoint: ['/bin/sh', '/init.sh']
+    restart: 'no'
+
+  # ---------------------------------------------------------------------------
+  # Outboxy (transactional outbox)
+  # ---------------------------------------------------------------------------
+
+  outboxy-worker:
+    image: ghcr.io/outboxy/outboxy:v1.0.0
+    restart: unless-stopped
+    networks:
+      - internal
+    command: worker
+    environment:
+      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-spechive}
+      PUBLISHER_TYPE: http
+      PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
+    healthcheck:
+      # Outboxy worker is a background poller with no HTTP endpoint.
+      # Process check is the best available option.
+      test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      spechive-migrate:
+        condition: service_completed_successfully
+      worker:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Database migration (runs once before application services start)
+  # Handles everything: extensions, roles, outboxy DDL, Drizzle migrations, grants.
+  # ---------------------------------------------------------------------------
+
+  spechive-migrate:
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+      target: build
+      secrets:
+        - npm_token
+    networks:
+      - internal
+    command: ['node', 'packages/database/dist/migrate.js']
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-spechive}:${POSTGRES_PASSWORD:-spechive}@postgres:5432/${POSTGRES_DB:-spechive}
+      SPECHIVE_APP_PASSWORD: ${SPECHIVE_APP_PASSWORD:-spechive_app}
+      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:-outboxy}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  # ---------------------------------------------------------------------------
+  # Application services
+  # ---------------------------------------------------------------------------
+
+  ingestion-api:
+    build:
+      context: .
+      dockerfile: apps/ingestion-api/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      PORT: '3000'
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
+      WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
+      TOKEN_HASH_KEY: ${TOKEN_HASH_KEY:?TOKEN_HASH_KEY is required}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      spechive-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      spechive-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  query-api:
+    build:
+      context: .
+      dockerfile: apps/query-api/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      PORT: '3002'
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
+      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
+      S3_REGION: ${S3_REGION:-us-east-1}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      spechive-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - spechive-network
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      PORT: '3003'
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
+      INGESTION_API_URL: http://ingestion-api:3000
+      QUERY_API_URL: http://query-api:3002
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3003/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      ingestion-api:
+        condition: service_healthy
+      query-api:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+      secrets:
+        - npm_token
+    restart: unless-stopped
+    networks:
+      - spechive-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      gateway:
+        condition: service_healthy

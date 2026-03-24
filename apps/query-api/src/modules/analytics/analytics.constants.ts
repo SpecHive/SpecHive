@@ -1,0 +1,2 @@
+export const ANALYTICS_MAX_DAYS = 90;
+export const ANALYTICS_MAX_FLAKY_LIMIT = 100;

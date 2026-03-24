@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "perf", "section": "Performance" }
+  ],
+  "plugins": ["node-workspace"],
+  "packages": {
+    "packages/typescript-config": {},
+    "packages/eslint-config": {},
+    "packages/shared-types": {},
+    "packages/reporter-core-protocol": {},
+    "packages/playwright-reporter": {},
+    "packages/database": {},
+    "packages/nestjs-common": {},
+    "packages/api-types": {},
+    "apps/query-api": {},
+    "apps/ingestion-api": {},
+    "apps/worker": {},
+    "apps/dashboard": {},
+    "apps/gateway": {}
+  }
+}

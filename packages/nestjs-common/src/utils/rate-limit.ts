@@ -1,0 +1,1 @@
+export const GLOBAL_RATE_LIMIT_TTL_MS = 60_000;

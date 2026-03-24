@@ -1,0 +1,65 @@
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { ZodValidationPipe } from '@spechive/nestjs-common';
+import type { UserContext } from '@spechive/nestjs-common';
+import type { ProjectId, ProjectTokenId } from '@spechive/shared-types';
+import { MembershipRole } from '@spechive/shared-types';
+import { z } from 'zod';
+
+import { paginationSchema, uuidSchema } from '../../common/pagination';
+import { CurrentUser } from '../../decorators/current-user.decorator';
+import { Roles } from '../../decorators/roles.decorator';
+
+import { TokensService } from './tokens.service';
+
+const createTokenSchema = z.object({
+  projectId: z.string().uuid(),
+  name: z.string().trim().min(1).max(100),
+});
+
+const tokenListSchema = paginationSchema.extend({
+  projectIds: z
+    .string()
+    .optional()
+    .transform((val) => (val ? val.split(',').filter(Boolean) : undefined))
+    .pipe(z.string().uuid().array().optional()),
+  includeRevoked: z.coerce.boolean().default(false),
+});
+
+@Controller('v1/tokens')
+export class TokensController {
+  constructor(private readonly tokensService: TokensService) {}
+
+  @Post()
+  @Roles(MembershipRole.Owner, MembershipRole.Admin)
+  async create(
+    @CurrentUser() user: UserContext,
+    @Body(new ZodValidationPipe(createTokenSchema)) body: z.infer<typeof createTokenSchema>,
+  ) {
+    const { projectId, ...dto } = body;
+    return this.tokensService.createToken(user.organizationId, projectId as ProjectId, dto);
+  }
+
+  @Get()
+  async list(
+    @CurrentUser() user: UserContext,
+    @Query(new ZodValidationPipe(tokenListSchema)) query: z.infer<typeof tokenListSchema>,
+  ) {
+    const { projectIds, includeRevoked, ...pagination } = query;
+    return this.tokensService.listTokens(
+      user.organizationId,
+      projectIds as ProjectId[] | undefined,
+      pagination,
+      includeRevoked,
+    );
+  }
+
+  @Delete(':tokenId')
+  @HttpCode(204)
+  @Roles(MembershipRole.Owner, MembershipRole.Admin)
+  async revoke(
+    @CurrentUser() user: UserContext,
+    @Param('tokenId', new ZodValidationPipe(uuidSchema)) tokenId: ProjectTokenId,
+  ) {
+    await this.tokensService.revokeToken(user.organizationId, tokenId);
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "@spechive/database",
+  "version": "0.0.9",
+  "license": "AGPL-3.0-only",
+  "description": "Database schema, connection, and migrations for SpecHive",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./migrate": {
+      "import": "./dist/migrate.js",
+      "default": "./dist/migrate.js",
+      "types": "./dist/migrate.d.ts"
+    },
+    "./schema": {
+      "import": "./dist/schema/index.js",
+      "default": "./dist/schema/index.js",
+      "types": "./dist/schema/index.d.ts"
+    },
+    "./seed": {
+      "import": "./dist/seed.js",
+      "default": "./dist/seed.js",
+      "types": "./dist/seed.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "db:generate": "node --require tsx/cjs node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:seed": "tsx src/seed.ts",
+    "perf:baseline": "tsx src/perf-baseline.ts",
+    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts"
+  },
+  "files": [
+    "dist",
+    "drizzle",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/database"
+  },
+  "keywords": [
+    "spechive",
+    "database",
+    "drizzle",
+    "postgresql",
+    "migrations",
+    "rls"
+  ],
+  "dependencies": {
+    "@outboxy/migrations": "^0.2.0",
+    "@spechive/shared-types": "workspace:*",
+    "argon2": "^0.44.0",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.0",
+    "postgres": "^3.4.5",
+    "uuidv7": "^1.0.2"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.9",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "@spechive/nestjs-common",
+  "version": "0.0.8",
+  "license": "AGPL-3.0-only",
+  "description": "Shared NestJS utilities for SpecHive services",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "redis": [
+        "./dist/redis/index.d.ts"
+      ],
+      "testing": [
+        "./dist/testing/throttle-test.helper.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./redis": {
+      "types": "./dist/redis/index.d.ts",
+      "default": "./dist/redis/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/throttle-test.helper.d.ts",
+      "default": "./dist/testing/throttle-test.helper.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/nestjs-common"
+  },
+  "keywords": [
+    "spechive",
+    "nestjs",
+    "common",
+    "modules",
+    "guards",
+    "database"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@spechive/database": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
+    "argon2": "^0.44.0",
+    "@aws-sdk/client-s3": "^3.1000.0",
+    "@aws-sdk/s3-request-presigner": "^3.1000.0",
+    "@fastify/helmet": "^13.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/terminus": "^11.1.1",
+    "@nestjs/throttler": "^6.0.0",
+    "@outboxy/dialect-postgres": "^1.1.4",
+    "drizzle-orm": ">=0.45.0",
+    "ioredis": "^5.10.0",
+    "jose": "^6.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
+    "@nestjs/testing": "^11.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

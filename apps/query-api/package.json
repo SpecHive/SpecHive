@@ -1,0 +1,76 @@
+{
+  "name": "@spechive/query-api",
+  "version": "0.0.8",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "default": "./dist/modules/index.js"
+    },
+    "./config": {
+      "types": "./dist/modules/config/env.validation.d.ts",
+      "default": "./dist/modules/config/env.validation.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "modules": [
+        "dist/modules/index.d.ts"
+      ],
+      "config": [
+        "dist/modules/config/env.validation.d.ts"
+      ]
+    }
+  },
+  "description": "SpecHive query API for dashboard read endpoints with JWT authentication",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "apps/query-api"
+  },
+  "scripts": {
+    "build": "nest build",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/helmet": "^13.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@spechive/api-types": "workspace:*",
+    "@spechive/database": "workspace:*",
+    "@spechive/nestjs-common": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
+    "argon2": "^0.44.0",
+    "drizzle-orm": "^0.45.0",
+    "ioredis": "^5.10.0",
+    "jose": "^6.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "uuidv7": "^1.0.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@spechive/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "fastify": "^5.8.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

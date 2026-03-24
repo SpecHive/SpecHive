@@ -1,0 +1,48 @@
+{
+  "name": "@spechive/api-types",
+  "version": "0.0.4",
+  "license": "AGPL-3.0-only",
+  "description": "Typed API response interfaces for SpecHive",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/api-types"
+  },
+  "keywords": [
+    "spechive",
+    "api",
+    "types",
+    "responses",
+    "typescript"
+  ],
+  "dependencies": {
+    "@spechive/shared-types": "workspace:*",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

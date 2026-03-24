@@ -1,0 +1,2 @@
+CREATE INDEX "runs_project_finished_idx" ON "runs" USING btree ("project_id","finished_at" DESC) WHERE "runs"."finished_at" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "suites_run_name_unique_idx" ON "suites" USING btree ("run_id","name");

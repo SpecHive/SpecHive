@@ -1,0 +1,74 @@
+{
+  "name": "@spechive/worker",
+  "version": "0.0.7",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    "./modules": {
+      "types": "./dist/modules/index.d.ts",
+      "default": "./dist/modules/index.js"
+    },
+    "./config": {
+      "types": "./dist/modules/config/env.validation.d.ts",
+      "default": "./dist/modules/config/env.validation.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "modules": [
+        "dist/modules/index.d.ts"
+      ],
+      "config": [
+        "dist/modules/config/env.validation.d.ts"
+      ]
+    }
+  },
+  "description": "SpecHive worker for processing outbox events",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "apps/worker"
+  },
+  "scripts": {
+    "build": "nest build",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/main",
+    "start:dev": "nest start --watch",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@spechive/database": "workspace:*",
+    "@spechive/nestjs-common": "workspace:*",
+    "@spechive/reporter-core-protocol": "workspace:*",
+    "@spechive/shared-types": "workspace:*",
+    "@fastify/helmet": "^13.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/schedule": "^6.1.1",
+    "@outboxy/dialect-postgres": "^1.1.4",
+    "@outboxy/sdk-nestjs": "^2.1.5",
+    "drizzle-orm": "^0.45.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "uuidv7": "^1.0.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

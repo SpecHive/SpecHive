@@ -1,0 +1,127 @@
+import type {
+  FullConfig,
+  FullResult,
+  Suite,
+  TestCase,
+  TestResult,
+} from '@playwright/test/reporter';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import SpecHiveReporter from '../src/index.js';
+
+const { mockSendEvent, mockCheckHealth } = vi.hoisted(() => ({
+  mockSendEvent: vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 }),
+  mockCheckHealth: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock('../src/client.js', () => {
+  return {
+    SpecHiveClient: class MockSpecHiveClient {
+      sendEvent = mockSendEvent;
+      checkHealth = mockCheckHealth;
+    },
+  };
+});
+
+function makeSuite(title: string, children: Suite[] = []): Suite {
+  const suite: Suite = {
+    title,
+    suites: children,
+    tests: [],
+    type: title === '' ? 'root' : 'describe',
+  } as unknown as Suite;
+  for (const child of children) {
+    (child as { parent: Suite }).parent = suite;
+  }
+  return suite;
+}
+
+describe('Event queue', () => {
+  beforeEach(() => {
+    mockSendEvent.mockReset().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 });
+    mockCheckHealth.mockReset().mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('warns about unsent events when flush timeout expires', async () => {
+    mockSendEvent.mockImplementation(() => new Promise(() => {}));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.useFakeTimers();
+
+    const reporter = new SpecHiveReporter({
+      apiUrl: 'https://api.test',
+      projectToken: 'tok-123',
+      flushTimeout: 100,
+    });
+
+    const root = makeSuite('', [makeSuite('project')]);
+    await reporter.onBegin({} as FullConfig, root);
+
+    const endPromise = reporter.onEnd({ status: 'passed' } as FullResult);
+    await vi.advanceTimersByTimeAsync(200);
+    await endPromise;
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unsent'));
+
+    vi.useRealTimers();
+  });
+
+  it('warns and throws on health check failure based on config', async () => {
+    mockCheckHealth.mockResolvedValue(false);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const root = makeSuite('', [makeSuite('project')]);
+
+    const reporter1 = new SpecHiveReporter({
+      apiUrl: 'https://api.test',
+      projectToken: 'tok-123',
+    });
+    await expect(reporter1.onBegin({} as FullConfig, root)).resolves.toBeUndefined();
+
+    const reporter2 = new SpecHiveReporter({
+      apiUrl: 'https://api.test',
+      projectToken: 'tok-123',
+      failOnConnectionError: true,
+    });
+    await expect(reporter2.onBegin({} as FullConfig, root)).rejects.toThrow('Cannot reach');
+  });
+
+  it('drops oldest event when queue overflows', async () => {
+    mockSendEvent.mockImplementation(() => new Promise(() => {}));
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const reporter = new SpecHiveReporter({
+      apiUrl: 'https://api.test',
+      projectToken: 'tok-123',
+    });
+
+    const root = makeSuite('', [makeSuite('project')]);
+    await reporter.onBegin({} as FullConfig, root);
+
+    const testParent = root.suites[0]!;
+    // run.start is consumed by the drain loop before it blocks, so we need
+    // 10,001 test.start events to exceed MAX_QUEUE_SIZE (10,000)
+    for (let i = 0; i <= 10_000; i++) {
+      reporter.onTestEnd(
+        {
+          title: `test-${i}`,
+          id: `id-${i}`,
+          parent: testParent,
+          outcome: () => 'expected',
+        } as unknown as TestCase,
+        {
+          status: 'passed',
+          duration: 1,
+          retry: 0,
+          error: undefined,
+          attachments: [],
+        } as unknown as TestResult,
+      );
+    }
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('dropping oldest'));
+  });
+});

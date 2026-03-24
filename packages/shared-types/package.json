@@ -1,0 +1,47 @@
+{
+  "name": "@spechive/shared-types",
+  "version": "0.0.2",
+  "license": "MIT",
+  "description": "Shared TypeScript types for SpecHive",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/shared-types"
+  },
+  "keywords": [
+    "spechive",
+    "types",
+    "branded-ids",
+    "uuidv7",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@spechive/typescript-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

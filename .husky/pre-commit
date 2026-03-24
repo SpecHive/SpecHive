@@ -1,0 +1,2 @@
+pnpm exec lint-staged
+pnpm audit --audit-level=high

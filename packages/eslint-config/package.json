@@ -1,0 +1,34 @@
+{
+  "name": "@spechive/eslint-config",
+  "version": "0.0.2",
+  "license": "MIT",
+  "type": "module",
+  "description": "Shared ESLint configuration for SpecHive",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/eslint-config"
+  },
+  "scripts": {},
+  "dependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-import-x": "^4.0.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript": "^5.0.0"
+  }
+}

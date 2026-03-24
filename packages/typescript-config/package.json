@@ -1,0 +1,28 @@
+{
+  "name": "@spechive/typescript-config",
+  "version": "0.0.3",
+  "license": "MIT",
+  "description": "Shared TypeScript configurations for SpecHive",
+  "exports": {
+    "./base.json": "./base.json",
+    "./nestjs.json": "./nestjs.json",
+    "./nestjs-library.json": "./nestjs-library.json",
+    "./react.json": "./react.json"
+  },
+  "files": [
+    "base.json",
+    "nestjs.json",
+    "nestjs-library.json",
+    "react.json",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spechive-dev/spechive",
+    "directory": "packages/typescript-config"
+  },
+  "scripts": {}
+}
