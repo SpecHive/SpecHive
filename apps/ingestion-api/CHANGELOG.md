@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.10](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.9...ingestion-api-v0.0.10) (2026-03-24)
+
+
+### Features
+
+* Initial release ([06f75a3](https://github.com/SpecHive/SpecHive/commit/06f75a3143a3e0f86205f7e66affede7216e4a85))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.11
+    * @spechive/nestjs-common bumped to 0.0.10
+
 ## [0.0.9](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.8...ingestion-api-v0.0.9) (2026-03-24)
 
 
