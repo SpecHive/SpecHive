@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4](https://github.com/SpecHive/SpecHive/compare/typescript-config-v0.0.3...typescript-config-v0.0.4) (2026-03-24)
+
+
+### Features
+
+* Initial release ([06f75a3](https://github.com/SpecHive/SpecHive/commit/06f75a3143a3e0f86205f7e66affede7216e4a85))
+
 ## [0.0.3](https://github.com/SpecHive/SpecHive/compare/typescript-config-v0.0.2...typescript-config-v0.0.3) (2026-03-17)
 
 
