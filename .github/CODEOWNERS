@@ -1,0 +1,9 @@
+# Default owner for all files
+* @SebastienLeonce
+
+# CI/CD configuration
+.github/ @SebastienLeonce
+
+# Database schema (high-impact changes)
+packages/database/src/schema/ @SebastienLeonce
+packages/database/drizzle/ @SebastienLeonce
