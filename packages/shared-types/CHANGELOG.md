@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3](https://github.com/SpecHive/SpecHive/compare/shared-types-v0.0.2...shared-types-v0.0.3) (2026-03-24)
+
+
+### Features
+
+* Initial release ([06f75a3](https://github.com/SpecHive/SpecHive/commit/06f75a3143a3e0f86205f7e66affede7216e4a85))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @spechive/typescript-config bumped to 0.0.4
+
 ## [0.0.2](https://github.com/SpecHive/SpecHive/compare/shared-types-v0.0.1...shared-types-v0.0.2) (2026-03-14)
 
 
