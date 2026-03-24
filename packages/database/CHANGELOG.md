@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/SpecHive/SpecHive/compare/database-v0.0.10...database-v0.0.11) (2026-03-24)
+
+
+### Features
+
+* Initial release ([06f75a3](https://github.com/SpecHive/SpecHive/commit/06f75a3143a3e0f86205f7e66affede7216e4a85))
+
 ## [0.0.10](https://github.com/SpecHive/SpecHive/compare/database-v0.0.9...database-v0.0.10) (2026-03-24)
 
 
