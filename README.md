@@ -2,7 +2,7 @@
 
 Open-source test reporting platform for Playwright.
 
-![CI](https://github.com/SpecHive/SpecHive/actions/workflows/ci.yml/badge.svg) ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg) [![npm](https://img.shields.io/npm/v/@spechive/playwright-reporter)](https://www.npmjs.com/package/@spechive/playwright-reporter)
+![CI](https://github.com/SpecHive/SpecHive/actions/workflows/release.yml/badge.svg) ![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg) [![npm](https://img.shields.io/npm/v/@spechive/playwright-reporter)](https://www.npmjs.com/package/@spechive/playwright-reporter)
 
 See every test failure. Track flaky tests. Ship with confidence. Simple to deploy — a single `docker compose up` with no JVM or complex setup required.
 
@@ -137,7 +137,7 @@ packages/
 
 ## Community
 
-- [GitHub Discussions](https://github.com/orgs/spechive-dev/discussions) — questions, ideas, and show-and-tell
+- [GitHub Discussions](https://github.com/orgs/SpecHive/discussions) — questions, ideas, and show-and-tell
 - [Issue tracker](https://github.com/SpecHive/SpecHive/issues) — bug reports and feature requests
 
 ## Contributing
