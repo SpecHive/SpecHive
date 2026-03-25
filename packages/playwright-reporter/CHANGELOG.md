@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.5...playwright-reporter-v0.0.6) (2026-03-25)
+
+
+### Bug Fixes
+
+* **playwright-reporter:** stub GITHUB_HEAD_REF in CI detection tests ([792af2a](https://github.com/SpecHive/SpecHive/commit/792af2a2ca9a566bba959936e8f7580580c4dafd))
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.4...playwright-reporter-v0.0.5) (2026-03-24)
 
 
