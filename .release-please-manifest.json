@@ -3,7 +3,7 @@
   "packages/eslint-config": "0.0.3",
   "packages/shared-types": "0.0.3",
   "packages/reporter-core-protocol": "0.0.3",
-  "packages/playwright-reporter": "0.0.5",
+  "packages/playwright-reporter": "0.0.6",
   "packages/database": "0.0.11",
   "packages/nestjs-common": "0.0.10",
   "packages/api-types": "0.0.5",
