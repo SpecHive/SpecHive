@@ -943,6 +943,7 @@ describe('SpecHiveReporter', () => {
 
     it('includes CI info when in CI environment', async () => {
       vi.stubEnv('GITHUB_ACTIONS', 'true');
+      vi.stubEnv('GITHUB_HEAD_REF', '');
       vi.stubEnv('GITHUB_REF_NAME', 'main');
       vi.stubEnv('GITHUB_SHA', 'abc1234567890def1234567890abcdef12345678');
       vi.stubEnv('GITHUB_SERVER_URL', 'https://github.com');

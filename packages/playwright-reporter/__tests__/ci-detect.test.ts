@@ -30,6 +30,7 @@ describe('detectCi', () => {
 
   it('detects GitHub Actions', () => {
     vi.stubEnv('GITHUB_ACTIONS', 'true');
+    vi.stubEnv('GITHUB_HEAD_REF', '');
     vi.stubEnv('GITHUB_REF_NAME', 'main');
     vi.stubEnv('GITHUB_SHA', 'abc123def456');
     vi.stubEnv('GITHUB_SERVER_URL', 'https://github.com');
