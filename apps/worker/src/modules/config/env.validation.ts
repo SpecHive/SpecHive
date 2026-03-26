@@ -2,7 +2,7 @@ import { baseEnvSchema, minioEnvSchema, minioProductionRefinement } from '@spech
 import { z } from 'zod';
 
 export const workerEnvShape = baseEnvSchema.extend({
-  PORT: z.coerce.number().default(3001),
+  PORT: z.coerce.number().default(3002),
   WEBHOOK_SECRET: z.string().min(32),
   DATABASE_URL: z.string().url(),
   ...minioEnvSchema.shape,

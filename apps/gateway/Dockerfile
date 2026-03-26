@@ -33,7 +33,7 @@ FROM deps AS development
 COPY . .
 WORKDIR /app/apps/gateway
 
-EXPOSE 3003
+EXPOSE 3000
 
 CMD ["sh", "-c", "node_modules/.bin/nest start --watch"]
 
@@ -84,7 +84,7 @@ RUN chown -R spechive:spechive /app
 
 USER spechive
 
-EXPOSE 3003
+EXPOSE 3000
 
 WORKDIR /app/apps/gateway
 
