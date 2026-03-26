@@ -147,6 +147,9 @@ export class SpecHiveClient {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      if (typeof timer === 'object' && 'unref' in timer) timer.unref();
+    });
   }
 }

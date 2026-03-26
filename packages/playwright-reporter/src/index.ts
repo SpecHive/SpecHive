@@ -9,7 +9,15 @@ import type {
   FullResult,
   Reporter,
 } from '@playwright/test/reporter';
-import type { V1Event } from '@spechive/reporter-core-protocol';
+import {
+  SpecHiveClient,
+  detectCi,
+  resolveBaseConfig,
+  ReporterQueue,
+  MAX_ERROR_MESSAGE_LENGTH,
+  MAX_STACK_TRACE_LENGTH,
+} from '@spechive/reporter-client';
+import type { BaseResolvedConfig } from '@spechive/reporter-client';
 import {
   ArtifactType,
   RunStatus,
@@ -22,67 +30,23 @@ import {
 import type { ArtifactId } from '@spechive/shared-types';
 import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 
-import { detectCi } from './ci-detect.js';
-import { SpecHiveClient } from './client.js';
 import type { SpecHiveReporterConfig } from './types.js';
 
-const MAX_ERROR_MESSAGE_LENGTH = 10_000;
-const MAX_STACK_TRACE_LENGTH = 50_000;
 const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
 const ARTIFACT_SIZE_WARNING = 5 * 1024 * 1024;
-const CLOUD_API_URL = 'https://api.spechive.dev';
-const MAX_QUEUE_SIZE = 10_000;
 
-interface ResolvedConfig {
-  apiUrl: string;
-  projectToken: string;
-  enabled: boolean;
-  timeout: number;
+interface PlaywrightResolvedConfig extends BaseResolvedConfig {
   captureArtifacts: boolean;
-  maxRetries: number;
-  flushTimeout: number;
-  failOnConnectionError: boolean;
-  metadata: Record<string, unknown>;
-  runName: string | undefined;
 }
 
-function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
-  if (value === undefined) return defaultValue;
-  const normalized = value.toLowerCase().trim();
-  return normalized === 'true' || normalized === '1';
-}
-
-function resolveConfig(config: SpecHiveReporterConfig): ResolvedConfig {
-  const apiUrl = config.apiUrl || process.env.SPECHIVE_API_URL || CLOUD_API_URL;
-  const projectToken = config.projectToken ?? process.env.SPECHIVE_PROJECT_TOKEN;
-  const enabled = config.enabled ?? parseBoolean(process.env.SPECHIVE_ENABLED, true);
-
-  const base = {
-    timeout: config.timeout ?? 30_000,
-    captureArtifacts: config.captureArtifacts ?? true,
-    maxRetries: config.maxRetries ?? 3,
-    flushTimeout: config.flushTimeout ?? 30_000,
-    failOnConnectionError: config.failOnConnectionError ?? false,
-    metadata: config.metadata ?? {},
-    runName: config.runName ?? process.env.SPECHIVE_RUN_NAME ?? undefined,
-  };
-
-  if (!projectToken) {
-    if (enabled) {
-      console.warn(
-        '[spechive] Reporter disabled: missing projectToken. ' +
-          'Set SPECHIVE_PROJECT_TOKEN env var, or pass it in reporter config.',
-      );
-    }
-    return { ...base, apiUrl: '', projectToken: '', enabled: false };
-  }
-
-  return { ...base, apiUrl, projectToken, enabled };
+function resolveConfig(config: SpecHiveReporterConfig): PlaywrightResolvedConfig {
+  return { ...resolveBaseConfig(config), captureArtifacts: config.captureArtifacts ?? true };
 }
 
 export default class SpecHiveReporter implements Reporter {
-  private readonly config: ResolvedConfig;
+  private readonly config: PlaywrightResolvedConfig;
   private readonly client: SpecHiveClient;
+  private readonly reporterQueue: ReporterQueue;
   private runId!: RunId;
   private readonly suiteMap = new Map<Suite, SuiteId>();
   private readonly testTracker = new Map<
@@ -95,22 +59,19 @@ export default class SpecHiveReporter implements Reporter {
       attempts: TestResult[];
     }
   >();
-  private readonly queue: V1Event[] = [];
-  private processing = false;
-  private drainResolve: (() => void) | null = null;
   private readonly artifactPromises: Promise<void>[] = [];
-  private eventsSent = 0;
-  private eventsFailed = 0;
-  private retriesTotal = 0;
 
   constructor(config: SpecHiveReporterConfig = {}) {
     this.config = resolveConfig(config);
     this.client = new SpecHiveClient(
       this.config.apiUrl,
       this.config.projectToken,
-      this.config.timeout,
+      undefined,
       this.config.maxRetries,
     );
+    this.reporterQueue = new ReporterQueue(this.client, {
+      flushTimeout: this.config.flushTimeout,
+    });
   }
 
   get isEnabled(): boolean {
@@ -138,7 +99,7 @@ export default class SpecHiveReporter implements Reporter {
     const runName = this.config.runName ?? buildDefaultRunName(suite.suites);
     const ci = detectCi();
 
-    this.enqueue({
+    this.reporterQueue.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -170,7 +131,7 @@ export default class SpecHiveReporter implements Reporter {
       entry = { testId, suiteId, testName: test.title, testCase: test, attempts: [] };
       this.testTracker.set(key, entry);
 
-      this.enqueue({
+      this.reporterQueue.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
@@ -192,7 +153,7 @@ export default class SpecHiveReporter implements Reporter {
 
     const status = mapRunStatus(result.status);
 
-    this.enqueue({
+    this.reporterQueue.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
       runId: this.runId,
@@ -201,10 +162,11 @@ export default class SpecHiveReporter implements Reporter {
     });
 
     await Promise.allSettled(this.artifactPromises);
-    await this.waitForDrain();
+    await this.reporterQueue.waitForDrain();
 
+    const { eventsSent, eventsFailed, retriesTotal } = this.reporterQueue.stats;
     console.warn(
-      `[spechive] Run complete: ${this.eventsSent} sent, ${this.eventsFailed} failed, ${this.retriesTotal} retries`,
+      `[spechive] Run complete: ${eventsSent} sent, ${eventsFailed} failed, ${retriesTotal} retries`,
     );
   }
 
@@ -232,7 +194,7 @@ export default class SpecHiveReporter implements Reporter {
         stackTrace: attempt.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH),
       }));
 
-      this.enqueue({
+      this.reporterQueue.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
@@ -282,7 +244,7 @@ export default class SpecHiveReporter implements Reporter {
         const suiteId = asSuiteId(crypto.randomUUID());
         this.suiteMap.set(child, suiteId);
 
-        this.enqueue({
+        this.reporterQueue.enqueue({
           version: '1',
           timestamp: new Date().toISOString(),
           runId: this.runId,
@@ -356,7 +318,7 @@ export default class SpecHiveReporter implements Reporter {
 
       const artifactType = mapContentTypeToArtifactType(attachment.contentType);
 
-      this.enqueue({
+      this.reporterQueue.enqueue({
         version: '1',
         timestamp: new Date().toISOString(),
         runId: this.runId,
@@ -372,64 +334,6 @@ export default class SpecHiveReporter implements Reporter {
         },
       });
     }
-  }
-
-  private enqueue(event: V1Event): void {
-    if (this.queue.length >= MAX_QUEUE_SIZE) {
-      this.queue.shift();
-      console.warn('[spechive] Event queue full — dropping oldest event');
-    }
-    this.queue.push(event);
-    this.processQueue();
-  }
-
-  private processQueue(): void {
-    if (this.processing) return;
-    this.processing = true;
-    void this.drainLoop();
-  }
-
-  private async drainLoop(): Promise<void> {
-    while (this.queue.length > 0) {
-      const event = this.queue.shift()!;
-      const result = await this.client.sendEvent(event);
-      if (result.ok) {
-        this.eventsSent++;
-      } else {
-        this.eventsFailed++;
-        console.warn(`[spechive] Event ${event.eventType} failed after retries`);
-      }
-      this.retriesTotal += result.retries ?? 0;
-    }
-    this.processing = false;
-    if (this.drainResolve) {
-      this.drainResolve();
-      this.drainResolve = null;
-    }
-  }
-
-  private waitForDrain(): Promise<void> {
-    if (this.queue.length === 0 && !this.processing) {
-      return Promise.resolve();
-    }
-
-    return new Promise<void>((resolve) => {
-      this.drainResolve = resolve;
-
-      const timeout = setTimeout(() => {
-        const remaining = this.queue.length;
-        if (remaining > 0) {
-          console.warn(`[spechive] Flush timeout — ${remaining} events unsent`);
-        }
-        this.drainResolve = null;
-        resolve();
-      }, this.config.flushTimeout);
-
-      // Avoid holding the process open
-      if (typeof timeout === 'object' && 'unref' in timeout) {
-        timeout.unref();
-      }
-    });
   }
 }
 

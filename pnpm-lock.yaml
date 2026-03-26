@@ -627,6 +627,33 @@ importers:
       '@playwright/test':
         specifier: ^1.50.0
         version: 1.58.2
+      '@spechive/reporter-client':
+        specifier: workspace:*
+        version: link:../reporter-client
+      '@spechive/reporter-core-protocol':
+        specifier: workspace:*
+        version: link:../reporter-core-protocol
+      '@spechive/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      '@spechive/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.11
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(@microsoft/api-extractor@7.57.7(@types/node@22.19.11))(@swc/core@1.15.17)(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/reporter-client:
+    devDependencies:
       '@spechive/reporter-core-protocol':
         specifier: workspace:*
         version: link:../reporter-core-protocol
