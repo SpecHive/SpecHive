@@ -42,9 +42,10 @@ FROM deps AS build
 
 COPY . .
 
-# VITE_API_URL is a build-time arg — Vite inlines it during compilation, not available at runtime
-ARG VITE_API_URL=http://localhost:3000
+# VITE_API_URL is inlined by Vite at build time; also used at runtime by nginx for CSP headers
+ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
+RUN test -n "$VITE_API_URL" || { echo "ERROR: VITE_API_URL build arg is required"; exit 1; }
 
 RUN pnpm --filter @spechive/shared-types run build
 RUN pnpm --filter @spechive/api-types run build
@@ -59,8 +60,8 @@ COPY --from=build /app/apps/dashboard/dist /usr/share/nginx/html
 # Place config as a template — nginx-unprivileged auto-runs envsubst on /etc/nginx/templates/*.template at startup
 COPY apps/dashboard/nginx.conf /etc/nginx/templates/default.conf.template
 
-# Default value; override at runtime with -e VITE_API_URL=https://api.example.com
-ENV VITE_API_URL=http://localhost:3000
+# Runtime value — nginx envsubst resolves this for CSP connect-src header
+ENV VITE_API_URL==
 
 EXPOSE 8080
 

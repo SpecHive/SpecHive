@@ -7,6 +7,7 @@ const VALID_SECRET = 'test-webhook-secret-at-least-32ch';
 const VALID_ENV = {
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
   WEBHOOK_SECRET: VALID_SECRET,
+  WORKER_URL: 'http://localhost:3002',
 };
 
 const VALID_PRODUCTION_ENV = {
@@ -62,17 +63,14 @@ describe('ingestion-api envSchema', () => {
     expect(result.CORS_ORIGIN).toBe('https://app.spechive.dev');
   });
 
-  it('defaults WORKER_WEBHOOK_URL when omitted', () => {
-    const result = envSchema.parse(VALID_ENV);
-    expect(result.WORKER_WEBHOOK_URL).toBe('http://worker:3001/webhooks/outboxy');
+  it('requires WORKER_URL', () => {
+    const { WORKER_URL: _, ...envWithout } = VALID_ENV;
+    expect(() => envSchema.parse(envWithout)).toThrow();
   });
 
-  it('accepts a valid WORKER_WEBHOOK_URL', () => {
-    const result = envSchema.parse({
-      ...VALID_ENV,
-      WORKER_WEBHOOK_URL: 'http://worker:3001/webhooks/outboxy',
-    });
-    expect(result.WORKER_WEBHOOK_URL).toBe('http://worker:3001/webhooks/outboxy');
+  it('accepts a valid WORKER_URL', () => {
+    const result = envSchema.parse(VALID_ENV);
+    expect(result.WORKER_URL).toBe('http://localhost:3002');
   });
 
   it('inherits NODE_ENV default from base schema', () => {
@@ -80,9 +78,9 @@ describe('ingestion-api envSchema', () => {
     expect(result.NODE_ENV).toBe('development');
   });
 
-  it('inherits PORT default from base schema', () => {
+  it('defaults PORT to 3001', () => {
     const result = envSchema.parse(VALID_ENV);
-    expect(result.PORT).toBe(3000);
+    expect(result.PORT).toBe(3001);
   });
 
   describe('MinIO SSL refinement', () => {

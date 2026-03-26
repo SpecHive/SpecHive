@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const minioEnvSchema = z.object({
+  S3_REGION: z.string().default('us-east-1'),
   MINIO_ENDPOINT: z.string().default('localhost:9000'),
   MINIO_PUBLIC_ENDPOINT: z.string().default('localhost:9000'),
   MINIO_USE_SSL: z.enum(['true', 'false']).default('false'),

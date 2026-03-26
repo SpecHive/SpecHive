@@ -16,7 +16,6 @@ const VALID_PRODUCTION_ENV = {
   MINIO_ENDPOINT: 'minio.prod.example.com:9000',
   MINIO_PUBLIC_ENDPOINT: 'cdn.spechive.dev:9000',
   JWT_SECRET: 'a'.repeat(64),
-  DASHBOARD_URL: 'https://app.spechive.dev',
 };
 
 describe('query-api envSchema', () => {
@@ -108,27 +107,8 @@ describe('query-api envSchema', () => {
     expect(result.NODE_ENV).toBe('development');
   });
 
-  it('inherits PORT default from base schema', () => {
+  it('defaults PORT to 3003', () => {
     const result = envSchema.parse(VALID_ENV);
-    expect(result.PORT).toBe(3000);
-  });
-
-  describe('DASHBOARD_URL', () => {
-    it('is optional in development', () => {
-      const result = envSchema.parse(VALID_ENV);
-      expect(result.DASHBOARD_URL).toBeUndefined();
-    });
-
-    it('is required in production', () => {
-      const envWithout = Object.fromEntries(
-        Object.entries(VALID_PRODUCTION_ENV).filter(([k]) => k !== 'DASHBOARD_URL'),
-      );
-      expect(() => envSchema.parse(envWithout)).toThrow('DASHBOARD_URL is required in production');
-    });
-
-    it('accepts valid URL in production', () => {
-      const result = envSchema.parse(VALID_PRODUCTION_ENV);
-      expect(result.DASHBOARD_URL).toBe('https://app.spechive.dev');
-    });
+    expect(result.PORT).toBe(3003);
   });
 });

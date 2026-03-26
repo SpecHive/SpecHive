@@ -10,7 +10,7 @@ export { ArtifactsModule } from './artifacts/artifacts.module';
  */
 export { AuthModule } from './auth/auth.module';
 
-/** Requires: DatabaseModule (DATABASE_CONNECTION token), ConfigService with DASHBOARD_URL or CORS_ORIGIN */
+/** Requires: DatabaseModule (DATABASE_CONNECTION token), ConfigService with CORS_ORIGIN */
 export { InvitationsModule } from './invitations/invitations.module';
 
 /** Requires: DatabaseModule (DATABASE_CONNECTION token) */

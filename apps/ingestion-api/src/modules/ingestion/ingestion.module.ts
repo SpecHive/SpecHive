@@ -16,7 +16,7 @@ import { IngestionService } from './ingestion.service';
       useFactory: (config: ConfigService<EnvConfig>) => ({
         dialect: new PostgreSqlDialect(),
         adapter: createOutboxyAdapter(),
-        defaultDestinationUrl: config.getOrThrow<string>('WORKER_WEBHOOK_URL'),
+        defaultDestinationUrl: `${config.getOrThrow<string>('WORKER_URL')}/webhooks/outboxy`,
         defaultDestinationType: 'http' as const,
         defaultHeaders: { 'x-webhook-secret': config.getOrThrow<string>('WEBHOOK_SECRET') },
       }),
