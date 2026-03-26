@@ -5,8 +5,8 @@ import { ProxyService } from '../src/modules/proxy/proxy.service';
 
 function createMockConfig(overrides: Record<string, string> = {}) {
   const defaults: Record<string, string> = {
-    INGESTION_API_URL: 'http://ingestion:3000',
-    QUERY_API_URL: 'http://query:3002',
+    INGESTION_API_URL: 'http://ingestion:3001',
+    QUERY_API_URL: 'http://query:3003',
   };
   const merged = { ...defaults, ...overrides };
 
@@ -42,7 +42,7 @@ describe('ProxyService', () => {
 
     service.forwardToIngestion(req, reply as never, '/v1/events');
 
-    expect(reply.from).toHaveBeenCalledWith('http://ingestion:3000/v1/events', expect.any(Object));
+    expect(reply.from).toHaveBeenCalledWith('http://ingestion:3001/v1/events', expect.any(Object));
   });
 
   it('forwardToQuery constructs correct upstream URL', () => {
@@ -51,7 +51,7 @@ describe('ProxyService', () => {
 
     service.forwardToQuery(req, reply as never, '/v1/auth/login');
 
-    expect(reply.from).toHaveBeenCalledWith('http://query:3002/v1/auth/login', expect.any(Object));
+    expect(reply.from).toHaveBeenCalledWith('http://query:3003/v1/auth/login', expect.any(Object));
   });
 
   it('injectHeaders adds user context headers', () => {

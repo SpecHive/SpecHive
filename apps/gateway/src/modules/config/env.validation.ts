@@ -2,12 +2,12 @@ import { baseEnvSchema } from '@spechive/nestjs-common';
 import { z } from 'zod';
 
 export const gatewayEnvShape = baseEnvSchema.extend({
-  PORT: z.coerce.number().default(3003),
+  PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16),
   CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
-  INGESTION_API_URL: z.string().url().default('http://localhost:3000'),
-  QUERY_API_URL: z.string().url().default('http://localhost:3002'),
+  INGESTION_API_URL: z.string().url().default('http://localhost:3001'),
+  QUERY_API_URL: z.string().url().default('http://localhost:3003'),
 });
 
 type GatewayEnv = z.infer<typeof gatewayEnvShape>;

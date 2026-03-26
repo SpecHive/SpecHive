@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 export const envSchema = baseEnvSchema
   .extend({
+    PORT: z.coerce.number().default(3001),
     DATABASE_URL: z.string().url(),
-    WORKER_WEBHOOK_URL: z.string().url().default('http://worker:3001/webhooks/outboxy'),
+    WORKER_URL: z.string().url(),
     CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
     WEBHOOK_SECRET: z.string().min(32),
     ...minioEnvSchema.shape,

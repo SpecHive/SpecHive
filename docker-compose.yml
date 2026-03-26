@@ -18,6 +18,28 @@ secrets:
   npm_token:
     environment: NPM_TOKEN
 
+# ---------------------------------------------------------------------------
+# Shared environment blocks (merged via <<: *anchor)
+# ---------------------------------------------------------------------------
+
+x-minio-env: &minio-env
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required}
+  MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?MINIO_APP_ACCESS_KEY is required}
+  MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?MINIO_APP_SECRET_KEY is required}
+  MINIO_BUCKET: ${MINIO_BUCKET:?MINIO_BUCKET is required}
+  MINIO_USE_SSL: ${MINIO_USE_SSL:?MINIO_USE_SSL is required}
+  S3_REGION: ${S3_REGION:?S3_REGION is required}
+
+x-app-security: &app-security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp
+
 services:
   # ---------------------------------------------------------------------------
   # Infrastructure
@@ -31,11 +53,15 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-spechive}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-spechive}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-spechive} -d ${POSTGRES_DB:-spechive}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +89,7 @@ services:
     volumes:
       - minio-data:/data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://127.0.0.1:9000/minio/health/live']
@@ -82,16 +108,16 @@ services:
     volumes:
       - ./docker/minio/init.sh:/init.sh:ro
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
-      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
-      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
+      MINIO_BUCKET: ${MINIO_BUCKET:?MINIO_BUCKET is required}
+      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:?MINIO_APP_ACCESS_KEY is required}
+      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:?MINIO_APP_SECRET_KEY is required}
     entrypoint: ['/bin/sh', '/init.sh']
     restart: 'no'
 
   # ---------------------------------------------------------------------------
-  # Outboxy (transactional outbox)
+  # Outboxy (transactional outbox) — Docker-only service, uses Docker hostnames
   # ---------------------------------------------------------------------------
 
   outboxy-worker:
@@ -101,12 +127,9 @@ services:
       - internal
     command: worker
     environment:
-      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:-outboxy}@postgres:5432/${POSTGRES_DB:-spechive}
+      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:?OUTBOXY_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       PUBLISHER_TYPE: http
-      PUBLISHER_HTTP_DEFAULT_URL: http://worker:3001/webhooks/outboxy
     healthcheck:
-      # Outboxy worker is a background poller with no HTTP endpoint.
-      # Process check is the best available option.
       test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
       interval: 15s
       timeout: 5s
@@ -121,8 +144,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
-  # Database migration (runs once before application services start)
-  # Handles everything: extensions, roles, outboxy DDL, Drizzle migrations, grants.
+  # Database migration — Docker-only service, uses Docker hostnames
   # ---------------------------------------------------------------------------
 
   spechive-migrate:
@@ -136,16 +158,16 @@ services:
       - internal
     command: ['node', 'packages/database/dist/migrate.js']
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-spechive}:${POSTGRES_PASSWORD:-spechive}@postgres:5432/${POSTGRES_DB:-spechive}
-      SPECHIVE_APP_PASSWORD: ${SPECHIVE_APP_PASSWORD:-spechive_app}
-      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:-outboxy}
+      DATABASE_URL: postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      SPECHIVE_APP_PASSWORD: ${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}
+      OUTBOXY_PASSWORD: ${OUTBOXY_PASSWORD:?OUTBOXY_PASSWORD is required}
     depends_on:
       postgres:
         condition: service_healthy
     restart: 'no'
 
   # ---------------------------------------------------------------------------
-  # Application services
+  # Application services — all env vars from .env
   # ---------------------------------------------------------------------------
 
   ingestion-api:
@@ -157,30 +179,18 @@ services:
     restart: unless-stopped
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-security
     environment:
+      <<: *minio-env
       NODE_ENV: production
-      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
-      PORT: '3000'
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
-      WORKER_WEBHOOK_URL: http://worker:3001/webhooks/outboxy
+      PORT: '3001'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      WORKER_URL: ${WORKER_URL:?WORKER_URL is required}
       TOKEN_HASH_KEY: ${TOKEN_HASH_KEY:?TOKEN_HASH_KEY is required}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
-      MINIO_ENDPOINT: minio:9000
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
-      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
-      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
-      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
-      S3_REGION: ${S3_REGION:-us-east-1}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -202,27 +212,16 @@ services:
     restart: unless-stopped
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-security
     environment:
+      <<: *minio-env
       NODE_ENV: production
-      PORT: '3001'
-      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
+      PORT: '3002'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
-      MINIO_ENDPOINT: minio:9000
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
-      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
-      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
-      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
-      S3_REGION: ${S3_REGION:-us-east-1}
+      ARTIFACT_RETENTION_DAYS: ${ARTIFACT_RETENTION_DAYS:?ARTIFACT_RETENTION_DAYS is required}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -244,31 +243,19 @@ services:
     restart: unless-stopped
     networks:
       - internal
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-security
     environment:
+      <<: *minio-env
       NODE_ENV: production
-      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
-      PORT: '3002'
+      PORT: '3003'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
-      REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio:9000
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
-      MINIO_APP_ACCESS_KEY: ${MINIO_APP_ACCESS_KEY:-spechive-app}
-      MINIO_APP_SECRET_KEY: ${MINIO_APP_SECRET_KEY:-spechive-app-secret-key}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spechive-artifacts}
-      MINIO_USE_SSL: '${MINIO_USE_SSL:-false}'
-      S3_REGION: ${S3_REGION:-us-east-1}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:?JWT_ACCESS_EXPIRES_IN is required}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:?JWT_REFRESH_EXPIRES_IN is required}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3003/health/ready']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -293,23 +280,17 @@ services:
     networks:
       - spechive-network
       - internal
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp
+    <<: *app-security
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:-spechive_app}@postgres:5432/${POSTGRES_DB:-spechive}
-      PORT: '3003'
+      PORT: '3000'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://dashboard:8080}
-      INGESTION_API_URL: http://ingestion-api:3000
-      QUERY_API_URL: http://query-api:3002
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      INGESTION_API_URL: ${INGESTION_API_URL:?INGESTION_API_URL is required}
+      QUERY_API_URL: ${QUERY_API_URL:?QUERY_API_URL is required}
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3003/health/ready']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -324,22 +305,20 @@ services:
     build:
       context: .
       dockerfile: apps/dashboard/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:?VITE_API_URL is required}
       secrets:
         - npm_token
     restart: unless-stopped
     networks:
       - spechive-network
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
+    <<: *app-security
     tmpfs:
       - /tmp
       - /var/cache/nginx
       - /var/run
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: ${VITE_API_URL:?VITE_API_URL is required}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/']
       interval: 10s

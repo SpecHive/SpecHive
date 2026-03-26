@@ -43,9 +43,9 @@ describe('worker envSchema', () => {
     expect(result.WEBHOOK_SECRET).toBe(secret32);
   });
 
-  it('defaults PORT to 3001 (overrides base default of 3000)', () => {
+  it('defaults PORT to 3002 (overrides base default of 3000)', () => {
     const result = envSchema.parse(VALID_WORKER_ENV);
-    expect(result.PORT).toBe(3001);
+    expect(result.PORT).toBe(3002);
   });
 
   it('coerces PORT from string', () => {

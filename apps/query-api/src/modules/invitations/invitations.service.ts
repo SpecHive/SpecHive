@@ -34,8 +34,9 @@ export class InvitationsService {
     private readonly db: Database,
     config: ConfigService<EnvConfig>,
   ) {
-    this.dashboardUrl =
-      config.get('DASHBOARD_URL') ?? config.get('CORS_ORIGIN') ?? 'http://localhost:5173';
+    // CORS_ORIGIN doubles as the dashboard base URL for invitation links.
+    // Both are always the same single URL (validated by the env schema).
+    this.dashboardUrl = config.getOrThrow('CORS_ORIGIN');
   }
 
   async createInvitation(

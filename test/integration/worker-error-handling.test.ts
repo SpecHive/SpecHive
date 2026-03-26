@@ -23,7 +23,7 @@ import { createRunStartEvent } from '../helpers/factories';
 import { createWebhookEventPayload } from '../helpers/factories/webhook.factory';
 import { waitForService, waitForRow } from '../helpers/wait';
 
-const WORKER_WEBHOOK_URL = process.env['WORKER_WEBHOOK_URL'] ?? `${WORKER_URL}/webhooks/outboxy`;
+const WORKER_WEBHOOK_URL = `${WORKER_URL}/webhooks/outboxy`;
 
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production-min-32ch';
 

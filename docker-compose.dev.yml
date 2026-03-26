@@ -1,6 +1,6 @@
 name: spechive
 
-# Development overrides: source volumes for hot reload, dev commands.
+# Development overrides: Docker-internal networking, host ports, hot reload.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 secrets:
@@ -33,7 +33,15 @@ services:
     ports:
       - '6379:6379'
 
+  # Docker-internal networking overrides — base compose uses .env values (localhost),
+  # these override with Docker service names for container-to-container communication.
+
   ingestion-api:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '3001:3001'
     read_only: false
     build:
       context: .
@@ -43,9 +51,11 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      MINIO_ENDPOINT: minio:9000
+      WORKER_URL: http://worker:3002
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
-      # Workspace sources (read-only mount to avoid polluting host node_modules)
       - ./apps/ingestion-api/src:/app/apps/ingestion-api/src:ro
       - ./packages:/app/packages:ro
 
@@ -54,7 +64,7 @@ services:
       - internal
       - spechive-network
     ports:
-      - '3001:3001'
+      - '3002:3002'
     read_only: false
     build:
       context: .
@@ -64,12 +74,19 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      MINIO_ENDPOINT: minio:9000
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/worker/src:/app/apps/worker/src:ro
       - ./packages:/app/packages:ro
 
   query-api:
+    networks:
+      - internal
+      - spechive-network
+    ports:
+      - '3003:3003'
     read_only: false
     build:
       context: .
@@ -79,6 +96,9 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      MINIO_ENDPOINT: minio:9000
+      REDIS_URL: redis://redis:6379
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/query-api/src:/app/apps/query-api/src:ro
@@ -86,7 +106,7 @@ services:
 
   gateway:
     ports:
-      - '3000:3003'
+      - '3000:3000'
     read_only: false
     build:
       context: .
@@ -96,11 +116,18 @@ services:
         - npm_token
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       CORS_ORIGIN: http://localhost:5173
+      INGESTION_API_URL: http://ingestion-api:3001
+      QUERY_API_URL: http://query-api:3003
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/gateway/src:/app/apps/gateway/src:ro
       - ./packages:/app/packages:ro
+
+  outboxy-worker:
+    environment:
+      DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:?OUTBOXY_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
 
   dashboard:
     ports:

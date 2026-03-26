@@ -1,7 +1,7 @@
 type OnTokenRefreshCallback = (token: string) => void;
 
 class ApiClient {
-  private baseUrl: string = import.meta.env.VITE_API_URL ?? '';
+  private baseUrl: string = '';
   private token: string | null = null;
   private onUnauthorized: (() => void) | null = null;
   private onTokenRefresh: OnTokenRefreshCallback | null = null;

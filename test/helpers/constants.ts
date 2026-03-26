@@ -14,6 +14,6 @@ export const PROJECT_TOKEN = 'test-token';
 export const GATEWAY_URL = process.env['GATEWAY_URL'] ?? 'http://127.0.0.1:3000';
 
 // Direct service URLs — only for crash-simulation and worker-error-handling tests
-// that need to test individual service health/recovery. Not exposed in Docker dev mode.
-export const INGESTION_URL = process.env['INGESTION_API_URL'] ?? 'http://127.0.0.1:3000';
-export const WORKER_URL = process.env['WORKER_URL'] ?? 'http://127.0.0.1:3001';
+// that need to test individual service health/recovery.
+export const INGESTION_URL = process.env['INGESTION_API_URL'] ?? 'http://127.0.0.1:3001';
+export const WORKER_URL = process.env['WORKER_URL'] ?? 'http://127.0.0.1:3002';

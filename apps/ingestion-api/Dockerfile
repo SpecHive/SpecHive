@@ -34,7 +34,7 @@ FROM deps AS development
 COPY . .
 WORKDIR /app/apps/ingestion-api
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["sh", "-c", "node_modules/.bin/nest start --watch"]
 
@@ -91,7 +91,7 @@ RUN chown -R spechive:spechive /app
 
 USER spechive
 
-EXPOSE 3000
+EXPOSE 3001
 
 WORKDIR /app/apps/ingestion-api
 

@@ -6,10 +6,10 @@ SpecHive is a multi-tenant test reporting platform that ingests test results fro
 
 ```
 apps/
-  gateway/         NestJS API gateway — JWT auth, rate limiting, proxy (port 3000 externally)
-  ingestion-api/   NestJS API — receives reporter events (internal, behind gateway)
-  worker/          NestJS worker — processes outbox events (internal)
-  query-api/       NestJS API — serve data to the dashboard (internal, behind gateway)
+  gateway/         NestJS API gateway — JWT auth, rate limiting, proxy (port 3000)
+  ingestion-api/   NestJS API — receives reporter events (port 3001, internal)
+  worker/          NestJS worker — processes outbox events (port 3002, internal)
+  query-api/       NestJS API — serve data to the dashboard (port 3003, internal)
   dashboard/       React/Vite SPA (port 5173)
 
 packages/
@@ -174,16 +174,16 @@ See `.env.example` for the full list with comments. Key variables:
 
 ### Webhooks & Outboxy
 
-| Variable             | Purpose                                       |
-| -------------------- | --------------------------------------------- |
-| `WEBHOOK_SECRET`     | Outboxy webhook authentication (min 32 chars) |
-| `WORKER_WEBHOOK_URL` | Worker's outboxy webhook endpoint             |
+| Variable         | Purpose                                         |
+| ---------------- | ----------------------------------------------- |
+| `WEBHOOK_SECRET` | Outboxy webhook authentication (min 32 chars)   |
+| `WORKER_URL`     | Worker base URL (webhook path appended in code) |
 
 ### Dashboard
 
-| Variable       | Purpose                               |
-| -------------- | ------------------------------------- |
-| `VITE_API_URL` | Query API URL (inlined at build time) |
+| Variable       | Purpose                                  |
+| -------------- | ---------------------------------------- |
+| `VITE_API_URL` | Gateway URL (Vite inlines at build time) |
 
 ## Project-specific conventions
 
