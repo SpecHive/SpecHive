@@ -112,7 +112,6 @@ services:
     environment:
       DATABASE_URL: postgres://outboxy:outboxy@postgres:5432/spechive
       PUBLISHER_TYPE: http
-      PUBLISHER_HTTP_DEFAULT_URL: http://host.docker.internal:3001/webhooks/outboxy
     healthcheck:
       test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
       interval: 15s

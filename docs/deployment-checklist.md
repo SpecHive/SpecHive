@@ -5,7 +5,7 @@
 - Docker & Docker Compose v2
 - A server with at least 2 GB RAM
 - A domain name with DNS access
-- A reverse proxy (nginx, Caddy, or Traefik) for TLS termination
+- TLS termination (platform-provided, or Caddy/nginx if self-hosting)
 
 ## 1. Generate Secrets
 
@@ -34,22 +34,21 @@ Point these subdomains to your server:
 | Subdomain               | Service                        |
 | ----------------------- | ------------------------------ |
 | `app.example.com`       | Dashboard                      |
-| `api.example.com`       | Query API + Ingestion API      |
+| `api.example.com`       | Gateway (routes to all APIs)   |
 | `artifacts.example.com` | MinIO (presigned URL endpoint) |
 
 ## 3. Configure Environment
 
 ```bash
-cp .env.production .env
+cp .env.example .env
 ```
 
-Replace all `CHANGE_ME` values. Pay attention to:
+Edit `.env` and replace all placeholder values. For Docker Compose deployments, update hostnames from `localhost` to Docker service names (e.g., `postgres`, `redis`, `minio`) — see inline comments in `.env.example`. Pay attention to:
 
 - `DATABASE_URL` password must match `SPECHIVE_APP_PASSWORD`
 - `CORS_ORIGIN` must match the dashboard URL (e.g., `https://app.example.com`)
-- `VITE_API_URL` must match the public query-api URL (e.g., `https://api.example.com`)
+- `VITE_API_URL` must match the public gateway URL (e.g., `https://api.example.com`) — inlined at build time
 - `MINIO_PUBLIC_ENDPOINT` must be reachable from end users' browsers
-- `DASHBOARD_URL` is used for invite emails and links
 
 ## 4. Start Services
 
@@ -63,9 +62,7 @@ The production `docker-compose.yml` handles migrations, MinIO bucket creation, a
 
 ```bash
 # Wait ~30 seconds for startup, then check each service:
-curl -f http://localhost:3000/health/ready   # ingestion-api
-curl -f http://localhost:3001/health/ready   # worker
-curl -f http://localhost:3002/health/ready   # query-api
+curl -f http://localhost:3000/health/ready   # gateway (public entry point)
 curl -f http://localhost:8080/               # dashboard
 ```
 
@@ -75,100 +72,20 @@ All endpoints should return HTTP 200.
 
 Open the dashboard in your browser and complete the registration flow. The first user becomes the organization owner.
 
-## 7. Configure Reverse Proxy
+## 7. Network Topology
 
-### Caddy (recommended)
+| Service       | Port | Exposure          | Notes                                                             |
+| ------------- | ---- | ----------------- | ----------------------------------------------------------------- |
+| Gateway       | 3000 | **Public**        | Single API entry point — handles JWT auth, rate limiting, routing |
+| Dashboard     | 8080 | **Public**        | Static SPA (or deploy to Cloudflare Pages / Vercel)               |
+| ingestion-api | 3001 | **Internal only** | Receives events from reporters via gateway                        |
+| worker        | 3002 | **Internal only** | Processes outbox events                                           |
+| query-api     | 3003 | **Internal only** | Serves dashboard data via gateway                                 |
+| PostgreSQL    | 5432 | **Internal only** |                                                                   |
+| Redis         | 6379 | **Internal only** |                                                                   |
+| MinIO         | 9000 | **Public**        | Presigned URL endpoint for artifact downloads                     |
 
-```
-app.example.com {
-    reverse_proxy localhost:8080
-}
-
-api.example.com {
-    handle /health/* {
-        reverse_proxy localhost:3000
-    }
-    handle /api/v1/ingest/* {
-        request_body {
-            max_size 50MB
-        }
-        reverse_proxy localhost:3000
-    }
-    handle {
-        reverse_proxy localhost:3002
-    }
-}
-
-artifacts.example.com {
-    reverse_proxy localhost:9000
-}
-```
-
-### nginx
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name app.example.com;
-
-    ssl_certificate /etc/letsencrypt/live/app.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name api.example.com;
-
-    ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
-
-    location /health/ {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /api/v1/ingest/ {
-        proxy_pass http://localhost:3000;
-        client_max_body_size 50m;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location / {
-        proxy_pass http://localhost:3002;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name artifacts.example.com;
-
-    ssl_certificate /etc/letsencrypt/live/artifacts.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/artifacts.example.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:9000;
-        proxy_set_header Host $host;
-    }
-}
-```
+**Security**: ingestion-api, query-api, and worker trust identity headers (`x-user-id`, `x-organization-id`) injected by the gateway. If these services are publicly accessible, anyone can forge these headers and bypass authentication. Use private networking (Docker internal network, Railway private network, VPC, etc.).
 
 ## 8. Backup Strategy
 

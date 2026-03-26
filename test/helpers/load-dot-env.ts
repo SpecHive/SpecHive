@@ -1,9 +1,23 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+/** Strip inline comments and optional quotes from a raw .env value. */
+function stripValue(raw: string): string {
+  for (const q of ['"', "'"]) {
+    if (raw.startsWith(q)) {
+      const close = raw.indexOf(q, 1);
+      return close === -1 ? raw.slice(1) : raw.slice(1, close);
+    }
+  }
+  // Unquoted: strip inline comment (space + #) and trailing whitespace
+  const commentIdx = raw.indexOf(' #');
+  return (commentIdx === -1 ? raw : raw.slice(0, commentIdx)).trimEnd();
+}
+
 /**
  * Parse a .env file into a key-value record.
- * Skips empty lines and comments. Does not handle quoting.
+ * Skips empty lines and full-line comments. Strips inline comments
+ * (` #` on unquoted values). Handles single/double-quoted values.
  */
 export function parseDotEnv(path?: string): Record<string, string> {
   try {
@@ -14,7 +28,7 @@ export function parseDotEnv(path?: string): Record<string, string> {
       if (!trimmed || trimmed.startsWith('#')) continue;
       const eqIdx = trimmed.indexOf('=');
       if (eqIdx === -1) continue;
-      env[trimmed.slice(0, eqIdx)] = trimmed.slice(eqIdx + 1);
+      env[trimmed.slice(0, eqIdx)] = stripValue(trimmed.slice(eqIdx + 1));
     }
     return env;
   } catch {
