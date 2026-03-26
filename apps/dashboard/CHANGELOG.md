@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.10](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.9...dashboard-v0.0.10) (2026-03-26)
+
+
+### Refactoring
+
+* consolidate env vars — drop DASHBOARD_URL, rename WORKER_WEBHOOK_URL ([f517571](https://github.com/SpecHive/SpecHive/commit/f5175715fb81b8c165c2e0e2d5cab7d677d1e13e))
+* standardize ports and env management ([094d85c](https://github.com/SpecHive/SpecHive/commit/094d85cc748e961298f3125a52402b8145346573))
+
 ## [0.0.9](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.8...dashboard-v0.0.9) (2026-03-24)
 
 

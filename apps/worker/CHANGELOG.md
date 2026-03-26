@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.10](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.9...worker-v0.0.10) (2026-03-26)
+
+
+### Refactoring
+
+* reassign service ports with gateway as public entry on :3000 ([1f08b92](https://github.com/SpecHive/SpecHive/commit/1f08b92b20f11db202acbcdc4ca0e18e4de934c3))
+* standardize ports and env management ([094d85c](https://github.com/SpecHive/SpecHive/commit/094d85cc748e961298f3125a52402b8145346573))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.11
+
 ## [0.0.9](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.8...worker-v0.0.9) (2026-03-24)
 
 
