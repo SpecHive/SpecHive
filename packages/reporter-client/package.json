@@ -27,9 +27,11 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "devDependencies": {
+  "dependencies": {
     "@spechive/reporter-core-protocol": "workspace:*",
-    "@spechive/shared-types": "workspace:*",
+    "@spechive/shared-types": "workspace:*"
+  },
+  "devDependencies": {
     "@spechive/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
