@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.11](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.10...query-api-v0.0.11) (2026-03-26)
+
+
+### Refactoring
+
+* consolidate env vars — drop DASHBOARD_URL, rename WORKER_WEBHOOK_URL ([f517571](https://github.com/SpecHive/SpecHive/commit/f5175715fb81b8c165c2e0e2d5cab7d677d1e13e))
+* reassign service ports with gateway as public entry on :3000 ([1f08b92](https://github.com/SpecHive/SpecHive/commit/1f08b92b20f11db202acbcdc4ca0e18e4de934c3))
+* standardize ports and env management ([094d85c](https://github.com/SpecHive/SpecHive/commit/094d85cc748e961298f3125a52402b8145346573))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.11
+
 ## [0.0.10](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.9...query-api-v0.0.10) (2026-03-24)
 
 
