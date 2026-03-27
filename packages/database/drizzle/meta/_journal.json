@@ -183,6 +183,13 @@
       "when": 1774359908514,
       "tag": "0025_previous_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1774603860619,
+      "tag": "0026_massive_juggernaut",
+      "breakpoints": true
     }
   ]
 }

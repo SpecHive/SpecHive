@@ -12,6 +12,7 @@ export default defineConfig({
     './src/schema/execution.ts',
     './src/schema/auth.ts',
     './src/schema/analytics.ts',
+    './src/schema/errors.ts',
     './src/schema/relations.ts',
   ],
   out: './drizzle',

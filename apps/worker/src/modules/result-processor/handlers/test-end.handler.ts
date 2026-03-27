@@ -1,5 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { dailyFlakyTestStats, runs, tests, testAttempts } from '@spechive/database';
+import {
+  computeFingerprint,
+  dailyFlakyTestStats,
+  errorGroups,
+  errorOccurrences,
+  runs,
+  testAttempts,
+  tests,
+} from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
 import { TestStatus, stripAnsi } from '@spechive/shared-types';
@@ -52,6 +60,82 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           })),
         )
         .onConflictDoNothing();
+    }
+
+    // --- Error fingerprinting & grouping ---
+    if (
+      updatedTest &&
+      errorMessage &&
+      (status === TestStatus.Failed || status === TestStatus.Flaky)
+    ) {
+      const strippedError = stripAnsi(errorMessage);
+      const { fingerprint, normalizedMessage } = computeFingerprint(
+        strippedError,
+        event.payload.errorName,
+      );
+
+      const [runInfo] = await ctx.tx
+        .select({ branch: runs.branch, commitSha: runs.commitSha })
+        .from(runs)
+        .where(eq(runs.id, event.runId))
+        .limit(1);
+
+      const eventTime = new Date(event.timestamp);
+
+      const [group] = await ctx.tx
+        .insert(errorGroups)
+        .values({
+          organizationId: ctx.organizationId,
+          projectId: ctx.projectId,
+          fingerprint,
+          title: strippedError.slice(0, 500),
+          normalizedMessage,
+          errorName: event.payload.errorName ?? null,
+          totalOccurrences: 1,
+          uniqueTestCount: 1,
+          uniqueBranchCount: runInfo?.branch ? 1 : 0,
+          firstSeenAt: eventTime,
+          lastSeenAt: eventTime,
+        })
+        // uniqueTestCount/uniqueBranchCount intentionally omitted from conflict update —
+        // run-end handler recounts from actual occurrences (see RunEndHandler)
+        .onConflictDoUpdate({
+          target: [errorGroups.projectId, errorGroups.fingerprint],
+          set: {
+            totalOccurrences: sql`${errorGroups.totalOccurrences} + 1`,
+            lastSeenAt: sql`GREATEST(${errorGroups.lastSeenAt}, EXCLUDED.last_seen_at)`,
+            errorName: sql`COALESCE(${errorGroups.errorName}, EXCLUDED.error_name)`,
+            updatedAt: sql`NOW()`,
+          },
+        })
+        .returning({ id: errorGroups.id });
+
+      if (group) {
+        await ctx.tx
+          .insert(errorOccurrences)
+          .values({
+            organizationId: ctx.organizationId,
+            errorGroupId: group.id,
+            testId,
+            runId: event.runId,
+            projectId: ctx.projectId,
+            branch: runInfo?.branch ?? null,
+            commitSha: runInfo?.commitSha ?? null,
+            testName: updatedTest.name,
+            errorMessage: strippedError,
+            occurredAt: eventTime,
+          })
+          .onConflictDoNothing();
+
+        await ctx.tx
+          .update(tests)
+          .set({ errorGroupId: group.id })
+          .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
+      } else {
+        this.logger.error(
+          `Failed to upsert error group for fingerprint ${fingerprint} in run ${event.runId}`,
+        );
+      }
     }
 
     const counterUpdates =

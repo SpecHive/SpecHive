@@ -86,6 +86,12 @@ export const TestStartSchema = z.object({
   }),
 });
 
+const errorLocationSchema = z.object({
+  file: z.string().max(1000),
+  line: z.number().int().nonnegative(),
+  column: z.number().int().nonnegative().optional(),
+});
+
 export const TestEndSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('test.end'),
@@ -95,6 +101,12 @@ export const TestEndSchema = z.object({
     durationMs: z.number().nonnegative().optional(),
     errorMessage: z.string().max(10_000).optional(),
     stackTrace: z.string().max(50_000).optional(),
+    errorName: z.string().max(200).optional(),
+    errorLocation: errorLocationSchema.optional(),
+    errorSnippet: z.string().max(5000).optional(),
+    errorExpected: z.string().max(10_000).optional(),
+    errorActual: z.string().max(10_000).optional(),
+    errorDiff: z.string().max(50_000).optional(),
     retryCount: z.number().nonnegative().int().optional(),
     attempts: z
       .array(
@@ -106,6 +118,12 @@ export const TestEndSchema = z.object({
           finishedAt: z.string().datetime().optional(),
           errorMessage: z.string().max(10_000).optional(),
           stackTrace: z.string().max(50_000).optional(),
+          errorName: z.string().max(200).optional(),
+          errorLocation: errorLocationSchema.optional(),
+          errorSnippet: z.string().max(5000).optional(),
+          errorExpected: z.string().max(10_000).optional(),
+          errorActual: z.string().max(10_000).optional(),
+          errorDiff: z.string().max(50_000).optional(),
         }),
       )
       .optional(),

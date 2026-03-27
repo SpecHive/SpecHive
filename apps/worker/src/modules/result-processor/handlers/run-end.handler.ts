@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { dailyRunStats, runs, tests } from '@spechive/database';
+import {
+  dailyErrorStats,
+  dailyRunStats,
+  errorGroups,
+  errorOccurrences,
+  runs,
+  tests,
+} from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { RunEndEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
@@ -101,6 +108,64 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
           WHEN EXCLUDED.max_duration_ms IS NULL THEN ${dailyRunStats.maxDurationMs}
           ELSE COALESCE(GREATEST(${dailyRunStats.maxDurationMs}, EXCLUDED.max_duration_ms), EXCLUDED.max_duration_ms)
         END
+    `);
+
+    // Rollup daily_error_stats for error groups affected by this run
+    await ctx.tx.execute(sql`
+      INSERT INTO ${dailyErrorStats} (
+        organization_id, project_id, error_group_id, date,
+        occurrences, unique_tests, unique_branches
+      )
+      SELECT
+        ${ctx.organizationId},
+        ${ctx.projectId},
+        eo.error_group_id,
+        date_trunc('day', eo.occurred_at AT TIME ZONE 'UTC')::date,
+        COUNT(*)::int,
+        COUNT(DISTINCT eo.test_name)::int,
+        COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int
+      FROM ${errorOccurrences} eo
+      WHERE eo.run_id = ${event.runId}
+      GROUP BY eo.error_group_id, date_trunc('day', eo.occurred_at AT TIME ZONE 'UTC')::date
+      ON CONFLICT (project_id, error_group_id, date) DO UPDATE SET
+        occurrences = ${dailyErrorStats.occurrences} + EXCLUDED.occurrences,
+        unique_tests = (
+          SELECT COUNT(DISTINCT eo2.test_name)::int
+          FROM ${errorOccurrences} eo2
+          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
+            AND eo2.project_id = ${ctx.projectId}
+            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+        ),
+        unique_branches = (
+          SELECT COUNT(DISTINCT eo2.branch) FILTER (WHERE eo2.branch IS NOT NULL)::int
+          FROM ${errorOccurrences} eo2
+          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
+            AND eo2.project_id = ${ctx.projectId}
+            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+        ),
+        updated_at = NOW()
+    `);
+
+    // Correct error_groups aggregate counters from actual occurrences
+    await ctx.tx.execute(sql`
+      UPDATE ${errorGroups} eg SET
+        total_occurrences = sub.total,
+        unique_test_count = sub.tests,
+        unique_branch_count = sub.branches,
+        updated_at = NOW()
+      FROM (
+        SELECT
+          error_group_id,
+          COUNT(*)::int AS total,
+          COUNT(DISTINCT test_name)::int AS tests,
+          COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
+        FROM ${errorOccurrences}
+        WHERE error_group_id IN (
+          SELECT DISTINCT error_group_id FROM ${errorOccurrences} WHERE run_id = ${event.runId}
+        )
+        GROUP BY error_group_id
+      ) sub
+      WHERE eg.id = sub.error_group_id
     `);
 
     this.logger.info({ runId: event.runId, status: event.payload.status }, 'Run finished');
