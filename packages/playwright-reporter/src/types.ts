@@ -1,12 +1,5 @@
-export interface SpecHiveReporterConfig {
-  apiUrl?: string;
-  projectToken?: string;
-  timeout?: number;
-  enabled?: boolean;
+import type { BaseReporterConfig } from '@spechive/reporter-client';
+
+export interface SpecHiveReporterConfig extends BaseReporterConfig {
   captureArtifacts?: boolean;
-  maxRetries?: number;
-  flushTimeout?: number;
-  failOnConnectionError?: boolean;
-  metadata?: Record<string, unknown>;
-  runName?: string;
 }

@@ -1,7 +1,7 @@
 {
-  "name": "@spechive/playwright-reporter",
-  "version": "0.0.6",
-  "description": "Playwright reporter for SpecHive test reporting platform",
+  "name": "@spechive/reporter-client",
+  "version": "0.0.1",
+  "description": "Shared HTTP client, queue, config, and CI detection for SpecHive reporters",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,23 +15,10 @@
   },
   "files": [
     "dist",
-    "README.md",
     "LICENSE"
   ],
-  "keywords": [
-    "playwright",
-    "reporter",
-    "test-reporting",
-    "spechive",
-    "e2e"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/spechive-dev/spechive",
-    "directory": "packages/playwright-reporter"
-  },
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "scripts": {
     "build": "tsup",
@@ -40,15 +27,12 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "peerDependencies": {
-    "@playwright/test": ">=1.40.0"
+  "dependencies": {
+    "@spechive/reporter-core-protocol": "workspace:*",
+    "@spechive/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "@spechive/reporter-client": "workspace:*",
-    "@spechive/reporter-core-protocol": "workspace:*",
-    "@spechive/shared-types": "workspace:*",
     "@spechive/typescript-config": "workspace:*",
-    "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.9.3",

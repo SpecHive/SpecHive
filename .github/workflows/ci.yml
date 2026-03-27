@@ -105,6 +105,9 @@ jobs:
       - name: Build reporter-core-protocol
         run: pnpm --filter @spechive/reporter-core-protocol build
 
+      - name: Build reporter-client
+        run: pnpm --filter @spechive/reporter-client build
+
       - name: Build playwright-reporter
         run: pnpm --filter @spechive/playwright-reporter build
 
@@ -167,6 +170,9 @@ jobs:
 
       - name: Build reporter-core-protocol
         run: pnpm --filter @spechive/reporter-core-protocol build
+
+      - name: Build reporter-client
+        run: pnpm --filter @spechive/reporter-client build
 
       - name: Build database
         run: pnpm --filter @spechive/database build

@@ -17,7 +17,6 @@ describe('detectCi', () => {
   });
 
   it('returns undefined when no CI env vars are set', () => {
-    // Ensure key sentinel vars are absent
     vi.stubEnv('GITHUB_ACTIONS', '');
     vi.stubEnv('GITLAB_CI', '');
     vi.stubEnv('JENKINS_URL', '');

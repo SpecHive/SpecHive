@@ -31,8 +31,10 @@ const {
   mockUploadToPresignedUrl: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('../src/client.js', () => {
+vi.mock('@spechive/reporter-client', async () => {
+  const actual: Record<string, unknown> = await vi.importActual('@spechive/reporter-client');
   return {
+    ...actual,
     SpecHiveClient: class MockSpecHiveClient {
       sendEvent = mockSendEvent;
       checkHealth = mockCheckHealth;

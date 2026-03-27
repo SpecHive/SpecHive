@@ -14,6 +14,7 @@
     "packages/typescript-config": {},
     "packages/eslint-config": {},
     "packages/shared-types": {},
+    "packages/reporter-client": {},
     "packages/reporter-core-protocol": {},
     "packages/playwright-reporter": {},
     "packages/database": {},
