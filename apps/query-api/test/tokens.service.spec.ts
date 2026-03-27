@@ -35,19 +35,16 @@ describe('TokensService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Default chain: select().from().where()
     mockWhere.mockResolvedValue([{ id: PROJECT_ID }]);
     mockFrom.mockReturnValue({ where: mockWhere });
     mockSelect.mockReturnValue({ from: mockFrom });
 
-    // Default chain: insert().values().returning()
     mockReturning.mockResolvedValue([
       { id: 'tok-1', name: 'CI Token', tokenPrefix: 'at_abcdef1234567', createdAt: new Date() },
     ]);
     mockValues.mockReturnValue({ returning: mockReturning });
     mockInsert.mockReturnValue({ values: mockValues });
 
-    // Default chain: update().set().where().returning()
     mockSet.mockReturnValue({
       where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'tok-1' }]) }),
     });
@@ -105,7 +102,6 @@ describe('TokensService', () => {
         projectName: 'My Project',
       };
 
-      // First select: token rows (includes innerJoin)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -119,7 +115,6 @@ describe('TokensService', () => {
           }),
         }),
       });
-      // Second select: count (includes innerJoin to match data query)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({
@@ -153,7 +148,6 @@ describe('TokensService', () => {
         projectName: 'My Project',
       };
 
-      // No project check select — projectId is undefined
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           innerJoin: vi.fn().mockReturnValue({

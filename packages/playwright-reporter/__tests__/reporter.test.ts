@@ -1021,7 +1021,6 @@ describe('SpecHiveReporter', () => {
     });
 
     it('omits ci key when not in CI environment', async () => {
-      // Ensure no CI env vars are set
       vi.stubEnv('CI', '');
       vi.stubEnv('GITHUB_ACTIONS', '');
       vi.stubEnv('GITLAB_CI', '');

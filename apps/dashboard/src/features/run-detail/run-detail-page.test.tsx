@@ -253,7 +253,6 @@ describe('RunDetailPage', () => {
       renderRunDetail();
       await user.click(screen.getByText('should pass'));
 
-      // Find the download button in the artifacts section (it contains an SVG icon)
       const artifactName = screen.getByText('fail.png');
       const artifactRow = artifactName.closest('div[class*="flex"]')!;
       const downloadBtn = artifactRow.querySelector('button')!;

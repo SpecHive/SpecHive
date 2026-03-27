@@ -1,4 +1,3 @@
-/** Extract PostgreSQL error from either a direct or Drizzle-wrapped error. */
 export function extractPgError(err: unknown): { code: string; detail: string | undefined } | null {
   if (
     err instanceof Error &&
@@ -31,7 +30,6 @@ export function extractPgError(err: unknown): { code: string; detail: string | u
  */
 export const DEFAULT_RETRYABLE_PG_CODES: ReadonlySet<string> = new Set(['23503']);
 
-/** Check if an error (direct or Drizzle-wrapped) matches any retryable PG code. */
 export function isRetryablePgError(
   err: unknown,
   retryableCodes: ReadonlySet<string> = DEFAULT_RETRYABLE_PG_CODES,

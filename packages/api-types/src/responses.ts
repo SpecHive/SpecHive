@@ -160,8 +160,6 @@ export type PassRateTrendPoint = z.infer<typeof passRateTrendPointSchema>;
 export type DurationTrendPoint = z.infer<typeof durationTrendPointSchema>;
 export type FlakyTestSummary = z.infer<typeof flakyTestSummarySchema>;
 
-// --- Organization-level analytics ---
-
 export const organizationAnalyticsSummarySchema = projectAnalyticsSummarySchema.extend({
   projectCount: z.number(),
   passRateDelta: z.number().nullable(),

@@ -94,7 +94,6 @@ describe('createConfigModule', () => {
 
       expect(thrownError).toBeDefined();
       expect(thrownError?.message).toContain('Invalid environment configuration:');
-      // The formatted JSON should reference the failing field
       expect(thrownError?.message).toContain('NODE_ENV');
     });
   });

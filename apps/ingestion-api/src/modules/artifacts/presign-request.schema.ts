@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const MAX_FILE_SIZE_BYTES = 10_485_760; // 10 MB
+const MAX_FILE_SIZE_BYTES = 10_485_760;
 
 export const PresignRequestSchema = z.object({
   runId: z.string().uuid(),

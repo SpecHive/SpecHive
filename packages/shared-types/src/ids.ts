@@ -1,5 +1,3 @@
-// Branded UUID v7 types - prevent accidental mixing of different ID types at compile time
-
 export type OrganizationId = string & { readonly __brand: 'OrganizationId' };
 export type ProjectId = string & { readonly __brand: 'ProjectId' };
 export type RunId = string & { readonly __brand: 'RunId' };
@@ -12,7 +10,6 @@ export type ProjectTokenId = string & { readonly __brand: 'ProjectTokenId' };
 export type TestAttemptId = string & { readonly __brand: 'TestAttemptId' };
 export type InvitationId = string & { readonly __brand: 'InvitationId' };
 
-// Type-safe casting helpers - callers must explicitly opt into the cast
 export const asOrganizationId = (id: string) => id as OrganizationId;
 export const asProjectId = (id: string) => id as ProjectId;
 export const asRunId = (id: string) => id as RunId;

@@ -1,13 +1,3 @@
-/**
- * Integration tests for the analytics API endpoints.
- *
- * Seeds known run/test data via direct DB, then verifies the analytics
- * endpoints return correct aggregations.
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { QueryApiClient } from '../helpers/api-clients';
@@ -48,8 +38,6 @@ describe('Analytics endpoints', () => {
     await waitForService(GATEWAY_URL);
     jwt = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
 
-    // Seed analytics test data: 5 runs across 10 days
-    // Each run has 10 tests with known status distributions
     const now = new Date();
     const runConfigs = [
       { dayOffset: 2, passed: 8, failed: 1, skipped: 0, flaky: 1, durationMinutes: 5 },
@@ -65,7 +53,6 @@ describe('Analytics endpoints', () => {
       const finishedAt = new Date(startedAt.getTime() + config.durationMinutes * 60 * 1000);
       const totalTests = config.passed + config.failed + config.skipped + config.flaky;
 
-      // Create run
       await sql`
         INSERT INTO runs (id, project_id, organization_id, status, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests, started_at, finished_at, name)
         VALUES (
@@ -76,14 +63,13 @@ describe('Analytics endpoints', () => {
         ON CONFLICT (id) DO NOTHING
       `;
 
-      // Create a suite per run (DB trigger requires test.run_id == suite.run_id)
+      // DB trigger requires test.run_id == suite.run_id
       await sql`
         INSERT INTO suites (id, run_id, organization_id, name)
         VALUES (${suiteId(i)}, ${runId(i)}, ${SEED_ORG_ID}, ${`Analytics Suite ${i}`})
         ON CONFLICT DO NOTHING
       `;
 
-      // Seed test rows
       let testIdx = 0;
       for (const [status, count] of Object.entries({
         passed: config.passed,
@@ -110,7 +96,7 @@ describe('Analytics endpoints', () => {
         }
       }
 
-      // Seed daily_run_stats for this run (analytics endpoints query stats tables, not raw runs)
+      // Analytics endpoints query stats tables, not raw runs
       const durationMs = config.durationMinutes * 60 * 1000;
       await sql`
         INSERT INTO daily_run_stats (project_id, organization_id, day,
@@ -132,7 +118,6 @@ describe('Analytics endpoints', () => {
           max_duration_ms = GREATEST(daily_run_stats.max_duration_ms, EXCLUDED.max_duration_ms)
       `;
 
-      // Seed daily_flaky_test_stats for runs with flaky tests
       for (let j = 0; j < config.flaky; j++) {
         await sql`
           INSERT INTO daily_flaky_test_stats (project_id, organization_id, test_name, day,
@@ -149,7 +134,6 @@ describe('Analytics endpoints', () => {
   }, 30_000);
 
   afterAll(async () => {
-    // Clean up seeded data in reverse dependency order
     await sql`DELETE FROM daily_flaky_test_stats WHERE project_id = ${SEED_PROJECT_ID}`;
     await sql`DELETE FROM daily_run_stats WHERE project_id = ${SEED_PROJECT_ID}`;
     for (let i = 0; i < 5; i++) {
@@ -174,7 +158,6 @@ describe('Analytics endpoints', () => {
     expect(body).toHaveProperty('passRate');
     expect(body).toHaveProperty('avgDurationMs');
 
-    // We seeded 5 runs with a total of 50 tests
     const b = body as Record<string, unknown>;
     expect(b['totalRuns']).toBeGreaterThanOrEqual(5);
     expect(b['totalTests']).toBeGreaterThanOrEqual(50);
@@ -200,7 +183,6 @@ describe('Analytics endpoints', () => {
       expect(typeof item['passRate']).toBe('number');
     }
 
-    // Verify ascending date order
     const dates = items.map((item) => item['date'] as string);
     const sorted = [...dates].sort();
     expect(dates).toEqual(sorted);
@@ -236,7 +218,6 @@ describe('Analytics endpoints', () => {
 
     const items = body as Array<Record<string, unknown>>;
     expect(Array.isArray(items)).toBe(true);
-    // We seeded 3 runs with flaky tests (runs 0, 2, 3 each have 1 flaky)
     expect(items.length).toBeGreaterThanOrEqual(1);
 
     for (const item of items) {

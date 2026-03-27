@@ -77,7 +77,6 @@ describe('RunsService', () => {
 
   describe('getRunById', () => {
     it('throws 404 when run not found', async () => {
-      // Run detail query (returns empty)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -86,7 +85,6 @@ describe('RunsService', () => {
         }),
       });
 
-      // Suite count query (runs in parallel via Promise.all)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 0 }]),
@@ -115,7 +113,6 @@ describe('RunsService', () => {
         updatedAt: new Date(),
       };
 
-      // First select: run detail
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -124,7 +121,6 @@ describe('RunsService', () => {
         }),
       });
 
-      // Second select: suite count
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 3 }]),

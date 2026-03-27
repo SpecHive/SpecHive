@@ -92,7 +92,7 @@ describe('AuthService', () => {
       mockExecute
         .mockResolvedValueOnce([MOCK_USER])
         .mockResolvedValueOnce([MOCK_ORG])
-        .mockResolvedValueOnce([]); // store_refresh_token
+        .mockResolvedValueOnce([]);
       mockVerify.mockResolvedValue(true);
 
       const result = await service.login('test@spechive.dev', 'password123');
@@ -102,7 +102,6 @@ describe('AuthService', () => {
       expect(result.user.email).toBe('test@spechive.dev');
       expect(result.organization.id).toBe(MOCK_ORG.organization_id);
 
-      // Verify the JWT contains the correct payload
       const { payload } = await jwtVerify(result.token, secret);
       expect(payload.sub).toBe(MOCK_USER.id);
       expect(payload.organizationId).toBe(MOCK_ORG.organization_id);
@@ -149,7 +148,7 @@ describe('AuthService', () => {
       mockExecute
         .mockResolvedValueOnce([MOCK_USER])
         .mockResolvedValueOnce([MOCK_ORG, secondOrg])
-        .mockResolvedValueOnce([]); // store_refresh_token
+        .mockResolvedValueOnce([]);
       mockVerify.mockResolvedValue(true);
 
       const result = await service.login('test@spechive.dev', 'password123', 'org-2');
@@ -193,10 +192,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('returns token, user, and organization on success', async () => {
-      // register_user SQL call + store_refresh_token
-      mockExecute
-        .mockResolvedValueOnce([]) // register_user
-        .mockResolvedValueOnce([]); // store_refresh_token
+      mockExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
       const result = await service.register('new@test.com', 'password123', 'New User', 'New Org');
 
@@ -229,14 +225,13 @@ describe('AuthService', () => {
         detail: 'Key (slug)=(test-org) already exists.',
       });
       mockExecute
-        .mockRejectedValueOnce(dbError) // first attempt fails on slug
-        .mockResolvedValueOnce([]) // retry succeeds
-        .mockResolvedValueOnce([]); // store_refresh_token
+        .mockRejectedValueOnce(dbError)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       const result = await service.register('new2@test.com', 'password123', 'New User', 'Test Org');
 
       expect(result.token).toBeDefined();
-      // Slug should have random suffix
       expect(result.organization.slug).toMatch(/^test-org-[0-9a-f]{4}$/);
     });
 
@@ -249,9 +244,7 @@ describe('AuthService', () => {
         code: '23505',
         detail: 'Key (email)=(new@test.com) already exists.',
       });
-      mockExecute
-        .mockRejectedValueOnce(slugError) // first attempt fails on slug
-        .mockRejectedValueOnce(emailError); // retry fails on email
+      mockExecute.mockRejectedValueOnce(slugError).mockRejectedValueOnce(emailError);
 
       await expect(
         service.register('new@test.com', 'password123', 'Test', 'Test Org'),

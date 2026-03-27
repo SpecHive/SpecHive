@@ -107,7 +107,6 @@ describe('TokensPage', () => {
     renderTokens();
 
     const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
-    // First token (active) — enabled; second (revoked) — disabled
     expect(revokeButtons[0]).toBeEnabled();
     expect(revokeButtons[1]).toBeDisabled();
   });
@@ -210,14 +209,12 @@ describe('TokensPage', () => {
 
     renderTokens();
 
-    // Click revoke on the first (active) token
     const revokeButtons = screen.getAllByRole('button', { name: /revoke/i });
     await userEvent.click(revokeButtons[0]);
 
     expect(screen.getByText('Revoke Token')).toBeInTheDocument();
     expect(screen.getByText(/Are you sure you want to revoke/)).toBeInTheDocument();
 
-    // Find the destructive revoke button in the confirmation dialog
     const dialog = screen.getByRole('dialog');
     const confirmButton = within(dialog).getByRole('button', { name: /^revoke$/i });
     await userEvent.click(confirmButton);

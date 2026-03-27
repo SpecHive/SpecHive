@@ -1,13 +1,3 @@
-/**
- * Integration test for daily_run_stats UPSERT accumulation semantics.
- *
- * Sends two complete run lifecycles on the same calendar day and asserts
- * that the worker correctly accumulates total_runs = 2, with correct min/max.
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
@@ -18,7 +8,6 @@ import { waitForService, waitForRow } from '../helpers/wait';
 
 const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
 
-// Deterministic IDs — unique prefix avoids collisions with other integration tests
 const RUN_A_ID = `01970000-acc0-7000-8000-000000000001`;
 const RUN_B_ID = `01970000-acc0-7000-8000-000000000002`;
 
@@ -31,7 +20,6 @@ describe('daily_run_stats UPSERT accumulation', () => {
   }, 30_000);
 
   afterAll(async () => {
-    // Clean up in reverse dependency order
     await sql`DELETE FROM daily_run_stats WHERE project_id = ${SEED_PROJECT_ID} AND organization_id = ${SEED_ORG_ID} AND total_runs >= 2`;
     await sql`DELETE FROM tests WHERE run_id IN (${RUN_A_ID}, ${RUN_B_ID})`;
     await sql`DELETE FROM suites WHERE run_id IN (${RUN_A_ID}, ${RUN_B_ID})`;
@@ -49,12 +37,10 @@ describe('daily_run_stats UPSERT accumulation', () => {
       durationMs: 7_000,
     });
 
-    // Send both run lifecycles
     for (const event of [...eventsA, ...eventsB]) {
       await ingestionApi.events.send(event);
     }
 
-    // Wait for both runs to finish
     await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_A_ID}`, {
       predicate: (row) => row['status'] === 'passed',
     });
@@ -62,7 +48,6 @@ describe('daily_run_stats UPSERT accumulation', () => {
       predicate: (row) => row['status'] === 'passed',
     });
 
-    // Wait for the daily_run_stats row to accumulate both runs
     const statsRow = await waitForRow(
       () =>
         sql`

@@ -25,9 +25,7 @@ import { artifacts, runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
-// ============================================================================
 // Deterministic PRNG (seeded Linear Congruential Generator)
-// ============================================================================
 
 function createPRNG(seed: number) {
   let state = seed;
@@ -55,9 +53,7 @@ function createPRNG(seed: number) {
 
 const rng = createPRNG(42);
 
-// ============================================================================
 // Scale Configuration
-// ============================================================================
 
 export type SeedScale = 'small' | 'medium' | 'large';
 
@@ -85,9 +81,7 @@ const SCALE_CONFIGS: Record<SeedScale, ScaleConfig> = {
   },
 };
 
-// ============================================================================
 // Batch Insert Helpers
-// ============================================================================
 
 const PG_PARAM_LIMIT = 65_534;
 
@@ -116,9 +110,7 @@ function logProgress(entity: string, current: number, total: number): void {
   if (current >= total) process.stdout.write('\n');
 }
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 function generateTimestamp(daysAgo: number, hourOffset = 0): Date {
   const date = new Date();
@@ -131,7 +123,6 @@ function generateCommitSha(): string {
   return randomBytes(20).toString('hex');
 }
 
-/** Returns a daily pass rate with deliberate variation to simulate regressions */
 function getDailyPassRate(baseRate: number, dayIndex: number, regressionDays: number[]): number {
   const isRegressionDay = regressionDays.includes(dayIndex);
   const modifier = isRegressionDay ? -0.25 : rng.next() * 0.1 - 0.05;
@@ -151,9 +142,7 @@ const RUN_NAMES: (string | null)[] = [
   'Hotfix Validation',
 ];
 
-// ============================================================================
 // Project Configuration
-// ============================================================================
 
 interface ProjectConfig {
   name: string;
@@ -391,9 +380,7 @@ const PROJECTS: ProjectConfig[] = [
   },
 ];
 
-// ============================================================================
 // Error Messages & Stack Traces
-// ============================================================================
 
 const ERROR_MESSAGES = [
   'Expected element to be visible but it was not found',
@@ -448,9 +435,7 @@ function getTestBaseDuration(testName: string, range: { min: number; max: number
   return Math.round(range.min + skewed * (range.max - range.min));
 }
 
-// ============================================================================
 // Suite Generation
-// ============================================================================
 
 interface SuiteContext {
   id: string;
@@ -545,9 +530,7 @@ function flattenSuiteHierarchy(
   return { rows, leafSuiteIds: [...new Set(leafSuiteIds)] };
 }
 
-// ============================================================================
 // Main Seed Function
-// ============================================================================
 
 export async function seed(dbUrl: string, password?: string, scale: SeedScale = 'small') {
   const db = createDbConnection(dbUrl);
@@ -562,9 +545,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
     await rawClient`TRUNCATE organizations, users CASCADE`;
     console.log('Truncated all tables.');
 
-    // ========================================================================
     // Organization & User Setup
-    // ========================================================================
 
     const [org] = await db
       .insert(organizations)
@@ -614,9 +595,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
       })
       .onConflictDoNothing();
 
-    // ========================================================================
     // Create Projects
-    // ========================================================================
 
     const createdProjects: { id: ProjectId; config: ProjectConfig }[] = [];
 
@@ -643,7 +622,6 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
 
       createdProjects.push({ id: asProjectId(seedProject.id), config });
 
-      // Create project token
       const plainToken = randomBytes(32).toString('hex');
       const tokenPrefix = plainToken.slice(0, TOKEN_PREFIX_LENGTH);
       const tokenHash = await hash(plainToken, { type: 2 });
@@ -662,9 +640,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
       console.log(`Created project: ${config.name} with token: ${plainToken}`);
     }
 
-    // ========================================================================
     // Phase 1: Generate & Insert All Runs
-    // ========================================================================
 
     interface RunMeta {
       id: string;
@@ -686,7 +662,6 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
       const scaledRunCount = config.runCount * runMultiplier;
       const configIndex = createdProjects.findIndex((p) => p.id === projectId);
 
-      // Distribute runs across the time window
       const runDates: number[] = [];
       for (let i = 0; i < scaledRunCount; i++) {
         runDates.push(Math.floor((i / scaledRunCount) * timeWindowDays));
@@ -778,11 +753,8 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
     await insertBatched(db, runs, allRunRows, 16);
     logProgress('Runs', totalRuns, totalRuns);
 
-    // ========================================================================
     // Phase 2: Generate & Insert All Suites
-    // ========================================================================
 
-    // runId -> leafSuiteIds
     const runLeafSuiteMap = new Map<string, string[]>();
     const allSuiteRows: FlatSuiteRow[] = [];
 
@@ -802,9 +774,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
     await insertBatched(db, suites, allSuiteRows, 5);
     logProgress('Suites', totalSuites, totalSuites);
 
-    // ========================================================================
     // Phase 3: Generate & Insert Tests + Artifacts (per project)
-    // ========================================================================
 
     let totalTests = 0;
     let totalArtifacts = 0;
@@ -903,7 +873,6 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
               createdAt: testStartedAt,
             });
 
-            // Generate artifacts inline (using pre-generated testId)
             if (
               config.name === 'Frontend E2E' &&
               config.artifactTypes.includes(ArtifactType.Video)
@@ -973,22 +942,18 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
         });
       }
 
-      // Batch insert tests
       console.log(`  Inserting ${allTests.length.toLocaleString()} tests...`);
       await insertBatched(db, tests, allTests, 13);
       logProgress('Tests', allTests.length, allTests.length);
 
-      // Batch insert artifacts
       if (allArtifacts.length > 0) {
         console.log(`  Inserting ${allArtifacts.length.toLocaleString()} artifacts...`);
         await insertBatched(db, artifacts, allArtifacts, 8);
         logProgress('Artifacts', allArtifacts.length, allArtifacts.length);
       }
 
-      // Batch update run counts via raw SQL
       if (runCountUpdates.length > 0) {
         const client = getRawClient(db);
-        // Process in chunks to avoid oversized queries
         const updateChunkSize = 5000;
         for (let i = 0; i < runCountUpdates.length; i += updateChunkSize) {
           const chunk = runCountUpdates.slice(i, i + updateChunkSize);

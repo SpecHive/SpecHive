@@ -1,19 +1,3 @@
-/**
- * Worker error handling integration tests.
- *
- * Verifies the worker's webhook endpoint handles various error conditions:
- * - Malformed JSON payloads
- * - Missing or invalid webhook secret
- * - test.end for non-existent tests
- * - Constraint violations (e.g., duplicate suite names in a run)
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
@@ -173,21 +157,17 @@ describe('Worker error handling', () => {
       const runId = crypto.randomUUID();
       const nonExistentTestId = crypto.randomUUID();
 
-      // First create a run via ingestion API
       await createRunViaIngestion(sql, runId);
 
-      // Send test.end for a test that doesn't exist
       const result = await sendWebhookEvent('test.end', runId, {
         testId: nonExistentTestId,
         status: 'passed',
         durationMs: 100,
       });
 
-      // The webhook should still return 200 (the event is processed, but test doesn't exist)
-      // The handler will update 0 rows and that's considered a no-op
+      // Handler updates 0 rows for non-existent test — treated as a no-op
       expect(result.status).toBe(200);
 
-      // Wait a bit and verify no test row was created
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const testRows = await sql`SELECT * FROM tests WHERE id = ${nonExistentTestId}`;
       expect(testRows).toHaveLength(0);
@@ -199,12 +179,10 @@ describe('Worker error handling', () => {
 
       await createRunViaIngestion(sql, runId);
 
-      // Send suite.end for a suite that doesn't exist
       const result = await sendWebhookEvent('suite.end', runId, {
         suiteId: nonExistentSuiteId,
       });
 
-      // The webhook should still return 200 (suite.end is a no-op anyway)
       expect(result.status).toBe(200);
     }, 30_000);
   });
@@ -216,38 +194,31 @@ describe('Worker error handling', () => {
       const suiteId2 = crypto.randomUUID();
       const suiteName = 'Duplicate Suite Name';
 
-      // Create a run via ingestion API
       await createRunViaIngestion(sql, runId);
 
-      // Create first suite
       await sendWebhookEvent('suite.start', runId, {
         suiteId: suiteId1,
         suiteName,
       });
 
-      // Wait for first suite to be created
       await waitForRow(() => sql`SELECT * FROM suites WHERE id = ${suiteId1}`);
 
-      // Try to create second suite with same name in same run
       const result = await sendWebhookEvent('suite.start', runId, {
         suiteId: suiteId2,
         suiteName,
       });
 
-      // The handler uses onConflictDoNothing() so duplicate suite names are silently ignored
+      // onConflictDoNothing() silently ignores duplicate suite names
       expect(result.status).toBe(200);
 
-      // Wait to ensure processing completes
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Verify only the first suite exists
       const suiteRows = await sql`
         SELECT * FROM suites WHERE run_id = ${runId} AND name = ${suiteName}
       `;
       expect(suiteRows).toHaveLength(1);
       expect(suiteRows[0]?.id).toBe(suiteId1);
 
-      // Verify second suite was not created
       const suite2Rows = await sql`SELECT * FROM suites WHERE id = ${suiteId2}`;
       expect(suite2Rows).toHaveLength(0);
     }, 30_000);
@@ -281,8 +252,7 @@ describe('Worker error handling', () => {
         },
       );
 
-      // The webhook itself is valid (Outboxy envelope structure is correct)
-      // but the inner event envelope is malformed, so the service logs and returns 200
+      // Outboxy envelope is valid but inner event is malformed — logged and acknowledged
       expect(result.status).toBe(200);
     });
 
@@ -291,10 +261,8 @@ describe('Worker error handling', () => {
 
       await createRunViaIngestion(sql, runId);
 
-      // Send an event with an unknown type
       const result = await sendWebhookEvent('unknown.event' as never, runId, {});
 
-      // The webhook should return 200 - unknown event types are logged but don't cause errors
       expect(result.status).toBe(200);
     }, 30_000);
   });

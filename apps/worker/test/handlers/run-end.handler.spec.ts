@@ -14,7 +14,6 @@ describe('RunEndHandler', () => {
   beforeEach(async () => {
     ({ ctx, mocks } = createHandlerContext());
 
-    // Conditional UPDATE returns the updated row with counter fields
     mocks.update.returning.mockResolvedValue([
       {
         id: 'run-1',
@@ -27,7 +26,6 @@ describe('RunEndHandler', () => {
       },
     ]);
 
-    // First execute: retried tests COUNT; second execute: daily_run_stats UPSERT
     mocks.execute.mockResolvedValueOnce([{ retriedTests: 2 }]).mockResolvedValueOnce([]);
 
     const module = await Test.createTestingModule({
@@ -91,7 +89,6 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Two execute calls: retried count + daily_run_stats UPSERT
     expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 
@@ -135,7 +132,6 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Should still execute both calls (retried count + UPSERT)
     expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 });

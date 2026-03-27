@@ -10,11 +10,9 @@ export type {
   WidgetRegistration,
 } from './contexts/plugin-registry';
 
-// Data fetching
 export { useApi } from './shared/hooks/use-api';
 export type { UseApiResult } from './shared/hooks/use-api';
 
-// UI primitives
 export { cn } from './shared/lib/utils';
 export { Button, buttonVariants } from './shared/components/ui/button';
 export {

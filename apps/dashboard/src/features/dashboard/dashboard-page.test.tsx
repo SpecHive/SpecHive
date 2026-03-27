@@ -188,7 +188,6 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     await user.click(screen.getByText('7d'));
 
-    // Verify useApi was called with days=7
     expect(mockUseApi).toHaveBeenCalledWith(
       expect.stringContaining('/analytics/summary'),
       expect.objectContaining({ days: '7' }),

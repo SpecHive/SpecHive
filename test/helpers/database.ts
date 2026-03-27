@@ -12,9 +12,6 @@ export function buildSuperuserDatabaseUrl(): string {
   return `postgres://${user}:${pass}@${host}:${port}/${db}`;
 }
 
-/**
- * Build a Postgres connection URL for the app role (subject to RLS).
- */
 export function buildAppDatabaseUrl(): string {
   if (process.env['APP_DATABASE_URL']) return process.env['APP_DATABASE_URL'];
   if (process.env['DATABASE_URL']) return process.env['DATABASE_URL'];
@@ -23,17 +20,11 @@ export function buildAppDatabaseUrl(): string {
   return `postgres://spechive_app:spechive_app@${host}:${port}/spechive`;
 }
 
-/**
- * Dynamically import postgres.js and create a connection with max 1 pool connection.
- */
 export async function createPostgresConnection(url: string) {
   const postgres = (await import('postgres')).default;
   return postgres(url, { max: 1 });
 }
 
-/**
- * Set the RLS tenant context via raw SQL (for use outside Drizzle ORM).
- */
 export async function setTenantContextRaw(
   sql: ReturnType<Awaited<ReturnType<typeof createPostgresConnection>>>,
   orgId: string,

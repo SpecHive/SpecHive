@@ -145,7 +145,6 @@ export class AuthService {
     email = this.normalizeEmail(email);
     const passwordHash = await hash(password, { type: 2 });
 
-    // Validate the invitation token
     const rows = await this.db.execute<InvitationTokenRow>(
       sql`SELECT * FROM validate_invitation_token(${inviteToken})`,
     );
@@ -247,7 +246,6 @@ export class AuthService {
       throw new ForbiddenException('User has no organization memberships');
     }
 
-    // Use requested org or default to first
     let selectedOrg: UserOrganization;
     if (organizationId) {
       const found = orgs.find((o) => o.organization_id === organizationId);

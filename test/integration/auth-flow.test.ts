@@ -1,19 +1,3 @@
-/**
- * Auth flow E2E integration test for query-api.
- *
- * Verifies JWT authentication:
- * - Unauthenticated requests are rejected (401)
- * - Login returns a valid JWT
- * - Protected endpoints accept valid JWT (200)
- * - Invalid/malformed JWTs are rejected (401)
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -38,7 +22,6 @@ describe('Auth flow', () => {
   }, 30_000);
 
   it('rejects unauthenticated requests to protected endpoints (401)', async () => {
-    // Raw fetch: need to send request with no Authorization header at all
     const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { 'X-Forwarded-For': TEST_IP },
     });
@@ -46,7 +29,6 @@ describe('Auth flow', () => {
   });
 
   it('rejects requests with malformed Authorization header (401)', async () => {
-    // Raw fetch: need to send a malformed Authorization header
     const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { Authorization: 'InvalidFormat', 'X-Forwarded-For': TEST_IP },
     });
@@ -54,7 +36,6 @@ describe('Auth flow', () => {
   });
 
   it('rejects requests with invalid JWT (401)', async () => {
-    // Raw fetch: need to send an invalid Bearer token
     const response = await queryApi.auth.requestRaw('GET', '/v1/auth/me', {
       headers: { Authorization: 'Bearer invalid.jwt.token', 'X-Forwarded-For': TEST_IP },
     });

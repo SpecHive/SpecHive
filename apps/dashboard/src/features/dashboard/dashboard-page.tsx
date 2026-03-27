@@ -171,7 +171,6 @@ export function DashboardPage() {
 
       <PeriodSelector options={options} value={days} onChange={setDays} />
 
-      {/* Pass Rate Trend */}
       <Card>
         <CardHeader>
           <CardTitle>Pass Rate Trend</CardTitle>
@@ -196,7 +195,6 @@ export function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Duration Trend + Flaky Tests */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>

@@ -1,13 +1,3 @@
-/**
- * RLS tenant isolation integration tests.
- *
- * These tests require the Docker Compose postgres with a migrated database:
- *   docker compose up -d postgres && pnpm db:migrate
- *
- * Run with:
- *   pnpm test:integration:db
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import {
@@ -16,7 +6,6 @@ import {
   createPostgresConnection,
 } from '../helpers/database';
 
-// Two org UUIDs used across all tests (deterministic to simplify cleanup)
 const ORG_A_ID = '00000000-0000-4000-a000-aaaaaaaaaaaa';
 const ORG_B_ID = '00000000-0000-4000-a000-bbbbbbbbbbbb';
 const PROJECT_A_ID = '00000000-0000-4000-a000-aaaa00000001';
@@ -38,11 +27,8 @@ describe('RLS tenant isolation', () => {
     superSql = await createPostgresConnection(buildSuperuserDatabaseUrl());
     appSql = await createPostgresConnection(buildAppDatabaseUrl());
 
-    // Verify database is reachable
     await superSql`SELECT 1`;
 
-    // Clean up any leftover test data (reverse dependency order).
-    // Delete by both ID and slug to handle stale data from previously interrupted runs.
     await superSql`DELETE FROM artifacts WHERE id IN (${ARTIFACT_A_ID}, ${ARTIFACT_B_ID})`;
     await superSql`DELETE FROM tests WHERE id IN (${TEST_A_ID}, ${TEST_B_ID})`;
     await superSql`DELETE FROM suites WHERE id IN (${SUITE_A_ID}, ${SUITE_B_ID})`;
@@ -50,7 +36,6 @@ describe('RLS tenant isolation', () => {
     await superSql`DELETE FROM projects WHERE organization_id IN (${ORG_A_ID}, ${ORG_B_ID})`;
     await superSql`DELETE FROM organizations WHERE id IN (${ORG_A_ID}, ${ORG_B_ID}) OR slug IN ('org-a', 'org-b')`;
 
-    // Seed two orgs with separate projects (as superuser, bypasses RLS)
     await superSql`
       INSERT INTO organizations (id, name, slug)
       VALUES
@@ -90,7 +75,6 @@ describe('RLS tenant isolation', () => {
   }, 30_000);
 
   afterAll(async () => {
-    // Clean up test data in reverse dependency order
     await superSql`DELETE FROM artifacts WHERE id IN (${ARTIFACT_A_ID}, ${ARTIFACT_B_ID})`;
     await superSql`DELETE FROM tests WHERE id IN (${TEST_A_ID}, ${TEST_B_ID})`;
     await superSql`DELETE FROM suites WHERE id IN (${SUITE_A_ID}, ${SUITE_B_ID})`;

@@ -1,16 +1,6 @@
-/**
- * Vitest globalSetup for integration tests.
- *
- * Seeds a known organization, project, project token, and test user into Postgres
- * so that `x-project-token: test-token` is valid for ingestion-api tests and
- * login with `test-user@spechive.dev` / `test-password` works for query-api auth tests.
- * All inserts use ON CONFLICT DO NOTHING for idempotency.
- */
-
 import { buildSuperuserDatabaseUrl } from './helpers/database';
 import { loadDotEnvIntoProcess } from './helpers/load-dot-env';
 
-// Deterministic UUIDv7-like IDs for seeded data
 const INTEGRATION_ORG_ID = '01970000-0000-7000-8000-000000000001';
 const INTEGRATION_PROJECT_ID = '01970000-0000-7000-8000-000000000002';
 const INTEGRATION_TOKEN_ID = '01970000-0000-7000-8000-000000000003';

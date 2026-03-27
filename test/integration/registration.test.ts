@@ -1,13 +1,3 @@
-/**
- * Registration flow integration test for query-api.
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -111,7 +101,6 @@ describe('Registration', () => {
         organizationName: 'RLS Org',
       });
 
-      // Create a project for the new user
       const createRes = await queryApi.auth.requestRaw('POST', '/v1/projects', {
         headers: {
           Authorization: `Bearer ${regBody.token}`,
@@ -121,7 +110,6 @@ describe('Registration', () => {
       });
       expect(createRes.status).toBe(201);
 
-      // List projects — should only see own project
       const listRes = await queryApi.auth.request<{ data: { name: string }[] }>(
         'GET',
         '/v1/projects',

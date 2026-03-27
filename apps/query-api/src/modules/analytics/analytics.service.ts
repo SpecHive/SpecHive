@@ -26,8 +26,6 @@ function clampDays(days: number): number {
   return Math.min(Math.max(days, 1), ANALYTICS_MAX_DAYS);
 }
 
-// ── Query-result row shapes ──────────────────────────────────────────
-
 interface SummaryRow {
   totalRuns: number;
   totalTests: number;
@@ -141,7 +139,6 @@ export class AnalyticsService {
           ${projectFilter}
       `;
 
-      // Previous period for deltas
       const prevQuery = sql`
         SELECT
           COALESCE(SUM(${dailyRunStats.totalTests}), 0)::int AS "totalTests",
@@ -264,7 +261,6 @@ export class AnalyticsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      // Current period flaky tests with previous-period delta via LEFT JOIN
       const result = await tx.execute(sql`
         WITH current_period AS (
           SELECT
@@ -330,7 +326,6 @@ export class AnalyticsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      // Q1: Current period per-project aggregates
       const currentQuery = sql`
         SELECT
           ${dailyRunStats.projectId} AS "projectId",
@@ -364,7 +359,6 @@ export class AnalyticsService {
         ORDER BY SUM(${dailyRunStats.totalRuns}) DESC
       `;
 
-      // Q2: Previous period per-project aggregates (for deltas)
       const prevQuery = sql`
         SELECT
           ${dailyRunStats.projectId} AS "projectId",
@@ -395,8 +389,7 @@ export class AnalyticsService {
         HAVING SUM(${dailyRunStats.totalRuns}) > 0
       `;
 
-      // Q3: Per-project daily pass rates for sparklines.
-      // No GROUP BY needed — daily_run_stats has a PRIMARY KEY on (project_id, day),
+      // No GROUP BY needed -- daily_run_stats has a PRIMARY KEY on (project_id, day),
       // guaranteeing one row per project per day.
       const sparklineQuery = sql`
         SELECT
@@ -414,7 +407,6 @@ export class AnalyticsService {
         ORDER BY ${dailyRunStats.projectId}, ${dailyRunStats.day} ASC
       `;
 
-      // Q4: Org-level daily pass rates for org sparkline
       const orgSparklineQuery = sql`
         SELECT
           ${dailyRunStats.day}::text AS "date",
@@ -438,13 +430,11 @@ export class AnalyticsService {
         tx.execute(orgSparklineQuery),
       ]);
 
-      // Index previous period by projectId
       const prevByProject = new Map<string, PrevProjectRow>();
       for (const row of prevResult as unknown as PrevProjectRow[]) {
         prevByProject.set(row.projectId, row);
       }
 
-      // Index sparkline data by projectId
       const sparklinesByProject = new Map<string, Array<{ date: string; passRate: number }>>();
       for (const row of sparklineResult as unknown as SparklineRow[]) {
         if (!sparklinesByProject.has(row.projectId)) sparklinesByProject.set(row.projectId, []);

@@ -63,7 +63,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const rawMessage = extractMessage(exceptionResponse, exception);
 
-    // class-validator errors surface as string[], join them so the response is always a string.
     const message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage;
 
     const safeMessage =

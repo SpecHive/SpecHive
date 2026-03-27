@@ -79,7 +79,6 @@ describe('ReporterQueue', () => {
       maxQueueSize: 5,
     });
 
-    // First event starts processing (drainLoop), remaining 5 fill the queue
     for (let i = 0; i < 7; i++) {
       queue.enqueue(makeEvent());
     }
@@ -121,11 +120,9 @@ describe('ReporterQueue', () => {
     const drain1 = queue.waitForDrain();
     const drain2 = queue.waitForDrain();
 
-    // Resolve the single pending event
     resolveFirst();
 
     await Promise.all([drain1, drain2]);
-    // Both promises should resolve without timeout
     expect(queue.stats.eventsSent).toBe(1);
   });
 });

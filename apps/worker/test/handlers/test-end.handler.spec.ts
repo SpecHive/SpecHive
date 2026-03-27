@@ -14,7 +14,6 @@ describe('TestEndHandler', () => {
   beforeEach(async () => {
     ({ ctx, mocks } = createHandlerContext());
 
-    // The tests table UPDATE returns the updated row with the test name
     mocks.update.returning.mockResolvedValue([{ name: 'should login' }]);
 
     const module = await Test.createTestingModule({
@@ -39,7 +38,6 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Two update calls: tests table then runs table
     expect(mocks.update.update).toHaveBeenCalledTimes(2);
     expect(mocks.update.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -104,7 +102,6 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Non-flaky tests also get a UPSERT (for accurate totalCount)
     expect(mocks.execute).toHaveBeenCalledTimes(1);
   });
 

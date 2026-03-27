@@ -73,8 +73,6 @@ export class AnalyticsClient extends BaseClient {
     });
   }
 
-  // --- Organization-level endpoints (no projectId) ---
-
   /** GET /v1/analytics/summary — KPI summary across all projects in the org. */
   async orgSummary(token: string, days = 30, forwardedIp?: string): Promise<ApiResponse> {
     return this.request('GET', `/v1/analytics/summary?days=${days}`, {

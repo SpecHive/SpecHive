@@ -20,7 +20,6 @@ export function PageHeader({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(e: PointerEvent) {
@@ -32,7 +31,6 @@ export function PageHeader({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -53,8 +51,7 @@ export function PageHeader({
   }
 
   function handleSelectAll() {
-    // If all are selected, deselect all (context treats empty as all-selected)
-    // If not all selected, select all
+    // Context treats empty array as "all selected"
     setSelectedProjectIds([]);
   }
 
@@ -92,7 +89,6 @@ export function PageHeader({
 
             {open && (
               <div className="absolute right-0 z-50 mt-1 min-w-[180px] rounded-md border bg-background shadow-md">
-                {/* Select All row */}
                 <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-muted">
                   <input
                     type="checkbox"
@@ -105,7 +101,6 @@ export function PageHeader({
 
                 <div className="my-1 border-t" />
 
-                {/* Per-project checkboxes */}
                 {projects.map((p) => (
                   <label
                     key={p.id}

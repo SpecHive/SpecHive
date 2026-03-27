@@ -14,9 +14,7 @@ import { runs, suites, tests } from './schema/execution.js';
 import { projects, projectTokens } from './schema/project.js';
 import { organizations, users, memberships } from './schema/tenant.js';
 
-// ---------------------------------------------------------------------------
 // Constants
-// ---------------------------------------------------------------------------
 
 const RUN_COUNT = 10_000;
 const SUITES_PER_RUN = 5; // 10K * 5 = 50K suites
@@ -37,9 +35,7 @@ const TEST_STATUSES: TestStatus[] = [
   TestStatus.Pending,
 ];
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
 
 interface ExplainRow {
   'QUERY PLAN': string;
@@ -51,9 +47,7 @@ interface QueryResult {
   planLines: string[];
 }
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 async function insertBatched<T extends Record<string, unknown>>(
   db: ReturnType<typeof createDbConnection>,
@@ -65,9 +59,7 @@ async function insertBatched<T extends Record<string, unknown>>(
   }
 }
 
-// ---------------------------------------------------------------------------
 // Seeding
-// ---------------------------------------------------------------------------
 
 async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   projectId: string;
@@ -122,7 +114,6 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
     tokenPrefix,
   });
 
-  // Build all run rows up-front to avoid per-row async overhead
   const runRows = Array.from({ length: RUN_COUNT }, (_, i) => ({
     id: uuidv7(),
     projectId,
@@ -139,7 +130,6 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   console.log(`  Inserting ${RUN_COUNT} runs...`);
   await insertBatched(db, runs, runRows);
 
-  // Pick stable sample IDs for query assertions
   const sampleRunId = runRows[0]!.id;
   const sampleFailedRunId = runRows.find((r) => r.status === RunStatus.Failed)!.id;
 
@@ -224,9 +214,7 @@ async function seedData(db: ReturnType<typeof createDbConnection>): Promise<{
   };
 }
 
-// ---------------------------------------------------------------------------
 // EXPLAIN ANALYZE helpers
-// ---------------------------------------------------------------------------
 
 async function explainAnalyze(
   db: ReturnType<typeof createDbConnection>,
@@ -244,9 +232,7 @@ async function explainAnalyze(
   return { queryName, usesSeqScan, planLines };
 }
 
-// ---------------------------------------------------------------------------
 // Queries under test
-// ---------------------------------------------------------------------------
 
 async function runQueries(
   db: ReturnType<typeof createDbConnection>,
@@ -317,9 +303,7 @@ async function runQueries(
   return results;
 }
 
-// ---------------------------------------------------------------------------
 // Cleanup
-// ---------------------------------------------------------------------------
 
 async function cleanupData(
   db: ReturnType<typeof createDbConnection>,
@@ -327,7 +311,6 @@ async function cleanupData(
 ): Promise<void> {
   console.log('\nCleaning up seeded data...');
 
-  // Resolve org and user IDs before any deletes so FK lookups still work.
   const orgRows = await db.execute<{ organization_id: string }>(
     sql`SELECT organization_id FROM projects WHERE id = ${projectId}`,
   );
@@ -341,7 +324,6 @@ async function cleanupData(
     memberUserIds = Array.from(userRows).map((r) => r.user_id);
   }
 
-  // Delete in FK-safe order (children before parents).
   await db.execute(
     sql`DELETE FROM artifacts WHERE test_id IN (SELECT t.id FROM tests t JOIN runs r ON r.id = t.run_id WHERE r.project_id = ${projectId})`,
   );
@@ -366,9 +348,7 @@ async function cleanupData(
   console.log('Cleanup complete.');
 }
 
-// ---------------------------------------------------------------------------
 // Report
-// ---------------------------------------------------------------------------
 
 function printReport(results: QueryResult[]): boolean {
   console.log('\n--- Index Scan Baseline Report ---\n');
@@ -391,9 +371,7 @@ function printReport(results: QueryResult[]): boolean {
   return allPassed;
 }
 
-// ---------------------------------------------------------------------------
 // Entry point
-// ---------------------------------------------------------------------------
 
 export async function main(dbUrl: string): Promise<void> {
   const db = createDbConnection(dbUrl);

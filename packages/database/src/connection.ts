@@ -42,11 +42,9 @@ export async function setTenantContext(tx: Transaction, organizationId: Organiza
  * @see https://github.com/drizzle-team/drizzle-orm/issues/1533
  */
 export function getRawClient(db: Database | Transaction): postgres.Sql {
-  // Database instances expose $client directly
   const direct = (db as unknown as { $client?: postgres.Sql }).$client;
   if (direct) return direct;
 
-  // Transactions expose the client via the internal session
   const session = (db as unknown as { session?: { client?: postgres.Sql } }).session;
   if (session?.client) return session.client;
 

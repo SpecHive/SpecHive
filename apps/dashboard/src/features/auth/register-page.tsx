@@ -34,14 +34,12 @@ export function RegisterPage() {
   const [inviteLoading, setInviteLoading] = useState(!!inviteToken);
   const [inviteData, setInviteData] = useState<InvitationValidation | null>(null);
 
-  // If authenticated and no invite token, redirect to home
   useEffect(() => {
     if (isAuthenticated && !inviteToken) {
       navigate('/');
     }
   }, [isAuthenticated, inviteToken, navigate]);
 
-  // Validate invite token on mount
   useEffect(() => {
     if (!inviteToken) return;
 
@@ -94,7 +92,6 @@ export function RegisterPage() {
     }
   };
 
-  // Show message if authenticated user tries to use an invite
   if (isAuthenticated && inviteToken) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -127,7 +124,6 @@ export function RegisterPage() {
     );
   }
 
-  // Show error if invite is invalid
   if (inviteToken && inviteData && !inviteData.valid) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">

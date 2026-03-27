@@ -51,7 +51,6 @@ export function MembersPage() {
         )}
       </div>
 
-      {/* Members Table */}
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
@@ -95,7 +94,6 @@ export function MembersPage() {
         </CardContent>
       </Card>
 
-      {/* Pending Invitations */}
       {isAdmin && pendingInvitations.length > 0 && (
         <Card>
           <CardHeader>

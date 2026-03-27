@@ -38,7 +38,6 @@ async function resetPassword(dbUrl: string, email: string, password?: string) {
   }
 }
 
-// CLI entry point
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   const email = process.argv[2];
   if (!email) {

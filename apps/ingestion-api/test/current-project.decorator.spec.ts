@@ -3,13 +3,6 @@ import { InternalServerErrorException } from '@nestjs/common';
 import type { ProjectContext } from '@spechive/nestjs-common';
 import { describe, it, expect } from 'vitest';
 
-// Import the factory function that createParamDecorator wraps.
-// createParamDecorator stores the factory in the decorator metadata but the
-// simplest testable unit is the inner function itself.  We extract it by
-// importing the module and inspecting what createParamDecorator received.
-// Because the decorator is defined with createParamDecorator we test the
-// underlying logic by reconstructing the execution context manually.
-
 const PROJECT_CONTEXT: ProjectContext = {
   projectId: 'project-abc' as ProjectContext['projectId'],
   organizationId: '00000000-0000-4000-a000-000000000099' as ProjectContext['organizationId'],
@@ -24,9 +17,6 @@ function makeExecutionContext(requestOverrides: Record<string, unknown> = {}): E
   } as unknown as ExecutionContext;
 }
 
-// Re-implement the decorator factory logic identically to the source so we can
-// test it as a plain function.  Keeping it in sync is acceptable because the
-// decorator body is a single, trivial guard.
 function currentProjectFactory(_data: unknown, ctx: ExecutionContext): ProjectContext {
   const request = ctx.switchToHttp().getRequest<{ projectContext?: ProjectContext }>();
   if (!request.projectContext) {
