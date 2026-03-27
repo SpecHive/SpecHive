@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.7](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.6...playwright-reporter-v0.0.7) (2026-03-27)
+
+
+### Features
+
+* **reporter-client:** extract shared reporter client from playwright-reporter ([808612e](https://github.com/SpecHive/SpecHive/commit/808612ed33d59cc839a46773248d2db9fad8cae5))
+* **reporter-client:** extract shared reporter client from playwright-reporter ([d26ee7d](https://github.com/SpecHive/SpecHive/commit/d26ee7d96df4132f5f086f36ab39c415c2d43ef7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @spechive/reporter-client bumped to 0.0.2
+
 ## [0.0.6](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.5...playwright-reporter-v0.0.6) (2026-03-25)
 
 
