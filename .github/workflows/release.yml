@@ -183,6 +183,8 @@ jobs:
             dockerfile: apps/dashboard/Dockerfile
             path: apps/dashboard
             version-key: dashboard-version
+            build-args: |
+              VITE_API_URL=${{ vars.VITE_API_URL }}
           - image: migrate
             dockerfile: apps/ingestion-api/Dockerfile
             path: packages/database
@@ -231,6 +233,7 @@ jobs:
           push: ${{ contains(needs.release-please.outputs.paths_released, matrix.path) || github.event_name == 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.build-args || '' }}
           secrets: npm_token=${{ secrets.NPM_TOKEN }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max

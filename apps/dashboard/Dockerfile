@@ -61,7 +61,7 @@ COPY --from=build /app/apps/dashboard/dist /usr/share/nginx/html
 COPY apps/dashboard/nginx.conf /etc/nginx/templates/default.conf.template
 
 # Runtime value — nginx envsubst resolves this for CSP connect-src header
-ENV VITE_API_URL==
+ENV VITE_API_URL=
 
 EXPOSE 8080
 
