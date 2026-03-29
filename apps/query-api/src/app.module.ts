@@ -18,6 +18,7 @@ import { ArtifactsModule } from './modules/artifacts/artifacts.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule } from './modules/config/config.module';
 import type { EnvConfig } from './modules/config/env.validation';
+import { ErrorsModule } from './modules/errors/errors.module';
 import { InvitationsModule } from './modules/invitations/invitations.module';
 import { MembersModule } from './modules/members/members.module';
 import { ProjectsModule } from './modules/projects/projects.module';
@@ -41,6 +42,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     }),
     AnalyticsModule,
     AuthModule,
+    ErrorsModule,
     InvitationsModule,
     MembersModule,
     ProjectsModule,
