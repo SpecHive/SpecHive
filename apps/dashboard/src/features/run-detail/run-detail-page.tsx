@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
+import { RunErrorsSummary } from '@/features/run-detail/components/run-errors-summary';
 import { RunHeader } from '@/features/run-detail/components/run-header';
 import { TestsTable } from '@/features/run-detail/components/tests-table';
 import { SuiteTree } from '@/shared/components/suite-tree';
@@ -92,6 +93,7 @@ export function RunDetailPage() {
   return (
     <div className="space-y-6">
       <RunHeader run={run} />
+      <RunErrorsSummary runId={id!} />
 
       <div className="flex gap-6">
         {suites && suites.length > 0 && (
