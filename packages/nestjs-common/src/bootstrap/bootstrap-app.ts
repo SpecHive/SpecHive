@@ -28,7 +28,19 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   );
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
-  app.enableShutdownHooks();
+
+  // enableShutdownHooks() uses process.kill(process.pid, signal) which prevents
+  // pino from flushing logs. Custom handler uses process.exit(0) instead.
+  // Ref: https://github.com/nestjs/nest/issues/15978
+  let isShuttingDown = false;
+  const shutdown = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    await app.close();
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => void shutdown());
+  process.on('SIGINT', () => void shutdown());
 
   await app.register(helmet);
 

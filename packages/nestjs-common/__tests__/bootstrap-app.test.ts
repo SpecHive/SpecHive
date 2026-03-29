@@ -7,7 +7,6 @@ import { AllExceptionsFilter } from '../src/filters/all-exceptions.filter';
 
 const {
   mockRegister,
-  mockEnableShutdownHooks,
   mockEnableCors,
   mockUseGlobalFilters,
   mockUseGlobalInterceptors,
@@ -18,7 +17,6 @@ const {
   mockApp,
 } = vi.hoisted(() => {
   const mockRegister = vi.fn().mockResolvedValue(undefined);
-  const mockEnableShutdownHooks = vi.fn();
   const mockEnableCors = vi.fn();
   const mockUseGlobalFilters = vi.fn();
   const mockUseGlobalInterceptors = vi.fn();
@@ -29,7 +27,6 @@ const {
 
   return {
     mockRegister,
-    mockEnableShutdownHooks,
     mockEnableCors,
     mockUseGlobalFilters,
     mockUseGlobalInterceptors,
@@ -38,7 +35,6 @@ const {
     mockGet,
     mockResolve,
     mockApp: {
-      enableShutdownHooks: mockEnableShutdownHooks,
       register: mockRegister,
       get: mockGet,
       resolve: mockResolve,
@@ -86,11 +82,15 @@ describe('bootstrapNestApp', () => {
     });
   });
 
-  it('enables shutdown hooks', async () => {
+  it('registers SIGTERM and SIGINT handlers for graceful shutdown', async () => {
     setupConfigMock();
+    const onSpy = vi.spyOn(process, 'on').mockImplementation(() => process);
+
     await bootstrapNestApp({ module: FakeModule });
 
-    expect(mockEnableShutdownHooks).toHaveBeenCalled();
+    expect(process.on).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
+    expect(process.on).toHaveBeenCalledWith('SIGINT', expect.any(Function));
+    onSpy.mockRestore();
   });
 
   it('registers @fastify/helmet', async () => {
