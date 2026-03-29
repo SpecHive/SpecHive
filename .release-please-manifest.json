@@ -1,16 +1,16 @@
 {
   "packages/typescript-config": "0.0.4",
-  "packages/eslint-config": "0.0.3",
+  "packages/eslint-config": "0.0.4",
   "packages/shared-types": "0.0.3",
   "packages/reporter-client": "0.0.2",
   "packages/reporter-core-protocol": "0.0.3",
   "packages/playwright-reporter": "0.0.7",
   "packages/database": "0.0.11",
-  "packages/nestjs-common": "0.0.11",
+  "packages/nestjs-common": "0.0.12",
   "packages/api-types": "0.0.5",
-  "apps/query-api": "0.0.11",
-  "apps/ingestion-api": "0.0.11",
-  "apps/worker": "0.0.10",
-  "apps/dashboard": "0.0.10",
-  "apps/gateway": "0.0.10"
+  "apps/query-api": "0.0.12",
+  "apps/ingestion-api": "0.0.12",
+  "apps/worker": "0.0.11",
+  "apps/dashboard": "0.0.11",
+  "apps/gateway": "0.0.11"
 }
