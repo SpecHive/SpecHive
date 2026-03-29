@@ -1,0 +1,160 @@
+import { ChevronDown } from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Pagination } from '@/shared/components/ui/pagination';
+import { SortableHeader } from '@/shared/components/ui/sortable-header';
+import { formatRelativeTime } from '@/shared/lib/formatters';
+import type { ErrorGroupSummary, PaginatedResponse } from '@/types/api';
+
+interface ErrorGroupsTableProps {
+  data: PaginatedResponse<ErrorGroupSummary> | null;
+  loading: boolean;
+  expandedId: string | null;
+  onExpand: (id: string) => void;
+  sortBy: string | null;
+  sortDirection: 'asc' | 'desc' | null;
+  onSort: (column: string, direction: 'asc' | 'desc' | null) => void;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  children?: React.ReactNode;
+}
+
+export function ErrorGroupsTable({
+  data,
+  loading,
+  expandedId,
+  onExpand,
+  sortBy,
+  sortDirection,
+  onSort,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  children,
+}: ErrorGroupsTableProps) {
+  const groups = data?.data || [];
+  const meta = data?.meta;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Error Groups</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading && !data ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="h-12 animate-pulse rounded bg-muted" />
+            ))}
+          </div>
+        ) : groups.length === 0 ? (
+          <p className="py-8 text-center text-muted-foreground">No errors found in this period.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <SortableHeader
+                    label="Error"
+                    column="title"
+                    currentSort={sortBy}
+                    currentDirection={sortDirection}
+                    onSort={onSort}
+                    className="min-w-[300px]"
+                  />
+                  <SortableHeader
+                    label="Occurrences"
+                    column="totalOccurrences"
+                    currentSort={sortBy}
+                    currentDirection={sortDirection}
+                    onSort={onSort}
+                  />
+                  <SortableHeader
+                    label="Affected Tests"
+                    column="uniqueTestCount"
+                    currentSort={sortBy}
+                    currentDirection={sortDirection}
+                    onSort={onSort}
+                  />
+                  <SortableHeader
+                    label="Affected Branches"
+                    column="uniqueBranchCount"
+                    currentSort={sortBy}
+                    currentDirection={sortDirection}
+                    onSort={onSort}
+                  />
+                  <SortableHeader
+                    label="Last Seen"
+                    column="lastSeenAt"
+                    currentSort={sortBy}
+                    currentDirection={sortDirection}
+                    onSort={onSort}
+                  />
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((group) => {
+                  const isExpanded = expandedId === group.id;
+                  return (
+                    <>
+                      <tr
+                        key={group.id}
+                        onClick={() => onExpand(isExpanded ? '' : group.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onExpand(isExpanded ? '' : group.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        className="cursor-pointer border-b transition-colors hover:bg-accent"
+                      >
+                        <td className="max-w-[400px] py-3 pr-4">
+                          <div className="flex items-start gap-2">
+                            <ChevronDown
+                              className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            />
+                            <div className="min-w-0">
+                              <p className="line-clamp-2">{group.title}</p>
+                              {group.errorName && (
+                                <span className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                                  {group.errorName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4">{group.totalOccurrences}</td>
+                        <td className="py-3 pr-4">{group.uniqueTestCount}</td>
+                        <td className="py-3 pr-4">{group.uniqueBranchCount}</td>
+                        <td className="py-3">{formatRelativeTime(group.lastSeenAt)}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${group.id}-detail`}>
+                          <td colSpan={5} className="bg-muted/30 px-4 py-4">
+                            {children}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {meta && (
+          <Pagination
+            meta={meta}
+            onPageChange={onPageChange}
+            pageSize={pageSize}
+            onPageSizeChange={onPageSizeChange}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}

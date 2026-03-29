@@ -6,6 +6,7 @@ import { LoginPage } from '@/features/auth/login-page';
 import { RegisterPage } from '@/features/auth/register-page';
 import { ProjectComparisonPage } from '@/features/comparison/comparison-page';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
+import { ErrorExplorerPage } from '@/features/error-explorer/error-explorer-page';
 import { RunDetailPage } from '@/features/run-detail/run-detail-page';
 import { RunsPage } from '@/features/runs/runs-page';
 import { MembersPage } from '@/features/settings/members/members-page';
@@ -34,6 +35,7 @@ export function AppRoutes() {
           <Route path="/runs/:id" element={<RunDetailPage />} />
           <Route path="/comparison" element={<ProjectComparisonPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/errors" element={<ErrorExplorerPage />} />
           {appRoutes.map((route) => (
             <Route
               key={route.path}

@@ -1,4 +1,12 @@
-import { BarChart3, Key, LayoutDashboard, LogOut, PlayCircle, Settings } from 'lucide-react';
+import {
+  AlertTriangle,
+  BarChart3,
+  Key,
+  LayoutDashboard,
+  LogOut,
+  PlayCircle,
+  Settings,
+} from 'lucide-react';
 import { NavLink } from 'react-router';
 
 import { OrgSwitcher } from './org-switcher';
@@ -12,6 +20,7 @@ import { cn } from '@/shared/lib/utils';
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Runs', href: '/runs', icon: PlayCircle },
+  { label: 'Errors', href: '/errors', icon: AlertTriangle },
   { label: 'Comparison', href: '/comparison', icon: BarChart3 },
   { label: 'Tokens', href: '/tokens', icon: Key },
   { label: 'Settings', href: '/settings', icon: Settings },
