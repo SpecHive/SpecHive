@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { ArtifactCleanupService } from '../src/modules/artifact-cleanup/artifact-cleanup.service';
 
 const mockExecute = vi.fn();
@@ -33,6 +34,7 @@ describe('ArtifactCleanupService', () => {
         { provide: DATABASE_CONNECTION, useValue: mockDb },
         { provide: S3Service, useValue: mockS3 },
         { provide: ConfigService, useValue: mockConfig },
+        createMockPinoLogger('ArtifactCleanupService'),
       ],
     }).compile();
 

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
+import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 
 import type { BaseEnvConfig } from '../config/base-env.schema';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
@@ -23,14 +24,25 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   const app = await NestFactory.create<NestFastifyApplication>(
     options.module,
     new FastifyAdapter(adapterOpts),
-    options.rawBody ? { rawBody: true } : {},
+    { ...(options.rawBody ? { rawBody: true } : {}), bufferLogs: true },
   );
-  app.enableShutdownHooks();
+  app.useLogger(app.get(Logger));
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
-  // Type casts needed: @fastify/cookie augments FastifyInstance which creates
-  // type incompatibility with other Fastify plugins. This is a known Fastify issue.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await app.register(helmet as any);
+  // enableShutdownHooks() uses process.kill(process.pid, signal) which prevents
+  // pino from flushing logs. Custom handler uses process.exit(0) instead.
+  // Ref: https://github.com/nestjs/nest/issues/15978
+  let isShuttingDown = false;
+  const shutdown = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    await app.close();
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => void shutdown());
+  process.on('SIGINT', () => void shutdown());
+
+  await app.register(helmet);
 
   if (options.fastifyPlugins) {
     await options.fastifyPlugins(app);
@@ -38,8 +50,7 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
 
   if (options.cookies) {
     const cookie = await import('@fastify/cookie');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await app.register(cookie.default as any);
+    await app.register(cookie.default);
   }
 
   const config = app.get(ConfigService);
@@ -54,7 +65,11 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
     });
   }
 
-  app.useGlobalFilters(new AllExceptionsFilter(config as ConfigService<BaseEnvConfig>));
+  const filterLogger = await app.resolve(PinoLogger);
+  filterLogger.setContext(AllExceptionsFilter.name);
+  app.useGlobalFilters(
+    new AllExceptionsFilter(config as ConfigService<BaseEnvConfig>, filterLogger),
+  );
 
   await app.listen(port, '0.0.0.0');
 }

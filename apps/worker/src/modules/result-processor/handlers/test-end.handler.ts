@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { dailyFlakyTestStats, runs, tests, testAttempts } from '@spechive/database';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
 import { TestStatus, stripAnsi } from '@spechive/shared-types';
 import { and, eq, sql } from 'drizzle-orm';
@@ -11,7 +12,8 @@ import type { EventHandlerContext, IEventHandler } from './event-handler.interfa
 @Injectable()
 export class TestEndHandler implements IEventHandler<TestEndEvent> {
   readonly eventType = 'test.end' as const;
-  private readonly logger = new Logger(TestEndHandler.name);
+
+  constructor(@InjectPinoLogger(TestEndHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: TestEndEvent, ctx: EventHandlerContext): Promise<void> {
     const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
@@ -91,6 +93,6 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       `);
     }
 
-    this.logger.log(`Test ${testId} ended with status ${status} in run ${event.runId}`);
+    this.logger.info(`Test ${testId} ended with status ${status} in run ${event.runId}`);
   }
 }

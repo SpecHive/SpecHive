@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import type { BaseEnvConfig } from '../src/config/base-env.schema';
 import { AllExceptionsFilter } from '../src/filters/all-exceptions.filter';
@@ -29,10 +29,17 @@ function makeSendCapture() {
   return { status, send };
 }
 
-beforeEach(() => {
-  vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-  vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-});
+function makeMockLogger() {
+  return {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    fatal: vi.fn(),
+    trace: vi.fn(),
+    setContext: vi.fn(),
+  };
+}
 
 describe('AllExceptionsFilter', () => {
   describe('status code resolution', () => {
@@ -205,42 +212,40 @@ describe('AllExceptionsFilter', () => {
   });
 
   describe('log severity', () => {
-    beforeEach(() => {
-      (Logger.prototype.error as ReturnType<typeof vi.fn>).mockClear();
-      (Logger.prototype.warn as ReturnType<typeof vi.fn>).mockClear();
+    it('logs 5xx errors at error level with exception details', () => {
+      const logger = makeMockLogger();
+      const filter = new AllExceptionsFilter(makeConfigService('production'), logger as never);
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+      const error = new Error('database connection lost');
+
+      filter.catch(error, host);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        { err: error, statusCode: 500 },
+        'database connection lost',
+      );
+      expect(logger.warn).not.toHaveBeenCalled();
     });
 
-    it('logs 5xx at error level', () => {
+    it('logs 4xx errors at warn level', () => {
+      const logger = makeMockLogger();
+      const filter = new AllExceptionsFilter(makeConfigService('production'), logger as never);
+      const { status, send } = makeSendCapture();
+      const host = makeHost({ status, send });
+
+      filter.catch(new HttpException('Not Found', HttpStatus.NOT_FOUND), host);
+
+      expect(logger.warn).toHaveBeenCalledWith({ statusCode: 404 }, 'Not Found');
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('does not log when no logger is provided', () => {
       const filter = new AllExceptionsFilter(makeConfigService('production'));
       const { status, send } = makeSendCapture();
       const host = makeHost({ status, send });
 
-      filter.catch(new Error('boom'), host);
-
-      expect(Logger.prototype.error).toHaveBeenCalled();
-      expect(Logger.prototype.warn).not.toHaveBeenCalled();
-    });
-
-    it('logs 4xx at warn level', () => {
-      const filter = new AllExceptionsFilter(makeConfigService('production'));
-      const { status, send } = makeSendCapture();
-      const host = makeHost({ status, send });
-
-      filter.catch(new HttpException('bad request', HttpStatus.BAD_REQUEST), host);
-
-      expect(Logger.prototype.warn).toHaveBeenCalled();
-      expect(Logger.prototype.error).not.toHaveBeenCalled();
-    });
-
-    it('logs 404 at warn level', () => {
-      const filter = new AllExceptionsFilter(makeConfigService('production'));
-      const { status, send } = makeSendCapture();
-      const host = makeHost({ status, send });
-
-      filter.catch(new HttpException('not found', HttpStatus.NOT_FOUND), host);
-
-      expect(Logger.prototype.warn).toHaveBeenCalled();
-      expect(Logger.prototype.error).not.toHaveBeenCalled();
+      expect(() => filter.catch(new Error('boom'), host)).not.toThrow();
     });
   });
 

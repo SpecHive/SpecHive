@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import {
+  createLoggerModule,
   DatabaseModule,
   GLOBAL_RATE_LIMIT_TTL_MS,
   HealthModule,
@@ -21,6 +22,7 @@ const GATEWAY_RATE_LIMIT_MAX = 200;
 @Module({
   imports: [
     ConfigModule,
+    createLoggerModule(),
     IsProductionModule,
     ThrottlerModule.forRoot([
       {

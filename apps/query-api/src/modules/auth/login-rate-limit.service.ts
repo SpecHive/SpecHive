@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import type { Redis } from 'ioredis';
 
@@ -13,16 +14,17 @@ const KEY_PREFIX = 'login:ratelimit:';
  */
 @Injectable()
 export class LoginRateLimitService {
-  private readonly logger = new Logger(LoginRateLimitService.name);
-
-  constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
+  constructor(
+    @InjectPinoLogger(LoginRateLimitService.name) private readonly logger: PinoLogger,
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
+  ) {}
 
   async isBlocked(email: string): Promise<boolean> {
     try {
       const count = await this.redis.get(this.key(email));
       return count !== null && parseInt(count, 10) >= MAX_FAILED_ATTEMPTS;
     } catch (error) {
-      this.logger.warn(`Redis unavailable for rate-limit check: ${(error as Error).message}`);
+      this.logger.warn({ err: error }, 'Redis unavailable for rate-limit check');
       return false;
     }
   }
@@ -35,7 +37,7 @@ export class LoginRateLimitService {
       pipeline.expire(key, WINDOW_SECONDS, 'NX');
       await pipeline.exec();
     } catch (error) {
-      this.logger.warn(`Redis unavailable for recording failure: ${(error as Error).message}`);
+      this.logger.warn({ err: error }, 'Redis unavailable for recording failure');
     }
   }
 
@@ -43,7 +45,7 @@ export class LoginRateLimitService {
     try {
       await this.redis.del(this.key(email));
     } catch (error) {
-      this.logger.warn(`Redis unavailable for clearing rate-limit: ${(error as Error).message}`);
+      this.logger.warn({ err: error }, 'Redis unavailable for clearing rate-limit');
     }
   }
 

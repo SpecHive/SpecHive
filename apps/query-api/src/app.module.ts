@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import {
+  createLoggerModule,
   createS3ModuleOptions,
   DatabaseModule,
   GatewayTrustGuard,
@@ -28,6 +29,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
 @Module({
   imports: [
     ConfigModule,
+    createLoggerModule(),
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),

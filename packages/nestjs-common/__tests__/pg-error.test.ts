@@ -1,13 +1,9 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  DEFAULT_RETRYABLE_PG_CODES,
-  extractPgError,
-  isRetryablePgError,
-} from '../src/utils/pg-error';
+import { extractPgError } from '../src/utils/pg-error';
 
-function makePgError(code: string, detail?: string): Error {
-  return Object.assign(new Error(`PG ${code}`), { code, detail });
+function makePgError(code: string, detail?: string, constraint?: string, table?: string): Error {
+  return Object.assign(new Error(`PG ${code}`), { code, detail, constraint, table });
 }
 
 function makeDrizzleWrapped(code: string): Error {
@@ -17,17 +13,39 @@ function makeDrizzleWrapped(code: string): Error {
 }
 
 describe('extractPgError', () => {
-  it('extracts code and detail from a direct PG error', () => {
-    const err = makePgError('23503', 'Key (suite_id)=(abc) is not present');
+  it('extracts code, detail, constraint, and table from a direct PG error', () => {
+    const err = makePgError('23503', 'Key (suite_id)=(abc) is not present', 'fk_suite_id', 'tests');
     expect(extractPgError(err)).toEqual({
       code: '23503',
       detail: 'Key (suite_id)=(abc) is not present',
+      constraint: 'fk_suite_id',
+      table: 'tests',
     });
   });
 
   it('extracts from Drizzle-wrapped error via cause chain', () => {
     const err = makeDrizzleWrapped('23503');
-    expect(extractPgError(err)).toEqual({ code: '23503', detail: undefined });
+    expect(extractPgError(err)).toEqual({
+      code: '23503',
+      detail: undefined,
+      constraint: undefined,
+      table: undefined,
+    });
+  });
+
+  it('extracts from a 3-level cause chain', () => {
+    const dbError = makePgError('23505', 'duplicate key', 'uq_name', 'projects');
+    const drizzleError = new Error('DrizzleQueryError');
+    (drizzleError as Error & { cause: Error }).cause = dbError;
+    const retryableError = new Error('RetryableError');
+    (retryableError as Error & { cause: Error }).cause = drizzleError;
+
+    expect(extractPgError(retryableError)).toEqual({
+      code: '23505',
+      detail: 'duplicate key',
+      constraint: 'uq_name',
+      table: 'projects',
+    });
   });
 
   it('returns null for plain Error without code', () => {
@@ -40,38 +58,29 @@ describe('extractPgError', () => {
       expect(extractPgError(value)).toBeNull();
     },
   );
-});
 
-describe('isRetryablePgError', () => {
-  it('returns true for direct 23503 error', () => {
-    expect(isRetryablePgError(makePgError('23503'))).toBe(true);
+  it('returns null for Node.js SystemError (ECONNREFUSED)', () => {
+    const err = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    expect(extractPgError(err)).toBeNull();
   });
 
-  it('returns true for Drizzle-wrapped 23503 error', () => {
-    expect(isRetryablePgError(makeDrizzleWrapped('23503'))).toBe(true);
+  it('returns null for Node.js SystemError (ENOTFOUND)', () => {
+    const err = Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
+    expect(extractPgError(err)).toBeNull();
   });
 
-  it('returns false for non-retryable PG code', () => {
-    expect(isRetryablePgError(makePgError('42P01'))).toBe(false);
-  });
+  it('skips SystemError in cause chain and extracts PG error', () => {
+    const pgError = makePgError('23503', 'FK violation', 'fk_run_id', 'suites');
+    const sysError = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    (sysError as unknown as Error & { cause: Error }).cause = pgError;
+    const wrapper = new Error('connection failed');
+    (wrapper as Error & { cause: Error }).cause = sysError;
 
-  it('returns false for plain Error without code', () => {
-    expect(isRetryablePgError(new Error('no code'))).toBe(false);
-  });
-
-  it('accepts a custom retryable code set', () => {
-    const custom = new Set(['40001']);
-    expect(isRetryablePgError(makePgError('40001'), custom)).toBe(true);
-  });
-
-  it('does not match default codes when custom set is provided', () => {
-    const custom = new Set(['40001']);
-    expect(isRetryablePgError(makePgError('23503'), custom)).toBe(false);
-  });
-});
-
-describe('DEFAULT_RETRYABLE_PG_CODES', () => {
-  it('contains only 23503', () => {
-    expect(DEFAULT_RETRYABLE_PG_CODES).toEqual(new Set(['23503']));
+    expect(extractPgError(wrapper)).toEqual({
+      code: '23503',
+      detail: 'FK violation',
+      constraint: 'fk_run_id',
+      table: 'suites',
+    });
   });
 });

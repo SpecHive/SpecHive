@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { runs } from '@spechive/database';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { RunStartEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
 
@@ -10,7 +11,8 @@ import type { EventHandlerContext, IEventHandler } from './event-handler.interfa
 @Injectable()
 export class RunStartHandler implements IEventHandler<RunStartEvent> {
   readonly eventType = 'run.start' as const;
-  private readonly logger = new Logger(RunStartHandler.name);
+
+  constructor(@InjectPinoLogger(RunStartHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: RunStartEvent, ctx: EventHandlerContext): Promise<void> {
     const ci = event.payload.ci;
@@ -38,6 +40,6 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
       return;
     }
 
-    this.logger.log(`Created run ${event.runId}`);
+    this.logger.info(`Created run ${event.runId}`);
   }
 }

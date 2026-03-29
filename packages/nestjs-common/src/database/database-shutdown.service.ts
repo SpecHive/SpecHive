@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { DATABASE_CONNECTION } from '../constants';
 
@@ -13,9 +14,8 @@ interface DrizzleWithClient {
 
 @Injectable()
 export class DatabaseShutdownService implements OnModuleDestroy {
-  private readonly logger = new Logger(DatabaseShutdownService.name);
-
   constructor(
+    @InjectPinoLogger(DatabaseShutdownService.name) private readonly logger: PinoLogger,
     @Inject(DATABASE_CONNECTION)
     private readonly db: unknown,
   ) {}
@@ -28,6 +28,6 @@ export class DatabaseShutdownService implements OnModuleDestroy {
     }
 
     await client.end({ timeout: 5 });
-    this.logger.log('Database pool closed');
+    this.logger.info('Database pool closed');
   }
 }

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { dailyRunStats, runs, tests } from '@spechive/database';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { RunEndEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -16,7 +17,8 @@ const VALID_TRANSITIONS: Record<string, RunStatus[]> = {
 @Injectable()
 export class RunEndHandler implements IEventHandler<RunEndEvent> {
   readonly eventType = 'run.end' as const;
-  private readonly logger = new Logger(RunEndHandler.name);
+
+  constructor(@InjectPinoLogger(RunEndHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: RunEndEvent, ctx: EventHandlerContext): Promise<void> {
     const targetStatus = event.payload.status as RunStatus;
@@ -98,6 +100,6 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    this.logger.log(`Finished run ${event.runId} with status ${event.payload.status}`);
+    this.logger.info(`Finished run ${event.runId} with status ${event.payload.status}`);
   }
 }

@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { REDIS_CLIENT } from '../constants';
 
@@ -8,9 +9,8 @@ interface RedisLike {
 
 @Injectable()
 export class RedisShutdownService implements OnModuleDestroy {
-  private readonly logger = new Logger(RedisShutdownService.name);
-
   constructor(
+    @InjectPinoLogger(RedisShutdownService.name) private readonly logger: PinoLogger,
     @Inject(REDIS_CLIENT)
     private readonly redis: RedisLike,
   ) {}
@@ -18,7 +18,7 @@ export class RedisShutdownService implements OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     try {
       await this.redis.quit();
-      this.logger.log('Redis connection closed');
+      this.logger.info('Redis connection closed');
     } catch {
       this.logger.warn('Failed to close Redis connection gracefully');
     }

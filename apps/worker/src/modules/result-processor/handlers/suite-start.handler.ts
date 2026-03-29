@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { suites } from '@spechive/database';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { SuiteStartEvent } from '@spechive/reporter-core-protocol';
 
 import { EventHandler } from './event-handler.decorator';
@@ -9,7 +10,8 @@ import type { EventHandlerContext, IEventHandler } from './event-handler.interfa
 @Injectable()
 export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
   readonly eventType = 'suite.start' as const;
-  private readonly logger = new Logger(SuiteStartHandler.name);
+
+  constructor(@InjectPinoLogger(SuiteStartHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: SuiteStartEvent, ctx: EventHandlerContext): Promise<void> {
     const result = await ctx.tx
@@ -29,6 +31,6 @@ export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
       return;
     }
 
-    this.logger.log(`Created suite ${event.payload.suiteId} in run ${event.runId}`);
+    this.logger.info(`Created suite ${event.payload.suiteId} in run ${event.runId}`);
   }
 }

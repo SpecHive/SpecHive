@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { artifacts } from '@spechive/database';
 import { RetryableError, S3Service } from '@spechive/nestjs-common';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { ArtifactUploadEvent } from '@spechive/reporter-core-protocol';
 
 import { EventHandler } from './event-handler.decorator';
@@ -10,9 +11,11 @@ import type { EventHandlerContext, IEventHandler } from './event-handler.interfa
 @Injectable()
 export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent> {
   readonly eventType = 'artifact.upload' as const;
-  private readonly logger = new Logger(ArtifactUploadHandler.name);
 
-  constructor(private readonly s3: S3Service) {}
+  constructor(
+    @InjectPinoLogger(ArtifactUploadHandler.name) private readonly logger: PinoLogger,
+    private readonly s3: S3Service,
+  ) {}
 
   async handle(event: ArtifactUploadEvent, ctx: EventHandlerContext): Promise<void> {
     const { artifactId, storagePath, testId, artifactType, name, mimeType, retryIndex } =
@@ -43,7 +46,7 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
       mimeType: mimeType ?? null,
     });
 
-    this.logger.log(
+    this.logger.info(
       `Stored artifact ${artifactId} (${head.contentLength ?? 0} bytes) for test ${testId}`,
     );
   }

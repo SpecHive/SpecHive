@@ -4,6 +4,7 @@ import { TestStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import { TestStartHandler } from '../../src/modules/result-processor/handlers/test-start.handler';
 
 describe('TestStartHandler', () => {
@@ -15,7 +16,7 @@ describe('TestStartHandler', () => {
     ({ ctx, mocks } = createHandlerContext());
 
     const module = await Test.createTestingModule({
-      providers: [TestStartHandler],
+      providers: [TestStartHandler, createMockPinoLogger('TestStartHandler')],
     }).compile();
 
     handler = module.get(TestStartHandler);

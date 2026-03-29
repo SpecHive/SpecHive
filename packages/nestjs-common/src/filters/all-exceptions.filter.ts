@@ -1,6 +1,7 @@
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
-import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Catch, HttpException, HttpStatus } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import type { PinoLogger } from 'nestjs-pino';
 
 import type { BaseEnvConfig } from '../config/base-env.schema';
 
@@ -44,10 +45,12 @@ function extractCode(exceptionResponse: string | object, statusCode: number): st
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name);
   private readonly isDevelopment: boolean;
 
-  constructor(configService: ConfigService<BaseEnvConfig>) {
+  constructor(
+    configService: ConfigService<BaseEnvConfig>,
+    private readonly logger?: PinoLogger,
+  ) {
     this.isDevelopment = configService.get<string>('NODE_ENV') === 'development';
   }
 
@@ -70,13 +73,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const code = extractCode(exceptionResponse, statusCode);
 
-    if (statusCode >= 500) {
-      this.logger.error(
-        `${statusCode} ${message}`,
-        exception instanceof Error ? exception.stack : undefined,
-      );
-    } else {
-      this.logger.warn(`${statusCode} ${message}`);
+    if (this.logger) {
+      if (statusCode >= 500) {
+        this.logger.error({ err: exception, statusCode }, String(message));
+      } else if (statusCode >= 400) {
+        this.logger.warn({ statusCode }, String(message));
+      }
     }
 
     const body: Record<string, unknown> = {

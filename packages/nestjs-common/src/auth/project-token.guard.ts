@@ -1,10 +1,11 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Database } from '@spechive/database';
 import type { OrganizationId, ProjectId } from '@spechive/shared-types';
 import { TOKEN_PREFIX_LENGTH, asOrganizationId, asProjectId } from '@spechive/shared-types';
 import { verify } from 'argon2';
 import { sql } from 'drizzle-orm';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { DATABASE_CONNECTION } from '../constants';
 
@@ -15,9 +16,8 @@ export interface ProjectContext {
 
 @Injectable()
 export class ProjectTokenGuard implements CanActivate {
-  private readonly logger = new Logger(ProjectTokenGuard.name);
-
   constructor(
+    @InjectPinoLogger(ProjectTokenGuard.name) private readonly logger: PinoLogger,
     @Inject(DATABASE_CONNECTION)
     private readonly db: Database,
   ) {}
@@ -72,7 +72,7 @@ export class ProjectTokenGuard implements CanActivate {
     // Fire-and-forget lastUsedAt update via SECURITY DEFINER function
     this.db
       .execute(sql`SELECT touch_project_token_usage(${matchedRow.token_hash})`)
-      .catch((err) => this.logger.warn('Failed to update token lastUsedAt', err));
+      .catch((err) => this.logger.warn({ err }, 'Failed to update token lastUsedAt'));
 
     return true;
   }

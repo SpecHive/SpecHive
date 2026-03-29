@@ -7,3 +7,4 @@ export {
 } from './drizzle-mock';
 export { createTestModule } from './nestjs';
 export { MockProjectTokenGuard, MockThrottlerGuard, MockGatewayTrustGuard } from './mock-guards';
+export { createMockPinoLogger } from './mock-logger';
