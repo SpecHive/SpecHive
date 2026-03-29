@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { tests } from '@spechive/database';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestStartEvent } from '@spechive/reporter-core-protocol';
 import { TestStatus } from '@spechive/shared-types';
 
@@ -10,7 +11,8 @@ import type { EventHandlerContext, IEventHandler } from './event-handler.interfa
 @Injectable()
 export class TestStartHandler implements IEventHandler<TestStartEvent> {
   readonly eventType = 'test.start' as const;
-  private readonly logger = new Logger(TestStartHandler.name);
+
+  constructor(@InjectPinoLogger(TestStartHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: TestStartEvent, ctx: EventHandlerContext): Promise<void> {
     const result = await ctx.tx
@@ -35,6 +37,6 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
       return;
     }
 
-    this.logger.log(`Created test ${event.payload.testId} in run ${event.runId}`);
+    this.logger.info(`Created test ${event.payload.testId} in run ${event.runId}`);
   }
 }

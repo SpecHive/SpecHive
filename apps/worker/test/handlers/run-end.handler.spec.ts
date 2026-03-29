@@ -4,6 +4,7 @@ import { RunStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import { RunEndHandler } from '../../src/modules/result-processor/handlers/run-end.handler';
 
 describe('RunEndHandler', () => {
@@ -29,7 +30,7 @@ describe('RunEndHandler', () => {
     mocks.execute.mockResolvedValueOnce([{ retriedTests: 2 }]).mockResolvedValueOnce([]);
 
     const module = await Test.createTestingModule({
-      providers: [RunEndHandler],
+      providers: [RunEndHandler, createMockPinoLogger('RunEndHandler')],
     }).compile();
 
     handler = module.get(RunEndHandler);

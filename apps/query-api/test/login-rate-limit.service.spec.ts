@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { LoginRateLimitService } from '../src/modules/auth/login-rate-limit.service';
 
 const mockPipeline = {
@@ -24,7 +25,11 @@ describe('LoginRateLimitService', () => {
     vi.clearAllMocks();
 
     const module = await Test.createTestingModule({
-      providers: [LoginRateLimitService, { provide: REDIS_CLIENT, useValue: mockRedis }],
+      providers: [
+        LoginRateLimitService,
+        { provide: REDIS_CLIENT, useValue: mockRedis },
+        createMockPinoLogger('LoginRateLimitService'),
+      ],
     }).compile();
 
     service = module.get(LoginRateLimitService);

@@ -8,6 +8,7 @@ import { REDIS_CLIENT } from '@spechive/nestjs-common/redis';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { AuthController } from '../src/modules/auth/auth.controller';
 import { AuthService } from '../src/modules/auth/auth.service';
 import { LoginRateLimitService } from '../src/modules/auth/login-rate-limit.service';
@@ -75,6 +76,7 @@ describe('AuthController', () => {
             }),
           },
         },
+        createMockPinoLogger('LoginRateLimitService'),
       ],
     }).compile();
 

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import {
+  createLoggerModule,
   createS3ModuleOptions,
   DatabaseModule,
   GatewayTrustGuard,
@@ -18,6 +19,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 @Module({
   imports: [
     ConfigModule,
+    createLoggerModule(),
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),

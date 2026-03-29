@@ -9,7 +9,8 @@ export { bootstrapNestApp } from './bootstrap/bootstrap-app';
 export type { BootstrapOptions } from './bootstrap/bootstrap-app';
 export { isProductionEnv } from './utils/env-helpers';
 export { escapeLikePattern } from './utils/like-escape';
-export { extractPgError, isRetryablePgError, DEFAULT_RETRYABLE_PG_CODES } from './utils/pg-error';
+export { extractPgError, DEFAULT_RETRYABLE_PG_CODES } from './utils/pg-error';
+export type { PgErrorInfo } from './utils/pg-error';
 export { RetryableError } from './errors/retryable.error';
 export { parseExpiry, parseExpirySeconds } from './utils/parse-expiry';
 export { IS_PRODUCTION, isProductionProvider } from './providers/is-production.provider';
@@ -30,6 +31,9 @@ export { S3_CLIENT, S3_BUCKET } from './s3/s3.constants';
 export type { S3ModuleConfig } from './s3/s3.constants';
 export { createS3ModuleOptions } from './s3/s3.factory';
 export type { S3FactoryEnvConfig } from './s3/s3.factory';
+
+export { createLoggerModule } from './logger/create-logger-module';
+export { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 
 export { createOutboxyAdapter, createOutboxyModuleConfig } from './outboxy/index';
 

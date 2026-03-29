@@ -5,6 +5,7 @@ import { ArtifactType } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import { ArtifactUploadHandler } from '../../src/modules/result-processor/handlers/artifact-upload.handler';
 
 describe('ArtifactUploadHandler', () => {
@@ -21,6 +22,7 @@ describe('ArtifactUploadHandler', () => {
       providers: [
         ArtifactUploadHandler,
         { provide: S3Service, useValue: { headObject: mockHeadObject } },
+        createMockPinoLogger('ArtifactUploadHandler'),
       ],
     }).compile();
 

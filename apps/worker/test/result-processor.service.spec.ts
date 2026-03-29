@@ -5,6 +5,7 @@ import { INBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { DATABASE_CONNECTION, RetryableError } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { EVENT_HANDLER_KEY, type IEventHandler } from '../src/modules/result-processor/handlers';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
 import type { OutboxyEvent } from '../src/types/outboxy-envelope';
@@ -118,6 +119,7 @@ describe('ResultProcessorService', () => {
         { provide: INBOXY_CLIENT, useValue: mockInbox },
         { provide: DiscoveryService, useValue: mockDiscovery },
         { provide: Reflector, useValue: mockReflector },
+        createMockPinoLogger('ResultProcessorService'),
       ],
     }).compile();
 

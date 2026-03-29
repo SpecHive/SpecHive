@@ -41,4 +41,31 @@ export default [
       '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
+  {
+    files: ['**/apps/*/src/**/*.ts', '**/packages/*/src/**/*.ts'],
+    ignores: ['**/__tests__/**', '**/*.spec.ts', '**/*.test.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Logger']",
+          message:
+            'Use @InjectPinoLogger() from nestjs-pino instead of new Logger(). See structured logging docs.',
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@nestjs/common',
+              importNames: ['Logger'],
+              message:
+                'Import PinoLogger from nestjs-pino (or from @spechive/nestjs-common) instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];

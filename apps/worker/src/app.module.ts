@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 import {
+  createLoggerModule,
   createOutboxyModuleConfig,
   createS3ModuleOptions,
   DatabaseModule,
@@ -21,6 +22,7 @@ import { WebhookReceiverModule } from './modules/webhook-receiver/webhook-receiv
 @Module({
   imports: [
     ConfigModule,
+    createLoggerModule(),
     ScheduleModule.forRoot(),
     IsProductionModule,
     HealthModule,

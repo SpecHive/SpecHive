@@ -5,11 +5,11 @@ import {
   HttpStatus,
   Inject,
   InternalServerErrorException,
-  Logger,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { IS_PRODUCTION, RetryableError, throwZodBadRequest } from '@spechive/nestjs-common';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 
 import { WebhookAuthGuard } from '../../guards/webhook-auth.guard';
 import { OutboxyBatchSchema } from '../../types/outboxy-envelope';
@@ -18,9 +18,8 @@ import { ResultProcessorService } from '../result-processor/result-processor.ser
 @Controller('webhooks')
 @UseGuards(WebhookAuthGuard)
 export class WebhookReceiverController {
-  private readonly logger = new Logger(WebhookReceiverController.name);
-
   constructor(
+    @InjectPinoLogger(WebhookReceiverController.name) private readonly logger: PinoLogger,
     private readonly resultProcessor: ResultProcessorService,
     @Inject(IS_PRODUCTION) private readonly isProduction: boolean,
   ) {}
@@ -40,26 +39,28 @@ export class WebhookReceiverController {
 
     const sortedEvents = this.resultProcessor.sortEventsByPriority(events);
 
-    this.logger.log(`Received Outboxy batch: ${sortedEvents.length} events`);
+    this.logger.info(`Received Outboxy batch: ${sortedEvents.length} events`);
 
     const failedEventIds: string[] = [];
     let retryableCount = 0;
 
     for (const event of sortedEvents) {
-      this.logger.log(`Processing event: ${event.eventType}`);
+      this.logger.info(`Processing event: ${event.eventType}`);
       try {
         await this.resultProcessor.processEvent(event);
       } catch (error) {
         failedEventIds.push(event.eventId);
 
-        const msg = error instanceof Error ? error.message : String(error);
-
         if (error instanceof RetryableError) {
           retryableCount++;
-          this.logger.warn(`Retryable: event ${event.eventId} (${event.eventType}): ${msg}`);
+          this.logger.warn(
+            { err: error, eventId: event.eventId, eventType: event.eventType },
+            'Retryable event processing failure',
+          );
         } else {
           this.logger.error(
-            `Failed to process event ${event.eventId} (${event.eventType}): ${msg}`,
+            { err: error, eventId: event.eventId, eventType: event.eventType },
+            'Failed to process event',
           );
         }
       }

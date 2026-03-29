@@ -10,30 +10,42 @@ const {
   mockEnableShutdownHooks,
   mockEnableCors,
   mockUseGlobalFilters,
+  mockUseGlobalInterceptors,
+  mockUseLogger,
   mockListen,
   mockGet,
+  mockResolve,
   mockApp,
 } = vi.hoisted(() => {
   const mockRegister = vi.fn().mockResolvedValue(undefined);
   const mockEnableShutdownHooks = vi.fn();
   const mockEnableCors = vi.fn();
   const mockUseGlobalFilters = vi.fn();
+  const mockUseGlobalInterceptors = vi.fn();
+  const mockUseLogger = vi.fn();
   const mockListen = vi.fn().mockResolvedValue(undefined);
   const mockGet = vi.fn();
+  const mockResolve = vi.fn().mockResolvedValue({ setContext: vi.fn() });
 
   return {
     mockRegister,
     mockEnableShutdownHooks,
     mockEnableCors,
     mockUseGlobalFilters,
+    mockUseGlobalInterceptors,
+    mockUseLogger,
     mockListen,
     mockGet,
+    mockResolve,
     mockApp: {
       enableShutdownHooks: mockEnableShutdownHooks,
       register: mockRegister,
       get: mockGet,
+      resolve: mockResolve,
       enableCors: mockEnableCors,
       useGlobalFilters: mockUseGlobalFilters,
+      useGlobalInterceptors: mockUseGlobalInterceptors,
+      useLogger: mockUseLogger,
       listen: mockListen,
     },
   };
@@ -69,7 +81,9 @@ describe('bootstrapNestApp', () => {
     setupConfigMock();
     await bootstrapNestApp({ module: FakeModule });
 
-    expect(NestFactory.create).toHaveBeenCalledWith(FakeModule, expect.any(FastifyAdapter), {});
+    expect(NestFactory.create).toHaveBeenCalledWith(FakeModule, expect.any(FastifyAdapter), {
+      bufferLogs: true,
+    });
   });
 
   it('enables shutdown hooks', async () => {
@@ -144,5 +158,26 @@ describe('bootstrapNestApp', () => {
     setupConfigMock();
 
     await expect(bootstrapNestApp({ module: FakeModule })).resolves.toBeUndefined();
+  });
+
+  it('attaches LoggerErrorInterceptor globally', async () => {
+    setupConfigMock();
+    await bootstrapNestApp({ module: FakeModule });
+
+    expect(mockUseGlobalInterceptors).toHaveBeenCalled();
+  });
+
+  it('sets pino Logger as the app logger', async () => {
+    setupConfigMock();
+    await bootstrapNestApp({ module: FakeModule });
+
+    expect(mockUseLogger).toHaveBeenCalled();
+  });
+
+  it('resolves PinoLogger for the exception filter', async () => {
+    setupConfigMock();
+    await bootstrapNestApp({ module: FakeModule });
+
+    expect(mockResolve).toHaveBeenCalled();
   });
 });

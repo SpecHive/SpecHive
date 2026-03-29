@@ -4,6 +4,7 @@ import { TestStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import { TestEndHandler } from '../../src/modules/result-processor/handlers/test-end.handler';
 
 describe('TestEndHandler', () => {
@@ -17,7 +18,7 @@ describe('TestEndHandler', () => {
     mocks.update.returning.mockResolvedValue([{ name: 'should login' }]);
 
     const module = await Test.createTestingModule({
-      providers: [TestEndHandler],
+      providers: [TestEndHandler, createMockPinoLogger('TestEndHandler')],
     }).compile();
 
     handler = module.get(TestEndHandler);

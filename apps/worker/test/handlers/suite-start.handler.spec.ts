@@ -3,6 +3,7 @@ import type { RunId, SuiteId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import { SuiteStartHandler } from '../../src/modules/result-processor/handlers/suite-start.handler';
 
 describe('SuiteStartHandler', () => {
@@ -14,7 +15,7 @@ describe('SuiteStartHandler', () => {
     ({ ctx, mocks } = createHandlerContext());
 
     const module = await Test.createTestingModule({
-      providers: [SuiteStartHandler],
+      providers: [SuiteStartHandler, createMockPinoLogger('SuiteStartHandler')],
     }).compile();
 
     handler = module.get(SuiteStartHandler);

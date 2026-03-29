@@ -1,10 +1,14 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { DATABASE_CONNECTION } from '@spechive/nestjs-common';
-import { ProjectTokenGuard } from '@spechive/nestjs-common';
-import type { ProjectContext } from '@spechive/nestjs-common';
+import {
+  DATABASE_CONNECTION,
+  ProjectTokenGuard,
+  type ProjectContext,
+} from '@spechive/nestjs-common';
 import { verify } from 'argon2';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 
 vi.mock('argon2', () => ({
   verify: vi.fn(),
@@ -41,7 +45,11 @@ describe('ProjectTokenGuard', () => {
     vi.clearAllMocks();
 
     const module = await Test.createTestingModule({
-      providers: [ProjectTokenGuard, { provide: DATABASE_CONNECTION, useValue: mockDb }],
+      providers: [
+        ProjectTokenGuard,
+        { provide: DATABASE_CONNECTION, useValue: mockDb },
+        createMockPinoLogger('ProjectTokenGuard'),
+      ],
     }).compile();
 
     guard = module.get(ProjectTokenGuard);

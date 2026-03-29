@@ -1,17 +1,21 @@
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { IS_PRODUCTION, RetryableError } from '@spechive/nestjs-common';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 import { createWebhookPayload } from '../../../test/helpers/factories/webhook.factory';
+import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { WebhookAuthGuard } from '../src/guards/webhook-auth.guard';
 import { ResultProcessorService } from '../src/modules/result-processor/result-processor.service';
 import { WebhookReceiverController } from '../src/modules/webhook-receiver/webhook-receiver.controller';
 
 const WEBHOOK_SECRET = 'test-secret-123';
+
+const mockLoggerProvider = createMockPinoLogger('WebhookReceiverController');
+const mockLogger = mockLoggerProvider.useValue;
 
 describe('WebhookReceiverController', () => {
   let app: NestFastifyApplication;
@@ -37,6 +41,7 @@ describe('WebhookReceiverController', () => {
           },
         },
         WebhookAuthGuard,
+        mockLoggerProvider,
       ],
     }).compile();
 
@@ -99,18 +104,10 @@ describe('WebhookReceiverController', () => {
   });
 
   describe('error handling', () => {
-    let warnSpy: ReturnType<typeof vi.spyOn>;
-    let errorSpy: ReturnType<typeof vi.spyOn>;
-
     beforeEach(() => {
       mockProcessEvent.mockReset();
-      warnSpy = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-      errorSpy = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
-    });
-
-    afterEach(() => {
-      warnSpy.mockRestore();
-      errorSpy.mockRestore();
+      (mockLogger.warn as Mock).mockClear();
+      (mockLogger.error as Mock).mockClear();
     });
 
     it('logs retryable failure at warn level, not error', async () => {
@@ -124,10 +121,14 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const warnCalls = warnSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-      expect(warnCalls.some((msg: string) => msg.includes('Retryable:'))).toBe(true);
+      const warnCalls = (mockLogger.warn as Mock).mock.calls.map((c: unknown[]) =>
+        JSON.stringify(c),
+      );
+      expect(warnCalls.some((msg: string) => msg.includes('Retryable'))).toBe(true);
 
-      const errorCalls = errorSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
+        JSON.stringify(c),
+      );
       expect(errorCalls.some((msg: string) => msg.includes('Failed to process event'))).toBe(false);
     });
 
@@ -142,11 +143,15 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const errorCalls = errorSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
+        JSON.stringify(c),
+      );
       expect(errorCalls.some((msg: string) => msg.includes('Failed to process event'))).toBe(true);
 
-      const warnCalls = warnSpy.mock.calls.map((c: unknown[]) => String(c[0]));
-      expect(warnCalls.some((msg: string) => msg.includes('Retryable:'))).toBe(false);
+      const warnCalls = (mockLogger.warn as Mock).mock.calls.map((c: unknown[]) =>
+        JSON.stringify(c),
+      );
+      expect(warnCalls.some((msg: string) => msg.includes('Retryable'))).toBe(false);
     });
 
     it('logs summary at error level for mixed batch with non-retryable failures', async () => {
@@ -183,7 +188,9 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const errorCalls = errorSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
+        JSON.stringify(c),
+      );
       expect(errorCalls.some((msg: string) => msg.includes('0 retryable'))).toBe(true);
     });
   });

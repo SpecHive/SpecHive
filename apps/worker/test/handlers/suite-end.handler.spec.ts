@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { OrganizationId, ProjectId, RunId, SuiteId } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { createMockPinoLogger } from '../../../../test/unit-helpers/mock-logger';
 import type { EventHandlerContext } from '../../src/modules/result-processor/handlers/event-handler.interface';
 import { SuiteEndHandler } from '../../src/modules/result-processor/handlers/suite-end.handler';
 
@@ -17,7 +18,7 @@ describe('SuiteEndHandler', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [SuiteEndHandler],
+      providers: [SuiteEndHandler, createMockPinoLogger('SuiteEndHandler')],
     }).compile();
 
     handler = module.get(SuiteEndHandler);

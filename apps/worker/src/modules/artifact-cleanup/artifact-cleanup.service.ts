@@ -1,8 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import type { Database } from '@spechive/database';
 import { DATABASE_CONNECTION, S3Service } from '@spechive/nestjs-common';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import { sql } from 'drizzle-orm';
 
 import type { EnvConfig } from '../config/env.validation';
@@ -12,9 +13,8 @@ const MAX_ITERATIONS = 100;
 
 @Injectable()
 export class ArtifactCleanupService {
-  private readonly logger = new Logger(ArtifactCleanupService.name);
-
   constructor(
+    @InjectPinoLogger(ArtifactCleanupService.name) private readonly logger: PinoLogger,
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     private readonly s3: S3Service,
     private readonly config: ConfigService<EnvConfig>,
@@ -30,7 +30,7 @@ export class ArtifactCleanupService {
       );
 
       if (!locked) {
-        this.logger.log('Artifact cleanup already in progress, skipping');
+        this.logger.info('Artifact cleanup already in progress, skipping');
         return;
       }
 
@@ -63,9 +63,12 @@ export class ArtifactCleanupService {
           await this.s3.deleteMany(storagePaths);
           await tx.execute(sql`SELECT delete_artifacts_by_ids(${ids}::uuid[])`);
           totalDeleted += expired.length;
-          this.logger.log(`Deleted batch of ${expired.length} expired artifact(s)`);
+          this.logger.info(`Deleted batch of ${expired.length} expired artifact(s)`);
         } catch (error) {
-          this.logger.error(`Failed to delete batch of ${expired.length} artifact(s)`, error);
+          this.logger.error(
+            { err: error, batchSize: expired.length },
+            'Failed to delete artifact batch',
+          );
           break;
         }
       }
@@ -76,7 +79,7 @@ export class ArtifactCleanupService {
         );
       }
 
-      this.logger.log(`Artifact cleanup complete: ${totalDeleted} artifact(s) deleted`);
+      this.logger.info(`Artifact cleanup complete: ${totalDeleted} artifact(s) deleted`);
     });
   }
 }

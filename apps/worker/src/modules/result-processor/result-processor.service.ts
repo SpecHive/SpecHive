@@ -1,9 +1,15 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
 import { type Database, setTenantContext } from '@spechive/database';
 import type { Transaction } from '@spechive/database';
-import { DATABASE_CONNECTION, RetryableError, isRetryablePgError } from '@spechive/nestjs-common';
+import {
+  DATABASE_CONNECTION,
+  DEFAULT_RETRYABLE_PG_CODES,
+  RetryableError,
+  extractPgError,
+} from '@spechive/nestjs-common';
+import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import { EnrichedEventEnvelopeSchema, type V1Event } from '@spechive/reporter-core-protocol';
 import { type OrganizationId, type ProjectId } from '@spechive/shared-types';
 
@@ -25,10 +31,10 @@ const EVENT_PRIORITY: Record<string, number> = {
 
 @Injectable()
 export class ResultProcessorService implements OnModuleInit {
-  private readonly logger = new Logger(ResultProcessorService.name);
   private handlerMap!: Map<V1Event['eventType'], IEventHandler>;
 
   constructor(
+    @InjectPinoLogger(ResultProcessorService.name) private readonly logger: PinoLogger,
     @Inject(DATABASE_CONNECTION) private readonly db: Database,
     @Inject(INBOXY_CLIENT) private readonly inbox: InboxyClient<Transaction>,
     private readonly discovery: DiscoveryService,
@@ -45,16 +51,14 @@ export class ResultProcessorService implements OnModuleInit {
       .map((wrapper) => wrapper.instance as IEventHandler);
 
     this.handlerMap = new Map(handlers.map((h) => [h.eventType, h]));
-    this.logger.log(`Discovered ${this.handlerMap.size} event handlers`);
+    this.logger.info(`Discovered ${this.handlerMap.size} event handlers`);
   }
 
   async processEvent(envelope: OutboxyEvent): Promise<void> {
     const parsed = EnrichedEventEnvelopeSchema.safeParse(envelope.payload);
 
     if (!parsed.success) {
-      this.logger.error(
-        `Invalid event envelope (eventId=${envelope.eventId}): ${parsed.error.message}`,
-      );
+      this.logger.error({ err: parsed.error, eventId: envelope.eventId }, 'Invalid event envelope');
       return;
     }
 
@@ -91,11 +95,12 @@ export class ResultProcessorService implements OnModuleInit {
     } catch (error) {
       // Already classified by handler (e.g., artifact S3 not found) — propagate as-is.
       // Guard also prevents double-wrapping: RetryableError with a PG cause would
-      // match isRetryablePgError() below and get wrapped again without this check.
+      // match the retryable check below and get wrapped again without this check.
       if (error instanceof RetryableError) throw error;
 
       // Auto-classify known PG errors as retryable (cross-batch dependency ordering).
-      if (isRetryablePgError(error)) {
+      const pgErr = extractPgError(error);
+      if (pgErr && DEFAULT_RETRYABLE_PG_CODES.has(pgErr.code)) {
         throw new RetryableError(
           `Dependency not ready for ${envelope.eventType} (eventId=${envelope.eventId})`,
           { cause: error },
