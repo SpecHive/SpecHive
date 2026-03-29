@@ -1,14 +1,3 @@
-/**
- * Graceful shutdown integration test.
- *
- * Verifies that query-api cleanly closes database and S3 connections
- * when receiving SIGTERM.
- *
- * Requires Docker services running (Postgres, MinIO) and query-api built:
- *   pnpm build
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- */
-
 import { type ChildProcess, spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 

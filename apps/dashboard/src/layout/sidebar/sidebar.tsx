@@ -37,7 +37,6 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
-      {/* Top: Logo + Org context */}
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <SpecHiveLogo className="h-5 w-5 shrink-0 text-green-500" />
         {organization ? (
@@ -50,7 +49,6 @@ export function Sidebar() {
         ))}
       </div>
 
-      {/* Middle: Navigation */}
       <nav className="flex-1 space-y-1 p-4" aria-label="Main navigation">
         {allNavItems.map(({ label, href, icon: Icon }) => (
           <NavLink
@@ -72,7 +70,6 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Plugin widgets */}
       {sidebarWidgets.length > 0 && (
         <div className="border-t px-4 py-3 [&:not(:has(*))]:hidden">
           {sidebarWidgets.map((w, i) => (
@@ -81,7 +78,6 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Bottom: Compact user row */}
       {user && (
         <div className="border-t px-4 py-3">
           <div className="flex items-center gap-2">

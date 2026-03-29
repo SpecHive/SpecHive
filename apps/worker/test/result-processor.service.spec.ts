@@ -48,7 +48,6 @@ function createMockHandler(eventType: string): IEventHandler {
   };
 }
 
-// Unique class identities for reflector matching
 class MockRunStartHandler {}
 class MockRunEndHandler {}
 class MockSuiteStartHandler {}

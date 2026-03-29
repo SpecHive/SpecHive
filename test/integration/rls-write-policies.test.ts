@@ -1,15 +1,3 @@
-/**
- * RLS write-path (INSERT/UPDATE) isolation tests.
- *
- * Verifies that the app role (`spechive_app`) cannot insert or update rows
- * across tenant boundaries. Requires Docker Compose postgres with a migrated
- * database:
- *   docker compose up -d postgres && pnpm db:migrate
- *
- * Run with:
- *   pnpm test:integration:db
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import {
@@ -18,7 +6,6 @@ import {
   createPostgresConnection,
 } from '../helpers/database';
 
-// Deterministic UUIDs for two organizations and their data
 const ORG_A_ID = '00000000-0000-4000-b000-aaaaaaaaaaaa';
 const ORG_B_ID = '00000000-0000-4000-b000-bbbbbbbbbbbb';
 const PROJECT_A_ID = '00000000-0000-4000-b000-aaaa00000001';
@@ -34,7 +21,6 @@ const ARTIFACT_B_ID = '00000000-0000-4000-b000-bbbb00000040';
 const TOKEN_A_ID = '00000000-0000-4000-b000-aaaa00000050';
 const TOKEN_B_ID = '00000000-0000-4000-b000-bbbb00000050';
 
-// Extra IDs for INSERT tests
 const NEW_PROJECT_ID = '00000000-0000-4000-b000-aaaa00000099';
 const NEW_TOKEN_ID = '00000000-0000-4000-b000-aaaa00000098';
 
@@ -48,7 +34,6 @@ describe('RLS write-path isolation', () => {
 
     await superSql`SELECT 1`;
 
-    // Clean up leftover test data (reverse dependency order)
     await superSql`DELETE FROM artifacts WHERE id IN (${ARTIFACT_A_ID}, ${ARTIFACT_B_ID})`;
     await superSql`DELETE FROM tests WHERE id IN (${TEST_A_ID}, ${TEST_B_ID})`;
     await superSql`DELETE FROM suites WHERE id IN (${SUITE_A_ID}, ${SUITE_B_ID})`;
@@ -57,7 +42,6 @@ describe('RLS write-path isolation', () => {
     await superSql`DELETE FROM projects WHERE id IN (${PROJECT_A_ID}, ${PROJECT_B_ID}, ${NEW_PROJECT_ID})`;
     await superSql`DELETE FROM organizations WHERE id IN (${ORG_A_ID}, ${ORG_B_ID})`;
 
-    // Seed two orgs with data (as superuser, bypasses RLS)
     await superSql`
       INSERT INTO organizations (id, name, slug)
       VALUES
@@ -117,7 +101,6 @@ describe('RLS write-path isolation', () => {
 
   describe('INSERT isolation: projects', () => {
     afterAll(async () => {
-      // Clean up any project we may have inserted
       await superSql`DELETE FROM projects WHERE id = ${NEW_PROJECT_ID}`;
     });
 
@@ -130,11 +113,9 @@ describe('RLS write-path isolation', () => {
         `;
       });
 
-      // Verify via superuser
       const rows = await superSql`SELECT id FROM projects WHERE id = ${NEW_PROJECT_ID}`;
       expect(rows.length).toBe(1);
 
-      // Clean up for next test
       await superSql`DELETE FROM projects WHERE id = ${NEW_PROJECT_ID}`;
     });
 
@@ -149,7 +130,6 @@ describe('RLS write-path isolation', () => {
         }),
       ).rejects.toThrow();
 
-      // Verify nothing was inserted
       const rows = await superSql`SELECT id FROM projects WHERE id = ${NEW_PROJECT_ID}`;
       expect(rows.length).toBe(0);
     });
@@ -165,7 +145,6 @@ describe('RLS write-path isolation', () => {
       const rows = await superSql`SELECT name FROM projects WHERE id = ${PROJECT_A_ID}`;
       expect(rows[0]!.name).toBe('Updated Project A');
 
-      // Restore original name
       await superSql`UPDATE projects SET name = 'Write Project A' WHERE id = ${PROJECT_A_ID}`;
     });
 
@@ -176,7 +155,6 @@ describe('RLS write-path isolation', () => {
         expect(result.count).toBe(0);
       });
 
-      // Verify org B project unchanged
       const rows = await superSql`SELECT name FROM projects WHERE id = ${PROJECT_B_ID}`;
       expect(rows[0]!.name).toBe('Write Project B');
     });

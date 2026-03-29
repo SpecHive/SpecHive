@@ -1,10 +1,3 @@
-/**
- * Cross-tenant analytics isolation integration test (FIX-009).
- *
- * Verifies RLS policies prevent one organization from accessing
- * another organization's analytics data through the query-api.
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { QueryApiClient } from '../helpers/api-clients';
@@ -36,7 +29,6 @@ describe('Cross-tenant analytics isolation', () => {
 
     await waitForService(GATEWAY_URL);
 
-    // Seed Org B project + run + suite + test
     await sql`
       INSERT INTO projects (id, organization_id, name, created_at, updated_at)
       VALUES (${ORG_B_PROJECT_ID}, ${SEED_ORG2_ID}, 'Org B Project', NOW(), NOW())
@@ -62,7 +54,7 @@ describe('Cross-tenant analytics isolation', () => {
       ON CONFLICT (id, created_at) DO NOTHING
     `;
 
-    // Analytics endpoints query daily_run_stats, not runs directly
+    // Analytics endpoints query daily_run_stats, not raw runs
     await sql`
       INSERT INTO daily_run_stats (project_id, organization_id, day,
         total_runs, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests,
@@ -81,7 +73,6 @@ describe('Cross-tenant analytics isolation', () => {
   }, 30_000);
 
   afterAll(async () => {
-    // Delete Org B test data in reverse FK order
     await sql`DELETE FROM daily_run_stats WHERE project_id = ${ORG_B_PROJECT_ID}`;
     await sql`DELETE FROM tests WHERE id = ${ORG_B_TEST_ID}`;
     await sql`DELETE FROM suites WHERE id = ${ORG_B_SUITE_ID}`;

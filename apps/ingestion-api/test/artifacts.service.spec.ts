@@ -59,7 +59,6 @@ describe('ArtifactsService', () => {
       ORG_ID,
     );
 
-    // basename strips directory components, sanitize handles remaining chars
     expect(result.storagePath).not.toContain('..');
     expect(result.storagePath).not.toContain('/etc/');
   });

@@ -116,7 +116,6 @@ describe('ArtifactCleanupService', () => {
   it('stops after MAX_ITERATIONS and logs warning', async () => {
     const batch = [{ artifact_id: 'art-1', storage_path: 'path/1.png' }];
     mockExecute.mockResolvedValueOnce([{ locked: true }]);
-    // Return a non-empty batch for every fetch, and succeed for every delete
     mockExecute.mockResolvedValue(batch);
     mockS3.deleteMany.mockResolvedValue(undefined);
 

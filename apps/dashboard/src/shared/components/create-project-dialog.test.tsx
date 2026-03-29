@@ -166,7 +166,6 @@ describe('CreateProjectDialog', () => {
     expect(screen.getByRole('button', { name: /creating/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeDisabled();
 
-    // Resolve to clean up
     resolvePost!({
       id: 'p-1',
       name: 'Test',
@@ -182,7 +181,6 @@ describe('CreateProjectDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
     unmount();
 
-    // Re-render as open
     renderDialog();
     expect(screen.getByLabelText('Name')).toHaveValue('');
   });

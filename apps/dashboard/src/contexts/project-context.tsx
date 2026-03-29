@@ -28,7 +28,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const isAllSelected = selectedIds.length === 0 || selectedIds.length === projects.length;
 
-  // Derive the effective selection: filter out stale IDs; fall back to all if nothing remains
   const selectedProjectIds = useMemo(() => {
     if (selectedIds.length === 0) {
       return projects.map((p) => p.id);

@@ -5,10 +5,8 @@ export interface CiInfo {
   ciProvider?: string;
 }
 
-/** Internal type where values may be undefined before stripping. */
 type RawCiInfo = { [K in keyof CiInfo]: string | undefined };
 
-/** Remove keys whose value is undefined so we don't serialize noisy payloads. */
 function stripUndefined(obj: RawCiInfo): CiInfo {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as CiInfo;
 }

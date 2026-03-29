@@ -1,12 +1,3 @@
-/**
- * Members API integration test for query-api.
- *
- * Verifies:
- * - GET /v1/members returns the org's membership list
- *
- * Requires the full Docker Compose stack running.
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -56,7 +47,6 @@ describe('Members API', () => {
     expect(body.data.length).toBeGreaterThan(0);
     expect(body.meta.total).toBeGreaterThan(0);
 
-    // The seeded user should be present
     const seedMember = body.data.find((m) => m.email === SEED_EMAIL);
     expect(seedMember).toBeDefined();
     expect(seedMember!.role).toBe('owner');

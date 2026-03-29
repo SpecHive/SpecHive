@@ -53,14 +53,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [applyTheme],
   );
 
-  // Initialize theme on mount
   useEffect(() => {
     const stored = getStoredTheme();
     setThemeState(stored);
     applyTheme(stored);
   }, [applyTheme]);
 
-  // Listen for system theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 

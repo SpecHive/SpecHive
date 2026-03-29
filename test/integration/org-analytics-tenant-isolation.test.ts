@@ -1,13 +1,3 @@
-/**
- * Cross-tenant org-level analytics isolation integration test.
- *
- * Verifies RLS policies prevent one organization from seeing another
- * organization's data through the org-level analytics endpoints.
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { QueryApiClient } from '../helpers/api-clients';
@@ -37,7 +27,6 @@ describe('Cross-tenant org-level analytics isolation', () => {
     sql = await createPostgresConnection(buildSuperuserDatabaseUrl());
     await waitForService(GATEWAY_URL);
 
-    // Seed Org A project + analytics data (own project to avoid collision with analytics-endpoints tests)
     const today = new Date().toISOString().slice(0, 10);
 
     await sql`
@@ -67,7 +56,6 @@ describe('Cross-tenant org-level analytics isolation', () => {
         flaky_count = 2, total_count = 8, total_retries = 3
     `;
 
-    // Seed Org B project + analytics data
     await sql`
       INSERT INTO projects (id, organization_id, name, created_at, updated_at)
       VALUES (${ORG_B_PROJECT_ID}, ${SEED_ORG2_ID}, ${ORG_B_PROJECT_NAME}, NOW(), NOW())
@@ -120,16 +108,12 @@ describe('Cross-tenant org-level analytics isolation', () => {
     const a = bodyA as Record<string, unknown>;
     const b = bodyB as Record<string, unknown>;
 
-    // Org A seeded 7 runs, Org B seeded 3 runs — neither should see the other's
     expect(a['totalRuns']).toBeGreaterThanOrEqual(7);
     expect(b['totalRuns']).toBeGreaterThanOrEqual(3);
 
-    // Org A should not include Org B's 30 tests
     expect(a['totalTests']).toBeGreaterThanOrEqual(70);
-    // Org B should not include Org A's 70 tests
     expect(b['totalTests'] as number).toBeLessThanOrEqual(30);
 
-    // Org B has exactly 1 project
     expect(b['projectCount']).toBe(1);
   });
 
@@ -141,7 +125,6 @@ describe('Cross-tenant org-level analytics isolation', () => {
     const response = body as { projects: Array<Record<string, unknown>> };
     const projectIds = response.projects.map((i) => i['projectId'] as string);
 
-    // Should not contain Org B's project
     expect(projectIds).not.toContain(ORG_B_PROJECT_ID);
   });
 
@@ -153,7 +136,6 @@ describe('Cross-tenant org-level analytics isolation', () => {
     const items = body as Array<Record<string, unknown>>;
     const testNames = items.map((i) => i['testName'] as string);
 
-    // Org A should see its own flaky test, not Org B's
     expect(testNames).toContain('Org A flaky test');
     expect(testNames).not.toContain('Org B secret test');
   });

@@ -1,13 +1,3 @@
-/**
- * Integration test for the flakyTests counter.
- *
- * Sends a test.end event with status 'flaky' through the ingestion pipeline
- * and verifies the run's flakyTests counter increments correctly.
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient, QueryApiClient } from '../helpers/api-clients';
@@ -52,11 +42,9 @@ describe('Flaky tests counter', () => {
   });
 
   it('increments flakyTests counter on test.end with status flaky', async () => {
-    // 1. Start run
     await ingestionApi.events.send(createRunStartEvent({ runId: RUN_ID }));
     await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`);
 
-    // 2. Start suite
     await ingestionApi.events.send(
       createSuiteStartEvent({
         runId: RUN_ID,
@@ -65,7 +53,6 @@ describe('Flaky tests counter', () => {
     );
     await waitForRow(() => sql`SELECT * FROM suites WHERE id = ${SUITE_ID}`);
 
-    // 3. Start and end a flaky test
     await ingestionApi.events.send(
       createTestStartEvent({
         runId: RUN_ID,
@@ -85,7 +72,6 @@ describe('Flaky tests counter', () => {
       }),
     );
 
-    // 4. Start and end a passing test
     await ingestionApi.events.send(
       createTestStartEvent({
         runId: RUN_ID,
@@ -101,12 +87,10 @@ describe('Flaky tests counter', () => {
       }),
     );
 
-    // 5. End run
     await ingestionApi.events.send(
       createRunEndEvent({ runId: RUN_ID, payload: { status: 'passed' } }),
     );
 
-    // Wait for run counters to update
     const finishedRun = await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${RUN_ID}`, {
       predicate: (row) => row['status'] === 'passed',
     });
@@ -114,7 +98,6 @@ describe('Flaky tests counter', () => {
     expect(finishedRun['passed_tests']).toBe(1);
     expect(finishedRun['flaky_tests']).toBe(1);
 
-    // 6. Verify the query API exposes flakyTests
     const { status: listStatus, body: listBody } = await queryApi.runs.list(jwt, SEED_PROJECT_ID);
     expect(listStatus).toBe(200);
     const matchingRun = listBody.data.find((r) => r['id'] === RUN_ID);
@@ -122,7 +105,6 @@ describe('Flaky tests counter', () => {
     expect(matchingRun).toHaveProperty('flakyTests');
     expect(typeof matchingRun!['flakyTests']).toBe('number');
 
-    // 7. Verify run detail also includes flakyTests
     const { status: detailStatus, body: detailBody } = await queryApi.runs.get(jwt, RUN_ID);
     expect(detailStatus).toBe(200);
     expect(detailBody['flakyTests']).toBe(1);

@@ -1,13 +1,3 @@
-/**
- * Register-with-invite integration test for query-api.
- *
- * Verifies:
- * - Invite registration flow (valid, expired, wrong email, used, duplicate email)
- * - Role assignment from invitation
- *
- * Requires the full Docker Compose stack running.
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -62,7 +52,6 @@ describe('Register with invitation', () => {
     expect(regRes.body.token).toBeDefined();
     expect(regRes.body.organization?.id).toBe(SEED_ORG_ID);
 
-    // Verify role via /v1/auth/me
     const meRes = await queryApi.auth.me(regRes.body.token, TEST_IP);
     expect(meRes.status).toBe(200);
     expect(meRes.body.role).toBe('member');
@@ -102,14 +91,12 @@ describe('Register with invitation', () => {
     const email1 = `first-${randomBytes(4).toString('hex')}@test.dev`;
     const email2 = `second-${randomBytes(4).toString('hex')}@test.dev`;
 
-    // First registration should succeed
     const res1 = await queryApi.auth.register(
       { email: email1, password: 'password123', name: 'First User', inviteToken },
       TEST_IP,
     );
     expect(res1.status).toBe(201);
 
-    // Second registration with same invite should fail
     const res2 = await queryApi.auth.register(
       { email: email2, password: 'password123', name: 'Second User', inviteToken },
       TEST_IP,
@@ -120,7 +107,6 @@ describe('Register with invitation', () => {
   it('rejects registration with revoked invite', async () => {
     const { id, token: inviteToken } = await createInvitation(ownerToken);
 
-    // Revoke the invitation
     await queryApi.auth.requestRaw('DELETE', `/v1/invitations/${id}`, {
       headers: { Authorization: `Bearer ${ownerToken}`, 'X-Forwarded-For': TEST_IP },
     });
@@ -174,7 +160,6 @@ describe('Register with invitation', () => {
   it('returns 409 when email already exists', async () => {
     const { token: inviteToken } = await createInvitation(ownerToken);
 
-    // Try registering with the seeded user's email
     const regRes = await queryApi.auth.register({
       email: SEED_EMAIL,
       password: 'password123',

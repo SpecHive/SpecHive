@@ -93,9 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [initializing, setInitializing] = useState(() => sessionState.user !== null);
   const navigate = useNavigate();
 
-  // On mount: if we have a stored session, silently refresh the access token from the httpOnly cookie
   useEffect(() => {
-    // Only runs once — sessionState.user is captured in the initializing state initializer
     let cancelled = false;
     if (sessionState.user) {
       apiClient.silentRefresh().then((newToken: string | null) => {

@@ -1,14 +1,3 @@
-/**
- * MinIO/S3 integration tests.
- *
- * Verifies the S3Service operations against a live MinIO instance.
- * Requires MinIO to be running via Docker Compose:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d minio minio-init
- *
- * Run with:
- *   pnpm test:integration test/integration/s3-minio.test.ts
- */
-
 import {
   S3Client,
   DeleteObjectCommand,
@@ -41,7 +30,6 @@ describe('MinIO/S3 integration tests', () => {
       forcePathStyle: true,
     });
 
-    // Verify MinIO is accessible - fail fast with clear message
     try {
       await s3Client.send(
         new ListObjectsV2Command({
@@ -58,10 +46,8 @@ describe('MinIO/S3 integration tests', () => {
     }
   }, 15_000);
 
-  // Helper to generate test key with prefix
   const testKey = (name: string) => `${testPrefix}${name}`;
 
-  // Helper to clean up test objects
   async function cleanupTestObjects(): Promise<void> {
     try {
       const listResponse = await s3Client.send(
@@ -106,7 +92,6 @@ describe('MinIO/S3 integration tests', () => {
         }),
       );
 
-      // Verify object exists by trying to get it
       const response = await s3Client.send(
         new GetObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -141,7 +126,6 @@ describe('MinIO/S3 integration tests', () => {
     });
 
     it('generates a presigned download URL', async () => {
-      // First upload an object
       await s3Client.send(
         new PutObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -150,7 +134,6 @@ describe('MinIO/S3 integration tests', () => {
         }),
       );
 
-      // Generate presigned URL
       const command = new GetObjectCommand({
         Bucket: MINIO_BUCKET,
         Key: key,
@@ -161,7 +144,6 @@ describe('MinIO/S3 integration tests', () => {
       expect(presignedUrl).toContain(key);
       expect(presignedUrl).toContain('X-Amz-Signature');
 
-      // Verify the URL works by fetching the object
       const response = await fetch(presignedUrl);
       expect(response.ok).toBe(true);
       const downloadedContent = await response.text();
@@ -174,7 +156,6 @@ describe('MinIO/S3 integration tests', () => {
     const content = 'This will be deleted';
 
     it('deletes an object', async () => {
-      // Upload an object
       await s3Client.send(
         new PutObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -183,7 +164,6 @@ describe('MinIO/S3 integration tests', () => {
         }),
       );
 
-      // Verify it exists
       const getResponse = await s3Client.send(
         new GetObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -192,7 +172,6 @@ describe('MinIO/S3 integration tests', () => {
       );
       expect(getResponse.ContentLength).toBeGreaterThan(0);
 
-      // Delete the object
       await s3Client.send(
         new DeleteObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -200,7 +179,6 @@ describe('MinIO/S3 integration tests', () => {
         }),
       );
 
-      // Verify it's gone
       try {
         await s3Client.send(
           new GetObjectCommand({
@@ -227,7 +205,6 @@ describe('MinIO/S3 integration tests', () => {
     });
 
     it('lists objects with a prefix', async () => {
-      // Upload test objects
       await Promise.all(
         keys.map((key) =>
           s3Client.send(
@@ -240,7 +217,6 @@ describe('MinIO/S3 integration tests', () => {
         ),
       );
 
-      // Upload an object with different prefix
       await s3Client.send(
         new PutObjectCommand({
           Bucket: MINIO_BUCKET,
@@ -249,7 +225,6 @@ describe('MinIO/S3 integration tests', () => {
         }),
       );
 
-      // List objects with prefix
       const response = await s3Client.send(
         new ListObjectsV2Command({
           Bucket: MINIO_BUCKET,
@@ -264,7 +239,6 @@ describe('MinIO/S3 integration tests', () => {
       const expectedKeys = keys.sort();
       expect(returnedKeys).toEqual(expectedKeys);
 
-      // Verify the other file is not in the list
       expect(response.Contents?.map((obj) => obj.Key)).not.toContain(otherKey);
     });
 

@@ -31,7 +31,6 @@ describe('ProjectsService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Chain mocks for select().from().orderBy().limit().offset()
     mockOffset.mockResolvedValue([
       { id: 'proj-1', name: 'Alpha', createdAt: new Date('2024-01-01') },
     ]);
@@ -40,7 +39,6 @@ describe('ProjectsService', () => {
     mockFrom.mockReturnValue({ orderBy: mockOrderBy });
     mockSelect.mockReturnValue({ from: mockFrom });
 
-    // Chain mocks for insert().values().returning()
     mockReturning.mockResolvedValue([
       {
         id: 'proj-new',
@@ -61,7 +59,6 @@ describe('ProjectsService', () => {
   });
 
   it('returns paginated projects with correct meta', async () => {
-    // First select returns projects, second select returns count
     mockSelect
       .mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
@@ -101,7 +98,6 @@ describe('ProjectsService', () => {
         }),
       }),
     });
-    // Count query
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         orderBy: vi.fn().mockReturnValue({
@@ -117,7 +113,6 @@ describe('ProjectsService', () => {
 
     await service.listProjects('org-1' as OrganizationId, { page: 1, pageSize: 20 });
 
-    // setTenantContext calls tx.execute
     expect(mockExecute).toHaveBeenCalled();
   });
 

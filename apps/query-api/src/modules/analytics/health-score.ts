@@ -1,15 +1,9 @@
 export interface HealthScoreInput {
-  /** 0-100 */
   passRate: number;
-  /** 0-100 */
   flakyRate: number;
-  /** 0-100 */
   skipRate: number;
-  /** Project's average test-run duration in milliseconds. */
   avgDurationMs: number;
-  /** Org-wide median duration used for normalization. */
   orgMedianDurationMs: number;
-  /** Number of projects contributing to the org median. */
   projectCount: number;
 }
 

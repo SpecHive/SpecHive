@@ -76,7 +76,6 @@ describe('TestsService', () => {
 
   describe('getTestById', () => {
     it('throws 404 when test not found', async () => {
-      // Test detail query (returns empty)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -85,14 +84,12 @@ describe('TestsService', () => {
         }),
       });
 
-      // Artifacts query (runs in parallel via Promise.all)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([]),
         }),
       });
 
-      // Attempts query (runs in parallel via Promise.all)
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -124,7 +121,6 @@ describe('TestsService', () => {
         updatedAt: new Date(),
       };
 
-      // First select: test detail
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
@@ -133,7 +129,6 @@ describe('TestsService', () => {
         }),
       });
 
-      // Second select: artifacts
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
@@ -150,7 +145,6 @@ describe('TestsService', () => {
         }),
       });
 
-      // Third select: attempts
       mockSelect.mockReturnValueOnce({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({

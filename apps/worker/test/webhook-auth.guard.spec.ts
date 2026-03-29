@@ -50,13 +50,11 @@ describe('WebhookAuthGuard', () => {
   });
 
   it('rejects secrets with different lengths via short-circuit before timingSafeEqual', () => {
-    // Provide a secret that differs in length from the expected one
     const context = makeContext({ 'x-webhook-secret': 'short' });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
   });
 
   it('rejects secrets with matching length but different content', () => {
-    // Same length as WEBHOOK_SECRET but different content
     const wrongSecret = 'x'.repeat(WEBHOOK_SECRET.length);
     const context = makeContext({ 'x-webhook-secret': wrongSecret });
     expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);

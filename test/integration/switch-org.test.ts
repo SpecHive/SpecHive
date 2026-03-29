@@ -1,18 +1,3 @@
-/**
- * Organization switching E2E integration test for query-api.
- *
- * Verifies:
- * - User can switch to a second organization
- * - New JWT is scoped to the target organization
- * - Data isolation: second org does not see first org's projects
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';

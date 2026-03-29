@@ -46,7 +46,6 @@ describe('RolesGuard', () => {
     });
     const guard = new RolesGuard(reflector);
 
-    // No user, but public route — should pass
     expect(guard.canActivate(createMockContext())).toBe(true);
   });
 

@@ -1,16 +1,3 @@
-/**
- * Profile & password management integration tests.
- *
- * Verifies:
- * - PATCH /v1/auth/profile updates name
- * - POST /v1/auth/change-password works with correct current password
- * - POST /v1/auth/change-password rejects wrong current password
- * - After password change, old credentials fail and new ones work
- * - After password change, old refresh tokens are revoked
- *
- * Requires the full Docker Compose stack running.
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -46,7 +33,6 @@ describe('Profile management', () => {
     expect(status).toBe(200);
     expect(body.name).toBe(newName);
 
-    // Verify GET /v1/auth/me returns the updated name
     const { body: meBody } = await queryApi.auth.me(token, TEST_IP);
     expect(meBody.name).toBe(newName);
   });
@@ -92,7 +78,6 @@ describe('Change password', () => {
     let preChangeRefreshCookie: string;
 
     beforeAll(async () => {
-      // Register a dedicated user and immediately change their password
       const { body, refreshCookie } = await queryApi.auth.register(
         {
           email: testEmail,

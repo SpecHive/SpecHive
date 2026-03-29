@@ -1,13 +1,3 @@
-/**
- * Crash simulation integration tests.
- *
- * These tests require the full Docker Compose stack to be running:
- *   pnpm docker:up
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { execSync } from 'node:child_process';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -17,10 +7,6 @@ import { GATEWAY_URL, INGESTION_URL, WORKER_URL, PROJECT_TOKEN } from '../helper
 import { createRunStartEvent, createWebhookPayload } from '../helpers/factories';
 import { waitForService } from '../helpers/wait';
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
 const WEBHOOK_SECRET = process.env['WEBHOOK_SECRET'] ?? 'change-me-in-production-testing!!';
 const POSTGRES_CONTAINER = process.env['POSTGRES_CONTAINER'] ?? 'spechive-postgres-1';
 
@@ -28,10 +14,6 @@ const ingestionApi = new IngestionApiClient(GATEWAY_URL, PROJECT_TOKEN);
 
 const RUN_ID = crypto.randomUUID();
 const VALID_TIMESTAMP = '2026-02-24T10:00:00.000Z';
-
-// ---------------------------------------------------------------------------
-// Helpers (crash-simulation-specific)
-// ---------------------------------------------------------------------------
 
 async function checkServiceHealth(url: string): Promise<boolean> {
   try {
@@ -68,16 +50,12 @@ async function waitForPostgres(maxAttempts = 30, delayMs = 1_000): Promise<void>
       );
       if (output.toString().includes('accepting connections')) return;
     } catch {
-      // Postgres not ready yet
+      // Not ready yet
     }
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
   throw new Error(`Postgres did not become ready within ${maxAttempts * delayMs}ms`);
 }
-
-// ---------------------------------------------------------------------------
-// Test suites
-// ---------------------------------------------------------------------------
 
 describe('Crash simulation: ingestion-api', () => {
   beforeAll(async () => {
@@ -109,7 +87,6 @@ describe('Crash simulation: ingestion-api', () => {
 
     expect(requestError === null || requestError instanceof Error).toBe(true);
 
-    // In publish-only mode, verify the service is still healthy after abort
     const healthRes = await fetch(`${INGESTION_URL}/health`);
     expect(healthRes.ok).toBe(true);
   });
@@ -216,24 +193,17 @@ describe('Crash simulation: worker', () => {
 
 describe('Crash simulation: postgres restart', () => {
   beforeAll(async () => {
-    // Verify Docker container is running - fail fast with clear message
     verifyDockerContainer(POSTGRES_CONTAINER);
     await waitForService(WORKER_URL);
     await waitForService(INGESTION_URL);
   }, 30_000);
 
   it('worker reconnects to postgres after restart', async () => {
-    // Verify worker is healthy before restart
     const beforeHealth = await checkServiceHealth(WORKER_URL);
     expect(beforeHealth).toBe(true);
 
-    // Restart postgres
     restartPostgresContainer();
-
-    // Wait for postgres to become ready again
     await waitForPostgres();
-
-    // Wait for worker to recover
     await waitForService(WORKER_URL, { maxAttempts: 30, delayMs: 1_000 });
 
     const afterHealth = await checkServiceHealth(WORKER_URL);

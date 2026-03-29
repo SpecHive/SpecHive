@@ -7,10 +7,6 @@ import {
   computeDurationScore,
 } from '../src/modules/analytics/health-score';
 
-// ---------------------------------------------------------------------------
-// computeOrgMedianDuration
-// ---------------------------------------------------------------------------
-
 describe('computeOrgMedianDuration', () => {
   it('returns 0 for empty array', () => {
     expect(computeOrgMedianDuration([])).toBe(0);
@@ -28,10 +24,6 @@ describe('computeOrgMedianDuration', () => {
     expect(computeOrgMedianDuration([100, 200, 300, 400])).toBe(250);
   });
 });
-
-// ---------------------------------------------------------------------------
-// computeFlakyScore
-// ---------------------------------------------------------------------------
 
 describe('computeFlakyScore', () => {
   it('returns 100 for 0% flaky', () => {
@@ -54,10 +46,6 @@ describe('computeFlakyScore', () => {
     expect(computeFlakyScore(100)).toBe(0);
   });
 });
-
-// ---------------------------------------------------------------------------
-// computeDurationScore
-// ---------------------------------------------------------------------------
 
 describe('computeDurationScore', () => {
   it('returns 100 when ratio is below 0.5x median', () => {
@@ -88,10 +76,6 @@ describe('computeDurationScore', () => {
     expect(computeDurationScore(1000, 0, 10)).toBe(80);
   });
 });
-
-// ---------------------------------------------------------------------------
-// computeHealthScore — calibration table
-// ---------------------------------------------------------------------------
 
 describe('computeHealthScore', () => {
   const base = {
@@ -229,10 +213,6 @@ describe('computeHealthScore', () => {
     expect(score).toBeLessThan(91);
   });
 });
-
-// ---------------------------------------------------------------------------
-// computeHealthScore — edge cases & input validation
-// ---------------------------------------------------------------------------
 
 describe('computeHealthScore — edge cases', () => {
   const base = {

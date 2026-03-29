@@ -1,8 +1,3 @@
-/**
- * Factory functions for building event objects matching the reporter-core-protocol v1 schema.
- * Each returns a plain object — no Zod parsing.
- */
-
 import type {
   RunStartEvent,
   RunEndEvent,

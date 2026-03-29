@@ -93,7 +93,7 @@ describe('AuthController', () => {
     mockExecute
       .mockResolvedValueOnce([MOCK_USER])
       .mockResolvedValueOnce([MOCK_ORG])
-      .mockResolvedValueOnce([]); // store_refresh_token
+      .mockResolvedValueOnce([]);
     mockVerify.mockResolvedValue(true);
 
     const response = await app.inject({

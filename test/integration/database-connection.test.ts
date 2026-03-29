@@ -1,13 +1,3 @@
-/**
- * Connection utility tests (getRawClient, setTenantContext).
- *
- * These require a real Postgres connection. Start Docker services:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
- *
- * Run with:
- *   pnpm test:integration test/integration/database-connection.test.ts
- */
-
 import { asOrganizationId } from '@spechive/shared-types';
 import postgres from 'postgres';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -25,7 +15,6 @@ describe('getRawClient', () => {
   let db: ReturnType<typeof createDbConnection>;
 
   beforeAll(async () => {
-    // Verify database connectivity - fail fast with clear message
     try {
       const sql = postgres(DATABASE_URL, { max: 1 });
       await sql`SELECT 1`;
@@ -48,7 +37,6 @@ describe('getRawClient', () => {
   it('returns a postgres.js Sql instance from a Drizzle database', () => {
     const client = getRawClient(db);
     expect(client).toBeDefined();
-    // postgres.js clients expose a `.begin` method
     expect(typeof client.begin).toBe('function');
   });
 
@@ -56,7 +44,6 @@ describe('getRawClient', () => {
     await db.transaction(async (tx) => {
       const client = getRawClient(tx);
       expect(client).toBeDefined();
-      // Verify the client can execute queries
       const [row] = await client`SELECT 1 AS val`;
       expect(row!.val).toBe(1);
     });
@@ -80,7 +67,6 @@ describe('setTenantContext', () => {
   let db: ReturnType<typeof createDbConnection>;
 
   beforeAll(async () => {
-    // Verify database connectivity - fail fast with clear message
     try {
       const sql = postgres(DATABASE_URL, { max: 1 });
       await sql`SELECT 1`;
@@ -119,12 +105,11 @@ describe('setTenantContext', () => {
       await setTenantContext(tx, orgId);
     });
 
-    // Outside the transaction, the setting should be empty or raise an error
+    // Transaction-scoped setting should not persist outside
     const client = getRawClient(db);
     const [row] = await client`
       SELECT current_setting('app.current_organization_id', true) AS org_id
     `;
-    // The setting is either null/empty or the default (empty string) outside a transaction
     expect(row!.org_id === null || row!.org_id === '').toBe(true);
   });
 });

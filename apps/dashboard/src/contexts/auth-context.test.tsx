@@ -87,7 +87,6 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('authenticated');
     });
 
-    // Reset mock to track logout call
     vi.mocked(apiClient.post).mockResolvedValueOnce(undefined);
 
     await userEvent.click(screen.getByText('Logout'));
@@ -95,7 +94,6 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('unauthenticated');
     });
     expect(apiClient.setToken).toHaveBeenCalledWith(null);
-    // Verify logout API call with empty body (cookie sent automatically)
     expect(apiClient.post).toHaveBeenCalledWith('/v1/auth/logout', {});
   });
 

@@ -1,15 +1,3 @@
-/**
- * End-to-end event flow integration test.
- *
- * Verifies the full ingest pipeline: send events to the ingestion API,
- * wait for the worker to process them via Outboxy, and verify domain rows
- * exist in the database. Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { IngestionApiClient } from '../helpers/api-clients';
@@ -145,18 +133,15 @@ describe('End-to-end event flow', () => {
   it('skips duplicate events', async () => {
     const duplicateRunId = crypto.randomUUID();
 
-    // Send the same event twice with the same runId
     const body1 = await ingestionApi.events.send(createRunStartEvent({ runId: duplicateRunId }));
     const body2 = await ingestionApi.events.send(createRunStartEvent({ runId: duplicateRunId }));
 
-    // Both should be accepted by the ingestion API (publish-only)
     expect(body1.body).toHaveProperty('eventId');
     expect(body2.body).toHaveProperty('eventId');
 
-    // Wait for the first event to be processed
     await waitForRow(() => sql`SELECT * FROM runs WHERE id = ${duplicateRunId}`);
 
-    // Give extra time for potential duplicate processing
+    // Allow time for potential duplicate processing
     await new Promise((r) => setTimeout(r, 2000));
 
     // Should only have one run row (deduplication prevents duplicate insert)

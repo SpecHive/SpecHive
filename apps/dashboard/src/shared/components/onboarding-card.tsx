@@ -85,7 +85,6 @@ export default defineConfig({
         <CardTitle>Get started with SpecHive</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Step 1: Create project */}
         <div className="flex gap-4">
           <StepBadge step={1} done={projectCreated} />
           <div className="min-w-0 flex-1">
@@ -103,7 +102,6 @@ export default defineConfig({
           </div>
         </div>
 
-        {/* Step 2: Generate token */}
         <div className="flex gap-4">
           <StepBadge step={2} done={tokenGenerated} />
           <div className="min-w-0 flex-1">
@@ -122,7 +120,6 @@ export default defineConfig({
           </div>
         </div>
 
-        {/* Step 3: Configure reporter */}
         <div className="flex gap-4">
           <StepBadge step={3} done={false} />
           <div className="min-w-0 flex-1">

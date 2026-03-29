@@ -12,7 +12,6 @@ interface RunHeaderProps {
 export function RunHeader({ run }: RunHeaderProps) {
   return (
     <>
-      {/* Breadcrumb */}
       <nav className="flex items-center gap-1 text-sm text-muted-foreground">
         <Link to="/runs" className="hover:text-foreground">
           Runs
@@ -21,7 +20,6 @@ export function RunHeader({ run }: RunHeaderProps) {
         <span className={run.name ? '' : 'font-mono'}>{run.name ?? truncateId(run.id)}</span>
       </nav>
 
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3">

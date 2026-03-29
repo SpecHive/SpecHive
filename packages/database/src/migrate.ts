@@ -49,7 +49,6 @@ async function bootstrapDatabase(client: SqlClient): Promise<void> {
   await client`SELECT set_config('app.spechive_app_pw', ${spechiveAppPassword}, false)`;
   await client`SELECT set_config('app.outboxy_pw', ${outboxyPassword}, false)`;
 
-  // Application role (subject to RLS)
   await client.unsafe(`
     DO $$
     BEGIN
@@ -107,7 +106,6 @@ async function grantOutboxyAccess(client: SqlClient): Promise<void> {
   console.log('Outboxy grants complete.');
 }
 
-// CLI entry point
 if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   const url = process.env['DATABASE_URL'];
   if (!url) {

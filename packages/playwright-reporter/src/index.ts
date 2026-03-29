@@ -175,7 +175,6 @@ export default class SpecHiveReporter implements Reporter {
       const finalAttempt = entry.attempts[entry.attempts.length - 1]!;
       const status = this.resolveTestStatus(entry);
 
-      // For flaky tests, preserve the error from the last failed attempt
       const errorAttempt =
         status === TestStatus.Flaky
           ? [...entry.attempts].reverse().find((a) => a.status !== 'passed')

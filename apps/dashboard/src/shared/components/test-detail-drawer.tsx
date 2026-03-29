@@ -80,7 +80,6 @@ export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps)
               </div>
             </div>
 
-            {/* Attempt tabs — only shown when multiple attempts */}
             {hasMultipleAttempts && (
               <div className="flex gap-1 border-b" role="tablist">
                 {testDetail.attempts.map((attempt) => (

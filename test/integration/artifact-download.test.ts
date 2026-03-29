@@ -1,20 +1,3 @@
-/**
- * Artifact download E2E integration test.
- *
- * Verifies the happy-path artifact pipeline:
- * 1. Get a presigned upload URL from ingestion-api
- * 2. PUT the file directly to S3
- * 3. Send artifact.upload event with metadata (artifactId + storagePath)
- * 4. Worker verifies via HEAD and inserts DB row
- * 5. Download the artifact via query-api presigned URL
- *
- * Requires the full Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
- *
- * Run with:
- *   pnpm test:integration
- */
-
 import { randomUUID } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -52,7 +35,6 @@ describe('Artifact download', () => {
   beforeAll(async () => {
     await waitForService(GATEWAY_URL);
 
-    // Ingest a complete test run with an artifact
     await ingestionApi.events.send(
       createRunStartEvent({ runId, payload: { runName: 'artifact-download-test' } }),
     );
@@ -65,7 +47,6 @@ describe('Artifact download', () => {
       createTestStartEvent({ runId, payload: { testId, suiteId, testName: 'artifact test' } }),
     );
 
-    // Step 1: Get presigned upload URL
     const { status: presignStatus, body: presign } = await ingestionApi.artifacts.presign({
       runId,
       testId,
@@ -75,7 +56,6 @@ describe('Artifact download', () => {
     });
     expect(presignStatus).toBe(201);
 
-    // Step 2: Upload directly to S3 via presigned URL (raw fetch — S3, not our API)
     const uploadResponse = await fetch(presign.uploadUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'image/png' },
@@ -83,7 +63,6 @@ describe('Artifact download', () => {
     });
     expect(uploadResponse.ok).toBe(true);
 
-    // Step 3: Send artifact.upload event with metadata only
     await ingestionApi.events.send(
       createArtifactUploadEvent({
         runId,
@@ -108,7 +87,6 @@ describe('Artifact download', () => {
 
     jwtToken = await queryApi.auth.loginToken(SEED_EMAIL, SEED_PASSWORD);
 
-    // Wait for the worker to process events via Outboxy
     await poll(
       async () => {
         const { body } = await queryApi.runs.list(jwtToken, SEED_PROJECT_ID);
@@ -117,7 +95,6 @@ describe('Artifact download', () => {
       { maxAttempts: 30, delayMs: 1000 },
     );
 
-    // Wait for tests to be processed (async via Outboxy)
     const testsResult = await poll(
       async () => {
         const { status, body } = await queryApi.runs.tests(jwtToken, runId);
@@ -129,7 +106,6 @@ describe('Artifact download', () => {
       { predicate: (id): id is string => id !== undefined, maxAttempts: 30, delayMs: 1000 },
     );
 
-    // Wait for artifact to be processed (artifact.upload is a separate async event)
     await poll(
       async () => {
         const { status, body } = await queryApi.runs.testDetail(jwtToken, runId, testsResult);
@@ -144,14 +120,12 @@ describe('Artifact download', () => {
   }, 60_000);
 
   it('fetches artifact download URL and downloads the content', async () => {
-    // Get tests for the run
     const { status: testsStatus, body: testsBody } = await queryApi.runs.tests(jwtToken, runId);
     expect(testsStatus).toBe(200);
 
     const tests = testsBody as { data: { id: string }[] };
     expect(tests.data.length).toBeGreaterThan(0);
 
-    // Use the detail endpoint which includes artifacts
     const { status: detailStatus, body: detailBody } = await queryApi.runs.testDetail(
       jwtToken,
       runId,
@@ -165,7 +139,6 @@ describe('Artifact download', () => {
 
     const artifactId = test.artifacts[0]!.id;
 
-    // Get the presigned download URL
     const { status: downloadStatus, body: downloadBody } = await queryApi.artifacts.download(
       jwtToken,
       artifactId,
@@ -176,7 +149,6 @@ describe('Artifact download', () => {
     expect(download.url).toBeDefined();
     expect(download.expiresIn).toBe(900);
 
-    // Download the artifact via presigned URL (raw fetch — S3, not our API)
     const artifactResponse = await fetch(download.url);
     expect(artifactResponse.status).toBe(200);
 

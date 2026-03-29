@@ -53,7 +53,6 @@ describe('AnalyticsService', () => {
     const zeroPrev = { totalTests: 0, passedTests: 0, flakyTests: 0 };
 
     it('returns zero values when no data exists', async () => {
-      // getOrganizationSummary now runs 2 queries: current + previous period
       mockExecute.mockResolvedValueOnce([zeroSummary]);
       mockExecute.mockResolvedValueOnce([zeroPrev]);
 
@@ -97,10 +96,8 @@ describe('AnalyticsService', () => {
 
       await service.getOrganizationSummary(orgId, 30, [projectId]);
 
-      // 2 queries: summary + previous period
       expect(mockExecute).toHaveBeenCalledTimes(2);
       const sqlArg = mockExecute.mock.calls[0][0];
-      // Recursively flatten nested SQL chunks to find the projectId parameter
       const flattenChunks = (chunks: unknown[]): unknown[] =>
         chunks.flatMap((c) => {
           if (typeof c === 'string') return [c];
@@ -226,18 +223,12 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ── getProjectComparison ─────────────────────────────────────────────
-  //
-  // Runs 4 parallel queries via Promise.all: current, prev, sparkline, orgSparkline.
-  // Each mockResolvedValueOnce call maps to one of these in order.
-
   describe('getProjectComparison', () => {
-    /** Mocks all 4 queries as empty. */
     function mockEmptyComparison() {
-      mockExecute.mockResolvedValueOnce([]); // Q1: current
-      mockExecute.mockResolvedValueOnce([]); // Q2: prev
-      mockExecute.mockResolvedValueOnce([]); // Q3: sparkline
-      mockExecute.mockResolvedValueOnce([]); // Q4: org sparkline
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
     }
 
     function makeProjectRow(overrides: Partial<Record<string, unknown>> = {}) {
@@ -273,9 +264,9 @@ describe('AnalyticsService', () => {
 
     it('returns null deltas when no previous period data exists', async () => {
       mockExecute.mockResolvedValueOnce([makeProjectRow()]);
-      mockExecute.mockResolvedValueOnce([]); // no previous period
-      mockExecute.mockResolvedValueOnce([]); // no sparklines
-      mockExecute.mockResolvedValueOnce([]); // no org sparkline
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
+      mockExecute.mockResolvedValueOnce([]);
 
       const result = await service.getProjectComparison(orgId);
 
@@ -330,7 +321,7 @@ describe('AnalyticsService', () => {
           avgDurationMs: 700,
         }),
       ]);
-      mockExecute.mockResolvedValueOnce([]); // no prev
+      mockExecute.mockResolvedValueOnce([]);
       mockExecute.mockResolvedValueOnce([
         { projectId: 'proj-1', date: '2026-03-17', passRate: 85.0 },
         { projectId: 'proj-1', date: '2026-03-18', passRate: 90.0 },
@@ -398,7 +389,6 @@ describe('AnalyticsService', () => {
 
       await service.getProjectComparison(orgId, 30, [projectId]);
 
-      // All 4 queries should contain the projectId
       expect(mockExecute).toHaveBeenCalledTimes(4);
       const flattenChunks = (chunks: unknown[]): unknown[] =>
         chunks.flatMap((c) => {

@@ -129,9 +129,7 @@ describe('SuiteTree', () => {
     const user = userEvent.setup();
     render(<SuiteTree {...defaultProps} />);
 
-    // Expand "Unit Tests"
     await user.click(screen.getAllByLabelText(/^Expand /)[0]);
-    // Expand "Auth Tests"
     await user.click(screen.getAllByLabelText(/^Expand /)[0]);
 
     expect(screen.getByText('Login Tests')).toBeInTheDocument();

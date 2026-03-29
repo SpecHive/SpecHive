@@ -1,14 +1,3 @@
-/**
- * Invitations integration test for query-api.
- *
- * Verifies invitation lifecycle:
- * - Create, list, revoke, and validate invitations
- * - Role-based access control
- * - Token validation for public endpoints
- *
- * Requires the full Docker Compose stack running.
- */
-
 import { randomBytes } from 'node:crypto';
 
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -90,14 +79,12 @@ describe('Invitations', () => {
   });
 
   it('validates a pending invitation token', async () => {
-    // Create invitation
     const createRes = await queryApi.auth.requestRaw('POST', '/v1/invitations', {
       headers: { Authorization: `Bearer ${ownerToken}`, 'X-Forwarded-For': TEST_IP },
       body: { role: 'member' },
     });
     const { token } = (await createRes.json()) as { token: string };
 
-    // Validate (public endpoint, no auth needed)
     const validateRes = await queryApi.auth.requestRaw('GET', `/v1/invitations/validate/${token}`, {
       headers: { 'X-Forwarded-For': TEST_IP },
     });
@@ -126,20 +113,17 @@ describe('Invitations', () => {
   });
 
   it('revokes an invitation and validate returns invalid', async () => {
-    // Create invitation
     const createRes = await queryApi.auth.requestRaw('POST', '/v1/invitations', {
       headers: { Authorization: `Bearer ${ownerToken}`, 'X-Forwarded-For': TEST_IP },
       body: { role: 'viewer' },
     });
     const { id, token } = (await createRes.json()) as { id: string; token: string };
 
-    // Revoke
     const revokeRes = await queryApi.auth.requestRaw('DELETE', `/v1/invitations/${id}`, {
       headers: { Authorization: `Bearer ${ownerToken}`, 'X-Forwarded-For': TEST_IP },
     });
     expect(revokeRes.status).toBe(204);
 
-    // Validate should return invalid
     const validateRes = await queryApi.auth.requestRaw('GET', `/v1/invitations/validate/${token}`, {
       headers: { 'X-Forwarded-For': TEST_IP },
     });
@@ -164,7 +148,6 @@ describe('Invitations', () => {
   });
 
   it('rejects create from non-admin user', async () => {
-    // Register a new user (viewer role via invitation)
     const invRes = await queryApi.auth.requestRaw('POST', '/v1/invitations', {
       headers: { Authorization: `Bearer ${ownerToken}`, 'X-Forwarded-For': TEST_IP },
       body: { role: 'viewer' },
@@ -183,7 +166,6 @@ describe('Invitations', () => {
     );
     expect(regRes.status).toBe(201);
 
-    // Try to create invitation as viewer
     const createRes = await queryApi.auth.requestRaw('POST', '/v1/invitations', {
       headers: { Authorization: `Bearer ${regRes.body.token}`, 'X-Forwarded-For': TEST_IP },
       body: { role: 'member' },

@@ -1,16 +1,3 @@
-/**
- * Migration correctness tests.
- *
- * These need a real Postgres. Test that all migrations apply cleanly to a blank
- * database, then verify expected tables, indexes, and constraints exist.
- *
- * Requires the Docker Compose stack running:
- *   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
- *
- * Run with:
- *   pnpm test:integration test/integration/database-migrations.test.ts
- */
-
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,7 +8,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { buildSuperuserDatabaseUrl } from '../helpers/database';
 
-// Needs the superuser role (not spechive_app) to CREATE DATABASE for temp test DBs.
 const DATABASE_URL = buildSuperuserDatabaseUrl();
 
 const TEST_DB_NAME = `spechive_migration_test_${Date.now()}`;
@@ -31,7 +17,6 @@ describe('Migration correctness', () => {
   let testSql: ReturnType<typeof postgres>;
 
   beforeAll(async () => {
-    // Verify database connectivity - fail fast with clear message
     try {
       const sql = postgres(DATABASE_URL, { max: 1 });
       await sql`SELECT 1`;
@@ -45,10 +30,8 @@ describe('Migration correctness', () => {
 
     adminSql = postgres(DATABASE_URL, { max: 1 });
 
-    // Create a temporary test database
     await adminSql.unsafe(`CREATE DATABASE "${TEST_DB_NAME}"`);
 
-    // Connect to the test database and run migrations
     const testDbUrl = DATABASE_URL.replace(/\/[^/]+$/, `/${TEST_DB_NAME}`);
     testSql = postgres(testDbUrl, { max: 1 });
 
@@ -63,7 +46,6 @@ describe('Migration correctness', () => {
   afterAll(async () => {
     await testSql?.end();
 
-    // Drop the temporary database
     if (adminSql) {
       await adminSql.unsafe(`DROP DATABASE IF EXISTS "${TEST_DB_NAME}"`);
       await adminSql.end();
