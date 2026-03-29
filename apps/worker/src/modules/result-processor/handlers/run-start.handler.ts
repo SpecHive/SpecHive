@@ -36,10 +36,10 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
       .returning({ id: runs.id });
 
     if (result.length === 0) {
-      this.logger.debug(`Duplicate run.start skipped for run ${event.runId}`);
+      this.logger.debug({ runId: event.runId }, 'Duplicate run.start skipped');
       return;
     }
 
-    this.logger.info(`Created run ${event.runId}`);
+    this.logger.info({ runId: event.runId }, 'Run created');
   }
 }

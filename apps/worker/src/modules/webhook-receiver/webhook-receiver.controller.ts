@@ -31,7 +31,7 @@ export class WebhookReceiverController {
 
     if (!result.success) {
       this.logger.warn('Invalid webhook payload received');
-      this.logger.debug(`Validation details: ${JSON.stringify(result.error.flatten())}`);
+      this.logger.debug({ validationErrors: result.error.flatten() }, 'Webhook validation details');
       throwZodBadRequest(result.error, 'Invalid webhook payload', this.isProduction);
     }
 
@@ -39,13 +39,13 @@ export class WebhookReceiverController {
 
     const sortedEvents = this.resultProcessor.sortEventsByPriority(events);
 
-    this.logger.info(`Received Outboxy batch: ${sortedEvents.length} events`);
+    this.logger.info({ eventCount: sortedEvents.length }, 'Received Outboxy batch');
 
     const failedEventIds: string[] = [];
     let retryableCount = 0;
 
     for (const event of sortedEvents) {
-      this.logger.info(`Processing event: ${event.eventType}`);
+      this.logger.info({ eventType: event.eventType }, 'Processing event');
       try {
         await this.resultProcessor.processEvent(event);
       } catch (error) {
@@ -67,11 +67,11 @@ export class WebhookReceiverController {
     }
 
     if (failedEventIds.length > 0) {
-      const summary = `Batch had ${failedEventIds.length} failures (${retryableCount} retryable): ${failedEventIds.join(', ')}`;
+      const batchContext = { failedCount: failedEventIds.length, retryableCount, failedEventIds };
       if (retryableCount === failedEventIds.length) {
-        this.logger.warn(summary);
+        this.logger.warn(batchContext, 'Batch failures (all retryable)');
       } else {
-        this.logger.error(summary);
+        this.logger.error(batchContext, 'Batch failures');
       }
       throw new InternalServerErrorException({
         message: `Failed to process ${failedEventIds.length} of ${sortedEvents.length} events`,

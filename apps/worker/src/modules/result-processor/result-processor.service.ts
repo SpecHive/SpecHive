@@ -51,7 +51,7 @@ export class ResultProcessorService implements OnModuleInit {
       .map((wrapper) => wrapper.instance as IEventHandler);
 
     this.handlerMap = new Map(handlers.map((h) => [h.eventType, h]));
-    this.logger.info(`Discovered ${this.handlerMap.size} event handlers`);
+    this.logger.info({ count: this.handlerMap.size }, 'Event handlers discovered');
   }
 
   async processEvent(envelope: OutboxyEvent): Promise<void> {
@@ -78,7 +78,7 @@ export class ResultProcessorService implements OnModuleInit {
         );
 
         if (result.status === 'duplicate') {
-          this.logger.warn(`Duplicate event skipped (eventId=${envelope.eventId})`);
+          this.logger.warn({ eventId: envelope.eventId }, 'Duplicate event skipped');
           return;
         }
 
@@ -127,6 +127,6 @@ export class ResultProcessorService implements OnModuleInit {
       return handler.handle(event, ctx);
     }
 
-    this.logger.warn(`Unknown event type: ${event.eventType}`);
+    this.logger.warn({ eventType: event.eventType }, 'Unknown event type');
   }
 }

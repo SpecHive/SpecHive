@@ -121,15 +121,14 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const warnCalls = (mockLogger.warn as Mock).mock.calls.map((c: unknown[]) =>
-        JSON.stringify(c),
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ eventId: expect.any(String) }),
+        expect.stringContaining('Retryable'),
       );
-      expect(warnCalls.some((msg: string) => msg.includes('Retryable'))).toBe(true);
-
-      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
-        JSON.stringify(c),
+      expect(mockLogger.error).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('Failed to process event'),
       );
-      expect(errorCalls.some((msg: string) => msg.includes('Failed to process event'))).toBe(false);
     });
 
     it('logs permanent failure at error level, not warn', async () => {
@@ -143,15 +142,14 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
-        JSON.stringify(c),
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ eventId: expect.any(String) }),
+        expect.stringContaining('Failed to process event'),
       );
-      expect(errorCalls.some((msg: string) => msg.includes('Failed to process event'))).toBe(true);
-
-      const warnCalls = (mockLogger.warn as Mock).mock.calls.map((c: unknown[]) =>
-        JSON.stringify(c),
+      expect(mockLogger.warn).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('Retryable'),
       );
-      expect(warnCalls.some((msg: string) => msg.includes('Retryable'))).toBe(false);
     });
 
     it('logs summary at error level for mixed batch with non-retryable failures', async () => {
@@ -188,10 +186,10 @@ describe('WebhookReceiverController', () => {
       });
 
       expect(response.statusCode).toBe(500);
-      const errorCalls = (mockLogger.error as Mock).mock.calls.map((c: unknown[]) =>
-        JSON.stringify(c),
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ retryableCount: 0 }),
+        expect.stringContaining('Batch failures'),
       );
-      expect(errorCalls.some((msg: string) => msg.includes('0 retryable'))).toBe(true);
     });
   });
 });

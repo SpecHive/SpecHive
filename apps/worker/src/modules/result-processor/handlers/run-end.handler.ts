@@ -27,7 +27,7 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       .map(([source]) => source);
 
     if (validSources.length === 0) {
-      this.logger.warn(`Invalid target status '${targetStatus}' for run.end event`);
+      this.logger.warn({ targetStatus }, 'Invalid target status for run.end event');
       return;
     }
 
@@ -51,7 +51,10 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       });
 
     if (result.length === 0) {
-      this.logger.warn(`Run ${event.runId} not found or already in terminal state, skipping`);
+      this.logger.warn(
+        { runId: event.runId },
+        'Run not found or already in terminal state, skipping',
+      );
       return;
     }
 
@@ -100,6 +103,6 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    this.logger.info(`Finished run ${event.runId} with status ${event.payload.status}`);
+    this.logger.info({ runId: event.runId, status: event.payload.status }, 'Run finished');
   }
 }

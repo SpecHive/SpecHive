@@ -16,9 +16,9 @@ export class RunCleanupService {
   async cleanupOrphanedRuns(): Promise<void> {
     const result = await this.db.execute(sql`SELECT * FROM cleanup_orphaned_runs()`);
 
-    this.logger.info(`Cancelled ${result.length} orphaned run(s)`);
+    this.logger.info({ count: result.length }, 'Orphaned runs cancelled');
     for (const row of result) {
-      this.logger.info(`Cancelled orphaned run ${row.run_id}`);
+      this.logger.info({ runId: row.run_id }, 'Orphaned run cancelled');
     }
   }
 }

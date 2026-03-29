@@ -27,10 +27,10 @@ export class SuiteStartHandler implements IEventHandler<SuiteStartEvent> {
       .returning({ id: suites.id });
 
     if (result.length === 0) {
-      this.logger.debug(`Duplicate suite.start skipped for suite ${event.payload.suiteId}`);
+      this.logger.debug({ suiteId: event.payload.suiteId }, 'Duplicate suite.start skipped');
       return;
     }
 
-    this.logger.info(`Created suite ${event.payload.suiteId} in run ${event.runId}`);
+    this.logger.info({ suiteId: event.payload.suiteId, runId: event.runId }, 'Suite created');
   }
 }

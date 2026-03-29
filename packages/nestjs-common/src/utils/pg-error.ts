@@ -11,6 +11,8 @@ export function extractPgError(err: unknown): PgErrorInfo | null {
   let current = err;
   while (current instanceof Error) {
     const rawCode = 'code' in current ? (current as { code: unknown }).code : undefined;
+    // PG error codes are always 5 uppercase alphanumeric chars (e.g. '23503').
+    // This filters out Node.js SystemError codes like ECONNREFUSED/ENOTFOUND.
     if (typeof rawCode === 'string' && /^[0-9A-Z]{5}$/.test(rawCode)) {
       return {
         code: rawCode,

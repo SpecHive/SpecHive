@@ -93,6 +93,6 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       `);
     }
 
-    this.logger.info(`Test ${testId} ended with status ${status} in run ${event.runId}`);
+    this.logger.info({ testId, status, runId: event.runId }, 'Test ended');
   }
 }

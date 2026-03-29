@@ -24,7 +24,8 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
 
     if (!storagePath.startsWith(expectedPrefix)) {
       this.logger.error(
-        `Artifact ${artifactId} has invalid storage path prefix: expected "${expectedPrefix}", got "${storagePath}"`,
+        { artifactId, storagePath, expectedPrefix },
+        'Artifact has invalid storage path prefix',
       );
       return;
     }
@@ -46,8 +47,6 @@ export class ArtifactUploadHandler implements IEventHandler<ArtifactUploadEvent>
       mimeType: mimeType ?? null,
     });
 
-    this.logger.info(
-      `Stored artifact ${artifactId} (${head.contentLength ?? 0} bytes) for test ${testId}`,
-    );
+    this.logger.info({ artifactId, bytes: head.contentLength ?? 0, testId }, 'Artifact stored');
   }
 }

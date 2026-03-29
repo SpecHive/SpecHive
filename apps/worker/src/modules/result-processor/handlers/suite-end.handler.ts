@@ -14,6 +14,6 @@ export class SuiteEndHandler implements IEventHandler<SuiteEndEvent> {
 
   // Suites table has no status or finishedAt — nothing to persist
   async handle(event: SuiteEndEvent, _ctx: EventHandlerContext): Promise<void> {
-    this.logger.info(`Suite ${event.payload.suiteId} ended in run ${event.runId}`);
+    this.logger.info({ suiteId: event.payload.suiteId, runId: event.runId }, 'Suite ended');
   }
 }

@@ -33,10 +33,10 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
       .returning({ id: tests.id });
 
     if (result.length === 0) {
-      this.logger.debug(`Duplicate test.start skipped for test ${event.payload.testId}`);
+      this.logger.debug({ testId: event.payload.testId }, 'Duplicate test.start skipped');
       return;
     }
 
-    this.logger.info(`Created test ${event.payload.testId} in run ${event.runId}`);
+    this.logger.info({ testId: event.payload.testId, runId: event.runId }, 'Test created');
   }
 }

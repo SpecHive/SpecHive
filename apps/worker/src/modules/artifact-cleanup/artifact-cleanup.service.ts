@@ -63,7 +63,7 @@ export class ArtifactCleanupService {
           await this.s3.deleteMany(storagePaths);
           await tx.execute(sql`SELECT delete_artifacts_by_ids(${ids}::uuid[])`);
           totalDeleted += expired.length;
-          this.logger.info(`Deleted batch of ${expired.length} expired artifact(s)`);
+          this.logger.info({ count: expired.length }, 'Deleted expired artifact batch');
         } catch (error) {
           this.logger.error(
             { err: error, batchSize: expired.length },
@@ -75,11 +75,12 @@ export class ArtifactCleanupService {
 
       if (iterations >= MAX_ITERATIONS) {
         this.logger.warn(
-          `Artifact cleanup hit iteration limit (${MAX_ITERATIONS}). Some artifacts may remain.`,
+          { maxIterations: MAX_ITERATIONS },
+          'Artifact cleanup hit iteration limit, some artifacts may remain',
         );
       }
 
-      this.logger.info(`Artifact cleanup complete: ${totalDeleted} artifact(s) deleted`);
+      this.logger.info({ totalDeleted }, 'Artifact cleanup complete');
     });
   }
 }
