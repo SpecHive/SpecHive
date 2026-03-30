@@ -1,12 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   ErrorGroupDetail,
-  ErrorGroupSummary,
   ErrorTimelineResponse,
   RunErrorsSummary,
 } from '@spechive/api-types';
 import {
   errorGroupDetailSchema,
+  errorGroupSummarySchema,
   errorTimelineResponseSchema,
   runErrorsSummarySchema,
 } from '@spechive/api-types';
@@ -20,6 +20,7 @@ import {
 import { DATABASE_CONNECTION, escapeLikePattern } from '@spechive/nestjs-common';
 import type { ErrorGroupId, OrganizationId, RunId } from '@spechive/shared-types';
 import { sql } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 
@@ -188,12 +189,8 @@ export class ErrorsService {
     const [rows, countResult] = await Promise.all([tx.execute(dataQuery), tx.execute(countQuery)]);
 
     const total = (countResult[0] as { total: number })?.total ?? 0;
-    return buildPaginatedResponse(
-      rows as unknown as ErrorGroupSummary[],
-      total,
-      params.page,
-      params.pageSize,
-    );
+    const groups = z.array(errorGroupSummarySchema).parse(rows);
+    return buildPaginatedResponse(groups, total, params.page, params.pageSize);
   }
 
   private async listFromDailyStats(
@@ -254,7 +251,7 @@ export class ErrorsService {
         JOIN ${errorGroups} eg ON eg.id = des.error_group_id
         WHERE eg.project_id = ${params.projectId}
           AND des.date >= ${dateFromStr}::date
-          AND des.date <= ${dateToStr}::date
+          AND des.date ${includesToday ? sql`< ${dateToStr}::date` : sql`<= ${dateToStr}::date`}
           ${params.search ? sql`AND ${searchFilter}` : sql``}
           ${categoryFilter}
         GROUP BY eg.id
@@ -284,7 +281,7 @@ export class ErrorsService {
         JOIN ${errorGroups} eg ON eg.id = des.error_group_id
         WHERE eg.project_id = ${params.projectId}
           AND des.date >= ${dateFromStr}::date
-          AND des.date <= ${dateToStr}::date
+          AND des.date ${includesToday ? sql`< ${dateToStr}::date` : sql`<= ${dateToStr}::date`}
           ${params.search ? sql`AND ${searchFilter}` : sql``}
           ${categoryFilter}
         GROUP BY eg.id
@@ -294,7 +291,7 @@ export class ErrorsService {
     const [rows, countResult] = await Promise.all([tx.execute(dataQuery), tx.execute(countQuery)]);
 
     const total = (countResult[0] as { total: number })?.total ?? 0;
-    const groups = rows as unknown as ErrorGroupSummary[];
+    const groups = z.array(errorGroupSummarySchema).parse(rows);
 
     // Daily stats sums overcount unique_tests/unique_branches across days.
     // Compute exact values from error_occurrences for the displayed page.
@@ -378,6 +375,10 @@ export class ErrorsService {
       ? sql`AND eg.error_category = ${params.category}`
       : sql``;
 
+    const timelineSearchFilter = params.search
+      ? sql`AND (eg.title ILIKE ${`%${escapeLikePattern(params.search)}%`} OR eg.normalized_message ILIKE ${`%${escapeLikePattern(params.search)}%`})`
+      : sql``;
+
     const topGroupsQuery = sql`
       SELECT des.error_group_id AS "errorGroupId"
       FROM ${dailyErrorStats} des
@@ -386,6 +387,7 @@ export class ErrorsService {
         AND des.date >= ${dateFromStr}::date
         AND des.date <= ${dateToStr}::date
         ${timelineCategoryFilter}
+        ${timelineSearchFilter}
       GROUP BY des.error_group_id
       ORDER BY SUM(${metricColumn}) DESC
       LIMIT ${topN}
@@ -499,6 +501,10 @@ export class ErrorsService {
       ? sql`AND eg.error_category = ${params.category}`
       : sql``;
 
+    const occSearchFilter = params.search
+      ? sql`AND (eg.title ILIKE ${`%${escapeLikePattern(params.search)}%`} OR eg.normalized_message ILIKE ${`%${escapeLikePattern(params.search)}%`})`
+      : sql``;
+
     // Step 1: Identify top N groups by selected metric (SQL-level)
     const topGroupsResult = await tx.execute(sql`
       SELECT eo.error_group_id AS "errorGroupId"
@@ -508,6 +514,7 @@ export class ErrorsService {
         AND eo.occurred_at >= ${dateFrom.toISOString()}
         AND eo.occurred_at < ${dateToExclusive.toISOString()}
         ${occCategoryFilter}
+        ${occSearchFilter}
         AND eo.branch = ${params.branch}
       GROUP BY eo.error_group_id
       ORDER BY ${metricExpr} DESC

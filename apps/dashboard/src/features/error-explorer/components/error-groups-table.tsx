@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { Fragment } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Pagination } from '@/shared/components/ui/pagination';
@@ -10,7 +11,7 @@ interface ErrorGroupsTableProps {
   data: PaginatedResponse<ErrorGroupSummary> | null;
   loading: boolean;
   expandedId: string | null;
-  onExpand: (id: string) => void;
+  onExpand: (id: string | null) => void;
   sortBy: string | null;
   sortDirection: 'asc' | 'desc' | null;
   onSort: (column: string, direction: 'asc' | 'desc' | null) => void;
@@ -97,14 +98,13 @@ export function ErrorGroupsTable({
                 {groups.map((group) => {
                   const isExpanded = expandedId === group.id;
                   return (
-                    <>
+                    <Fragment key={group.id}>
                       <tr
-                        key={group.id}
-                        onClick={() => onExpand(isExpanded ? '' : group.id)}
+                        onClick={() => onExpand(isExpanded ? null : group.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            onExpand(isExpanded ? '' : group.id);
+                            onExpand(isExpanded ? null : group.id);
                           }
                         }}
                         tabIndex={0}
@@ -138,7 +138,7 @@ export function ErrorGroupsTable({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

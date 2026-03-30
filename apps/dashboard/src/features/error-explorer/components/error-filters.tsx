@@ -30,6 +30,9 @@ export function ErrorFilters() {
   const [searchInput, setSearchInput] = useState(search);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  const [branchInput, setBranchInput] = useState(branch);
+  const branchDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   useEffect(() => {
     if (searchInput === search) return;
     clearTimeout(debounceRef.current);
@@ -47,6 +50,24 @@ export function ErrorFilters() {
     }, 300);
     return () => clearTimeout(debounceRef.current);
   }, [searchInput, search, setSearchParams]);
+
+  useEffect(() => {
+    if (branchInput === branch) return;
+    clearTimeout(branchDebounceRef.current);
+    branchDebounceRef.current = setTimeout(() => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (branchInput) {
+          next.set('branch', branchInput);
+        } else {
+          next.delete('branch');
+        }
+        next.delete('page');
+        return next;
+      });
+    }, 300);
+    return () => clearTimeout(branchDebounceRef.current);
+  }, [branchInput, branch, setSearchParams]);
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -81,8 +102,8 @@ export function ErrorFilters() {
       </div>
       <input
         type="text"
-        value={branch}
-        onChange={(e) => updateParam('branch', e.target.value)}
+        value={branchInput}
+        onChange={(e) => setBranchInput(e.target.value)}
         placeholder="Branch…"
         className="rounded-md border bg-background px-3 py-2 text-sm"
         aria-label="Filter by branch"

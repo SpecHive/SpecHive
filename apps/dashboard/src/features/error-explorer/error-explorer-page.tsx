@@ -116,7 +116,7 @@ export function ErrorExplorerPage() {
             onPageChange={(p) => updateParam('page', String(p))}
             onPageSizeChange={(s) => updateParam('pageSize', String(s))}
           >
-            <ErrorGroupDetailPanel errorGroupId={expandedGroupId} />
+            <ErrorGroupDetailPanel key={expandedGroupId} errorGroupId={expandedGroupId} />
           </ErrorGroupsTable>
         </>
       )}

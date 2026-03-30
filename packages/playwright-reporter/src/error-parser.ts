@@ -100,5 +100,9 @@ function parseAction(message: string): ParsedPlaywrightError | null {
 export function parsePlaywrightError(message: string | undefined): ParsedPlaywrightError | null {
   if (!message) return null;
 
-  return parseAssertion(message) ?? parseTimeout(message) ?? parseAction(message) ?? null;
+  return (
+    parseAssertion(message) ??
+    parseTimeout(message) ??
+    parseAction(message) ?? { errorCategory: 'runtime' as ErrorCategory }
+  );
 }

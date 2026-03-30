@@ -7,5 +7,6 @@ export { TokensClient } from './tokens.client';
 export { AnalyticsClient } from './analytics.client';
 export { RunsClient } from './runs.client';
 export { ArtifactsClient } from './artifacts.client';
+export { ErrorsClient } from './errors.client';
 export { QueryApiClient } from './query-api.client';
 export { IngestionApiClient } from './ingestion-api.client';

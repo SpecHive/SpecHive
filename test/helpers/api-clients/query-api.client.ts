@@ -1,6 +1,7 @@
 import { AnalyticsClient } from './analytics.client';
 import { ArtifactsClient } from './artifacts.client';
 import { AuthClient } from './auth.client';
+import { ErrorsClient } from './errors.client';
 import { ProjectsClient } from './projects.client';
 import { RunsClient } from './runs.client';
 import { TokensClient } from './tokens.client';
@@ -13,6 +14,7 @@ export class QueryApiClient {
   readonly analytics: AnalyticsClient;
   readonly runs: RunsClient;
   readonly artifacts: ArtifactsClient;
+  readonly errors: ErrorsClient;
 
   constructor(baseUrl: string) {
     this.auth = new AuthClient(baseUrl);
@@ -21,5 +23,6 @@ export class QueryApiClient {
     this.analytics = new AnalyticsClient(baseUrl);
     this.runs = new RunsClient(baseUrl);
     this.artifacts = new ArtifactsClient(baseUrl);
+    this.errors = new ErrorsClient(baseUrl);
   }
 }
