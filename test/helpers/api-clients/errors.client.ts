@@ -55,8 +55,14 @@ export class ErrorsClient extends BaseClient {
   }
 
   /** GET /v1/errors/:id — error group detail. */
-  async detail(token: string, errorGroupId: string): Promise<ApiResponse> {
-    return this.request('GET', `/v1/errors/${errorGroupId}`, {
+  async detail(
+    token: string,
+    errorGroupId: string,
+    params?: { dateFrom?: number; dateTo?: number },
+  ): Promise<ApiResponse> {
+    const query = params ? this.toQuery(params) : '';
+    const qs = query ? `?${query}` : '';
+    return this.request('GET', `/v1/errors/${errorGroupId}${qs}`, {
       headers: this.authHeaders(token),
     });
   }

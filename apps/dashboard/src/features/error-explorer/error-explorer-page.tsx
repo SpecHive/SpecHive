@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { ErrorFilters } from './components/error-filters';
@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { useSortable } from '@/shared/hooks/use-sortable';
 
 export function ErrorExplorerPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedProjectIds, isAllSelected } = useProject();
   const { sortBy, sortDirection: sortOrder, handleSort } = useSortable({ syncWithUrl: true });
 
@@ -46,8 +46,25 @@ export function ErrorExplorerPage() {
   const projectId =
     !isAllSelected && selectedProjectIds.length === 1 ? selectedProjectIds[0] : null;
 
-  const initialErrorGroupId = searchParams.get('errorGroupId') || null;
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(initialErrorGroupId);
+  // Consume errorGroupId from URL (e.g. linked from RunErrorsSummary) then clear it
+  // to avoid stale param on refresh. Expansion state is intentionally local.
+  const didClearUrlParam = useRef(false);
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() => {
+    const fromUrl = searchParams.get('errorGroupId');
+    return fromUrl || null;
+  });
+
+  if (!didClearUrlParam.current && searchParams.has('errorGroupId')) {
+    didClearUrlParam.current = true;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('errorGroupId');
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   const {
     data: timelineData,
@@ -138,7 +155,11 @@ export function ErrorExplorerPage() {
                 </p>
               }
             >
-              <ErrorGroupDetailPanel errorGroupId={expandedGroupId} />
+              <ErrorGroupDetailPanel
+                errorGroupId={expandedGroupId}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+              />
             </ErrorBoundary>
           </ErrorGroupsTable>
         </>

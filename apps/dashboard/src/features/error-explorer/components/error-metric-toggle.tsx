@@ -1,5 +1,7 @@
 import { useSearchParams } from 'react-router';
 
+import { useUpdateParam } from '../hooks/use-update-param';
+
 import { Button } from '@/shared/components/ui/button';
 
 const METRICS = [
@@ -9,16 +11,9 @@ const METRICS = [
 ] as const;
 
 export function ErrorMetricToggle() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const active = searchParams.get('metric') || 'occurrences';
-
-  const setMetric = (key: string) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set('metric', key);
-      return next;
-    });
-  };
+  const updateParam = useUpdateParam();
 
   return (
     <div className="flex items-center gap-2">
@@ -28,7 +23,7 @@ export function ErrorMetricToggle() {
           key={key}
           variant={active === key ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setMetric(key)}
+          onClick={() => updateParam('metric', key)}
           aria-pressed={active === key}
         >
           {label}

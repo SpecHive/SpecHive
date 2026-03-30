@@ -134,23 +134,9 @@ describe('Error Explorer endpoints', () => {
         (${OCC_5A}, ${SEED_ORG_ID}, ${GROUP_ACTION}, ${TEST_1C}, ${RUN_1}, ${SEED_PROJECT_ID}, 'main', 'homepage loads', 'page.goto: net::ERR_CONNECTION_REFUSED', ${daysAgo(2).toISOString()})
       ON CONFLICT DO NOTHING
     `;
-
-    // Daily error stats (for the daily stats query path, range > 7 days)
-    await sql`
-      INSERT INTO daily_error_stats (organization_id, project_id, error_group_id, date, occurrences, unique_tests, unique_branches)
-      VALUES
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ASSERTION}, ${daysAgo(5).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ASSERTION}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ASSERTION}, ${daysAgo(1).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_TIMEOUT}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_UNCATEGORIZED}, ${daysAgo(1).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ACTION}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1)
-      ON CONFLICT DO NOTHING
-    `;
   }, 30_000);
 
   afterAll(async () => {
-    await sql`DELETE FROM daily_error_stats WHERE project_id = ${SEED_PROJECT_ID} AND error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
     await sql`DELETE FROM error_occurrences WHERE error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
     await sql`DELETE FROM error_groups WHERE id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
     await sql`DELETE FROM runs WHERE id IN (${RUN_1}, ${RUN_2}, ${RUN_3})`;
@@ -202,7 +188,7 @@ describe('Error Explorer endpoints', () => {
       expect(groups[0].errorCategory).toBe('assertion');
     });
 
-    it('filters by branch (uses occurrences path)', async () => {
+    it('filters by branch', async () => {
       const { status, body } = await queryApi.errors.list(jwt, {
         projectId: SEED_PROJECT_ID,
         branch: 'feature/login',
@@ -309,8 +295,7 @@ describe('Error Explorer endpoints', () => {
       }
     });
 
-    it('uses daily stats path for long ranges without double-counting', async () => {
-      // 30-day range > ERRORS_SHORT_RANGE_DAYS (7), so uses daily stats path
+    it('returns correct counts for long date ranges', async () => {
       const now = Date.now();
       const dateFrom = now - 30 * 86_400_000;
       const { status, body } = await queryApi.errors.list(jwt, {
@@ -326,7 +311,7 @@ describe('Error Explorer endpoints', () => {
       expect(seeded).toHaveLength(4);
 
       const assertion = seeded.find((g) => g.id === GROUP_ASSERTION);
-      // 3 occurrences total — daily stats + today supplement should not double-count
+      // 3 occurrences total across the full range
       expect(assertion?.totalOccurrences).toBe(3);
     });
   });
@@ -375,7 +360,7 @@ describe('Error Explorer endpoints', () => {
       expect(timeline.series[0].errorGroupId).toBe(GROUP_TIMEOUT);
     });
 
-    it('uses occurrences path when branch is specified', async () => {
+    it('filters timeline by branch', async () => {
       const { status, body } = await queryApi.errors.timeline(jwt, {
         projectId: SEED_PROJECT_ID,
         branch: 'main',

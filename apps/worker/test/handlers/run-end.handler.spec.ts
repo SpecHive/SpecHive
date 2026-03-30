@@ -27,10 +27,9 @@ describe('RunEndHandler', () => {
       },
     ]);
 
-    // Execute calls: retried tests COUNT, daily_run_stats UPSERT, daily_error_stats rollup, error_groups recount
+    // Execute calls: retried tests COUNT, daily_run_stats UPSERT, error_groups recount
     mocks.execute
       .mockResolvedValueOnce([{ retriedTests: 2 }])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
@@ -95,8 +94,8 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Four execute calls: retried count + daily_run_stats + daily_error_stats rollup + error_groups recount
-    expect(mocks.execute).toHaveBeenCalledTimes(4);
+    // Three execute calls: retried count + daily_run_stats + error_groups recount
+    expect(mocks.execute).toHaveBeenCalledTimes(3);
   });
 
   it('does not UPSERT when run is already in terminal state', async () => {
@@ -130,7 +129,6 @@ describe('RunEndHandler', () => {
     mocks.execute
       .mockResolvedValueOnce([{ retriedTests: 0 }])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     const event = {
@@ -143,7 +141,7 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Four execute calls: retried count + daily_run_stats + daily_error_stats rollup + error_groups recount
-    expect(mocks.execute).toHaveBeenCalledTimes(4);
+    // Three execute calls: retried count + daily_run_stats + error_groups recount
+    expect(mocks.execute).toHaveBeenCalledTimes(3);
   });
 });

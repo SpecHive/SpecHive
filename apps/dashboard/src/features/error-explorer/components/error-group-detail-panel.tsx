@@ -8,14 +8,20 @@ import { cn } from '@/shared/lib/utils';
 
 interface ErrorGroupDetailPanelProps {
   errorGroupId: string | null;
+  dateFrom?: number;
+  dateTo?: number;
 }
 
 const TABS = ['Affected Tests', 'Recent Executions', 'Affected Branches'] as const;
 type Tab = (typeof TABS)[number];
 
-export function ErrorGroupDetailPanel({ errorGroupId }: ErrorGroupDetailPanelProps) {
+export function ErrorGroupDetailPanel({
+  errorGroupId,
+  dateFrom,
+  dateTo,
+}: ErrorGroupDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Affected Tests');
-  const { data: detail, loading, error } = useErrorGroupDetail(errorGroupId);
+  const { data: detail, loading, error } = useErrorGroupDetail(errorGroupId, dateFrom, dateTo);
 
   useEffect(() => {
     setActiveTab('Affected Tests');

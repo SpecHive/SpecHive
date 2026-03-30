@@ -1,12 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  dailyErrorStats,
-  dailyRunStats,
-  errorGroups,
-  errorOccurrences,
-  runs,
-  tests,
-} from '@spechive/database';
+import { dailyRunStats, errorGroups, errorOccurrences, runs, tests } from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { RunEndEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
@@ -110,49 +103,10 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    // Rollup daily_error_stats for error groups affected by this run
-    await ctx.tx.execute(sql`
-      INSERT INTO ${dailyErrorStats} (
-        organization_id, project_id, error_group_id, date,
-        occurrences, unique_tests, unique_branches
-      )
-      SELECT
-        ${ctx.organizationId},
-        ${ctx.projectId},
-        eo.error_group_id,
-        date_trunc('day', eo.occurred_at AT TIME ZONE 'UTC')::date,
-        COUNT(*)::int,
-        COUNT(DISTINCT eo.test_name)::int,
-        COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int
-      FROM ${errorOccurrences} eo
-      WHERE eo.run_id = ${event.runId}
-      GROUP BY eo.error_group_id, date_trunc('day', eo.occurred_at AT TIME ZONE 'UTC')::date
-      ON CONFLICT (project_id, error_group_id, date) DO UPDATE SET
-        occurrences = (
-          SELECT COUNT(*)::int
-          FROM ${errorOccurrences} eo2
-          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
-            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
-        ),
-        unique_tests = (
-          SELECT COUNT(DISTINCT eo2.test_name)::int
-          FROM ${errorOccurrences} eo2
-          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
-            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
-        ),
-        unique_branches = (
-          SELECT COUNT(DISTINCT eo2.branch) FILTER (WHERE eo2.branch IS NOT NULL)::int
-          FROM ${errorOccurrences} eo2
-          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
-            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
-        ),
-        updated_at = NOW()
-    `);
-
-    // Correct error_groups aggregate counters from actual occurrences
+    // Tech debt: this full recount grows linearly with the number of occurrences per error group.
+    // For high-volume groups it will become a bottleneck on the run-end critical path.
+    // TODO: move aggregate recount to an async CQRS event processed by a dedicated worker,
+    // so run-end only emits a lightweight "recount-needed" signal.
     await ctx.tx.execute(sql`
       UPDATE ${errorGroups} eg SET
         total_occurrences = sub.total,
