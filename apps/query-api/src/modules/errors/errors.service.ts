@@ -26,6 +26,9 @@ import { z } from 'zod';
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 
 import {
+  DETAIL_AFFECTED_TESTS_LIMIT,
+  DETAIL_BRANCHES_LIMIT,
+  DETAIL_EXECUTIONS_LIMIT,
   ERRORS_MAX_DAYS,
   ERRORS_SHORT_RANGE_DAYS,
   ERRORS_TOP_N_MAX,
@@ -261,7 +264,7 @@ export class ErrorsService {
           COUNT(eo.id)::int AS "totalOccurrences",
           COUNT(DISTINCT eo.test_name)::int AS "uniqueTestCount",
           COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranchCount",
-          MIN(eo.occurred_at)::text AS "firstSeenAt",
+          eg.first_seen_at::text AS "firstSeenAt",
           MAX(eo.occurred_at)::text AS "lastSeenAt"
         FROM ${errorOccurrences} eo
         JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
@@ -345,7 +348,7 @@ export class ErrorsService {
           COALESCE(SUM(des.occurrences), 0)::int AS "totalOccurrences",
           COALESCE(SUM(des.unique_tests), 0)::int AS "uniqueTestCount",
           COALESCE(SUM(des.unique_branches), 0)::int AS "uniqueBranchCount",
-          MIN(des.date)::text AS "firstSeenAt",
+          eg.first_seen_at::text AS "firstSeenAt",
           MAX(des.date)::text AS "lastSeenAt"
         FROM ${dailyErrorStats} des
         JOIN ${errorGroups} eg ON eg.id = des.error_group_id
@@ -668,7 +671,7 @@ export class ErrorsService {
           WHERE eo.error_group_id = ${errorGroupId}
           GROUP BY eo.test_name
           ORDER BY "occurrenceCount" DESC
-          LIMIT 20
+          LIMIT ${DETAIL_AFFECTED_TESTS_LIMIT}
         `),
         tx.execute(sql`
           SELECT
@@ -679,7 +682,7 @@ export class ErrorsService {
           WHERE eo.error_group_id = ${errorGroupId}
           GROUP BY eo.branch
           ORDER BY "occurrenceCount" DESC
-          LIMIT 10
+          LIMIT ${DETAIL_BRANCHES_LIMIT}
         `),
         tx.execute(sql`
           SELECT
@@ -694,7 +697,7 @@ export class ErrorsService {
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${errorGroupId}
           ORDER BY eo.occurred_at DESC
-          LIMIT 20
+          LIMIT ${DETAIL_EXECUTIONS_LIMIT}
         `),
       ]);
 

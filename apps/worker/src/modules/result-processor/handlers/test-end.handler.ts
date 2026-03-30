@@ -141,7 +141,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           .set({ errorGroupId: group.id })
           .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
       } else {
-        this.logger.error(
+        throw new Error(
           `Failed to upsert error group for fingerprint ${fingerprint} in run ${event.runId}`,
         );
       }

@@ -13,6 +13,7 @@ import { useUpdateParam } from './hooks/use-update-param';
 
 import { useProject } from '@/contexts/project-context';
 import { PageHeader } from '@/layout/page-header';
+import { ErrorBoundary } from '@/shared/components/error-boundary';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useSortable } from '@/shared/hooks/use-sortable';
 
@@ -130,7 +131,15 @@ export function ErrorExplorerPage() {
             onPageChange={(p) => updateParam('page', String(p))}
             onPageSizeChange={(s) => updateParam('pageSize', String(s))}
           >
-            <ErrorGroupDetailPanel errorGroupId={expandedGroupId} />
+            <ErrorBoundary
+              fallback={
+                <p className="py-4 text-center text-sm text-destructive">
+                  Failed to render error details
+                </p>
+              }
+            >
+              <ErrorGroupDetailPanel errorGroupId={expandedGroupId} />
+            </ErrorBoundary>
           </ErrorGroupsTable>
         </>
       )}

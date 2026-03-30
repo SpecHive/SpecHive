@@ -51,14 +51,17 @@ const TEST_1B = uid(22);
 const TEST_2A = uid(23);
 const TEST_3A = uid(24);
 const TEST_3B = uid(25);
+const TEST_1C = uid(26);
 const GROUP_ASSERTION = uid(31);
 const GROUP_TIMEOUT = uid(32);
 const GROUP_UNCATEGORIZED = uid(33);
+const GROUP_ACTION = uid(34);
 const OCC_1A = uid(41);
 const OCC_1B = uid(42);
 const OCC_2A = uid(43);
 const OCC_3A = uid(44);
 const OCC_4A = uid(45);
+const OCC_5A = uid(46);
 
 describe('Error Explorer endpoints', () => {
   let sql: Awaited<ReturnType<typeof createPostgresConnection>>;
@@ -99,6 +102,7 @@ describe('Error Explorer endpoints', () => {
       [TEST_2A, SUITE_2, RUN_2, 'login page renders'],
       [TEST_3A, SUITE_3, RUN_3, 'dashboard loads'],
       [TEST_3B, SUITE_3, RUN_3, 'settings page renders'],
+      [TEST_1C, SUITE_1, RUN_1, 'homepage loads'],
     ] as const) {
       await sql`
         INSERT INTO tests (id, suite_id, run_id, organization_id, name, status, duration_ms)
@@ -107,17 +111,18 @@ describe('Error Explorer endpoints', () => {
       `;
     }
 
-    // Error groups (3 groups: assertion + timeout + uncategorized)
+    // Error groups (4 groups: assertion + timeout + uncategorized + action)
     await sql`
       INSERT INTO error_groups (id, organization_id, project_id, fingerprint, title, normalized_message, error_name, error_category, total_occurrences, unique_test_count, unique_branch_count, first_seen_at, last_seen_at)
       VALUES
         (${GROUP_ASSERTION}, ${SEED_ORG_ID}, ${SEED_PROJECT_ID}, 'fp-assertion-login', 'Expected "Dashboard" but got "Login"', 'expected <PLACEHOLDER> but got <PLACEHOLDER>', 'AssertionError', 'assertion', 3, 2, 2, ${daysAgo(5).toISOString()}, ${daysAgo(1).toISOString()}),
         (${GROUP_TIMEOUT}, ${SEED_ORG_ID}, ${SEED_PROJECT_ID}, 'fp-timeout-nav', 'Timeout waiting for navigation', 'timeout <LINE>ms exceeded', 'TimeoutError', 'timeout', 1, 1, 1, ${daysAgo(2).toISOString()}, ${daysAgo(2).toISOString()}),
-        (${GROUP_UNCATEGORIZED}, ${SEED_ORG_ID}, ${SEED_PROJECT_ID}, 'fp-unknown-err', 'Unknown runtime error', 'cannot read properties of undefined', NULL, NULL, 1, 1, 1, ${daysAgo(1).toISOString()}, ${daysAgo(1).toISOString()})
+        (${GROUP_UNCATEGORIZED}, ${SEED_ORG_ID}, ${SEED_PROJECT_ID}, 'fp-unknown-err', 'Unknown runtime error', 'cannot read properties of undefined', NULL, NULL, 1, 1, 1, ${daysAgo(1).toISOString()}, ${daysAgo(1).toISOString()}),
+        (${GROUP_ACTION}, ${SEED_ORG_ID}, ${SEED_PROJECT_ID}, 'fp-action-goto', 'goto failed: net::ERR_CONNECTION_REFUSED', 'page.goto: net::ERR_CONNECTION_REFUSED', 'Error', 'action', 1, 1, 1, ${daysAgo(1).toISOString()}, ${daysAgo(1).toISOString()})
       ON CONFLICT DO NOTHING
     `;
 
-    // Error occurrences (5 total: 3 assertion + 1 timeout + 1 uncategorized)
+    // Error occurrences (6 total: 3 assertion + 1 timeout + 1 uncategorized + 1 action)
     await sql`
       INSERT INTO error_occurrences (id, organization_id, error_group_id, test_id, run_id, project_id, branch, test_name, error_message, occurred_at)
       VALUES
@@ -125,7 +130,8 @@ describe('Error Explorer endpoints', () => {
         (${OCC_2A}, ${SEED_ORG_ID}, ${GROUP_ASSERTION}, ${TEST_2A}, ${RUN_2}, ${SEED_PROJECT_ID}, 'main', 'login page renders', 'Expected "Dashboard" but got "Login"', ${daysAgo(5).toISOString()}),
         (${OCC_3A}, ${SEED_ORG_ID}, ${GROUP_ASSERTION}, ${TEST_3A}, ${RUN_3}, ${SEED_PROJECT_ID}, 'feature/login', 'dashboard loads', 'Expected "Dashboard" but got "Login"', ${daysAgo(1).toISOString()}),
         (${OCC_1B}, ${SEED_ORG_ID}, ${GROUP_TIMEOUT}, ${TEST_1B}, ${RUN_1}, ${SEED_PROJECT_ID}, 'main', 'login form submits', 'Timeout 30000ms exceeded', ${daysAgo(2).toISOString()}),
-        (${OCC_4A}, ${SEED_ORG_ID}, ${GROUP_UNCATEGORIZED}, ${TEST_3B}, ${RUN_3}, ${SEED_PROJECT_ID}, 'feature/login', 'settings page renders', 'Cannot read properties of undefined', ${daysAgo(1).toISOString()})
+        (${OCC_4A}, ${SEED_ORG_ID}, ${GROUP_UNCATEGORIZED}, ${TEST_3B}, ${RUN_3}, ${SEED_PROJECT_ID}, 'feature/login', 'settings page renders', 'Cannot read properties of undefined', ${daysAgo(1).toISOString()}),
+        (${OCC_5A}, ${SEED_ORG_ID}, ${GROUP_ACTION}, ${TEST_1C}, ${RUN_1}, ${SEED_PROJECT_ID}, 'main', 'homepage loads', 'page.goto: net::ERR_CONNECTION_REFUSED', ${daysAgo(2).toISOString()})
       ON CONFLICT DO NOTHING
     `;
 
@@ -137,15 +143,16 @@ describe('Error Explorer endpoints', () => {
         (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ASSERTION}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1),
         (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ASSERTION}, ${daysAgo(1).toISOString().slice(0, 10)}, 1, 1, 1),
         (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_TIMEOUT}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1),
-        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_UNCATEGORIZED}, ${daysAgo(1).toISOString().slice(0, 10)}, 1, 1, 1)
+        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_UNCATEGORIZED}, ${daysAgo(1).toISOString().slice(0, 10)}, 1, 1, 1),
+        (${SEED_ORG_ID}, ${SEED_PROJECT_ID}, ${GROUP_ACTION}, ${daysAgo(2).toISOString().slice(0, 10)}, 1, 1, 1)
       ON CONFLICT DO NOTHING
     `;
   }, 30_000);
 
   afterAll(async () => {
-    await sql`DELETE FROM daily_error_stats WHERE project_id = ${SEED_PROJECT_ID} AND error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED})`;
-    await sql`DELETE FROM error_occurrences WHERE error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED})`;
-    await sql`DELETE FROM error_groups WHERE id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED})`;
+    await sql`DELETE FROM daily_error_stats WHERE project_id = ${SEED_PROJECT_ID} AND error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
+    await sql`DELETE FROM error_occurrences WHERE error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
+    await sql`DELETE FROM error_groups WHERE id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION})`;
     await sql`DELETE FROM runs WHERE id IN (${RUN_1}, ${RUN_2}, ${RUN_3})`;
     await sql.end();
   });
@@ -160,9 +167,11 @@ describe('Error Explorer endpoints', () => {
 
       expect(status).toBe(200);
       const { data: groups } = body as PaginatedGroups;
-      expect(groups.length).toBeGreaterThanOrEqual(3);
+      const seededIds = [GROUP_ASSERTION, GROUP_TIMEOUT, GROUP_UNCATEGORIZED, GROUP_ACTION];
+      const seeded = groups.filter((g) => seededIds.includes(g.id));
+      expect(seeded).toHaveLength(4);
 
-      const assertion = groups.find((g) => g.id === GROUP_ASSERTION)!;
+      const assertion = seeded.find((g) => g.id === GROUP_ASSERTION)!;
       expect(assertion).toBeDefined();
       expect(assertion.totalOccurrences).toBe(3);
       expect(assertion.uniqueTestCount).toBe(2);
@@ -201,9 +210,11 @@ describe('Error Explorer endpoints', () => {
 
       expect(status).toBe(200);
       const { data: groups } = body as PaginatedGroups;
-      expect(groups).toHaveLength(1);
-      expect(groups[0].id).toBe(GROUP_ASSERTION);
-      expect(groups[0].totalOccurrences).toBe(1);
+      const seededIds = [GROUP_ASSERTION, GROUP_UNCATEGORIZED];
+      const seeded = groups.filter((g) => seededIds.includes(g.id));
+      expect(seeded).toHaveLength(2);
+      const assertion = seeded.find((g) => g.id === GROUP_ASSERTION)!;
+      expect(assertion.totalOccurrences).toBe(1);
     });
 
     it('paginates results', async () => {
@@ -216,7 +227,9 @@ describe('Error Explorer endpoints', () => {
       expect(status).toBe(200);
       const { data, meta } = body as PaginatedGroups;
       expect(data).toHaveLength(1);
-      expect(meta.total).toBeGreaterThanOrEqual(3);
+      expect(meta.total).toBeGreaterThanOrEqual(4);
+      expect(meta.pageSize).toBe(1);
+      expect(meta.page).toBe(1);
     });
 
     it('sorts by specified column', async () => {
@@ -228,8 +241,13 @@ describe('Error Explorer endpoints', () => {
 
       expect(status).toBe(200);
       const { data: groups } = body as PaginatedGroups;
-      expect(groups.length).toBeGreaterThanOrEqual(2);
-      expect(groups[0].totalOccurrences).toBeLessThanOrEqual(groups[1].totalOccurrences);
+      const seededIds = [GROUP_ASSERTION, GROUP_TIMEOUT, GROUP_UNCATEGORIZED, GROUP_ACTION];
+      const seeded = groups.filter((g) => seededIds.includes(g.id));
+      expect(seeded.length).toBeGreaterThanOrEqual(2);
+      // Verify ascending sort order is respected
+      for (let i = 1; i < seeded.length; i++) {
+        expect(seeded[i - 1].totalOccurrences).toBeLessThanOrEqual(seeded[i].totalOccurrences);
+      }
     });
 
     it('filters by uncategorized category (matches NULL error_category)', async () => {
@@ -243,6 +261,19 @@ describe('Error Explorer endpoints', () => {
       expect(groups).toHaveLength(1);
       expect(groups[0].id).toBe(GROUP_UNCATEGORIZED);
       expect(groups[0].errorCategory).toBeNull();
+    });
+
+    it('filters by action category', async () => {
+      const { status, body } = await queryApi.errors.list(jwt, {
+        projectId: SEED_PROJECT_ID,
+        category: 'action',
+      });
+
+      expect(status).toBe(200);
+      const { data: groups } = body as PaginatedGroups;
+      expect(groups).toHaveLength(1);
+      expect(groups[0].id).toBe(GROUP_ACTION);
+      expect(groups[0].errorCategory).toBe('action');
     });
 
     it('combines category + branch filters', async () => {
@@ -290,7 +321,11 @@ describe('Error Explorer endpoints', () => {
 
       expect(status).toBe(200);
       const { data: groups } = body as PaginatedGroups;
-      const assertion = groups.find((g) => g.id === GROUP_ASSERTION);
+      const seededIds = [GROUP_ASSERTION, GROUP_TIMEOUT, GROUP_UNCATEGORIZED, GROUP_ACTION];
+      const seeded = groups.filter((g) => seededIds.includes(g.id));
+      expect(seeded).toHaveLength(4);
+
+      const assertion = seeded.find((g) => g.id === GROUP_ASSERTION);
       // 3 occurrences total — daily stats + today supplement should not double-count
       expect(assertion?.totalOccurrences).toBe(3);
     });
@@ -349,7 +384,10 @@ describe('Error Explorer endpoints', () => {
 
       expect(status).toBe(200);
       const timeline = body as TimelineRow;
-      expect(timeline.series.length).toBeGreaterThan(0);
+      // main branch has assertion (2 occ) + timeout (1 occ) + action (1 occ)
+      const seededIds = [GROUP_ASSERTION, GROUP_TIMEOUT, GROUP_ACTION];
+      const seeded = timeline.series.filter((s) => seededIds.includes(s.errorGroupId));
+      expect(seeded).toHaveLength(3);
     });
   });
 
@@ -363,12 +401,10 @@ describe('Error Explorer endpoints', () => {
       const detail = body as Record<string, unknown>;
       expect(detail.id).toBe(GROUP_ASSERTION);
       expect(detail.fingerprint).toBe('fp-assertion-login');
-      expect(detail.affectedTests).toBeDefined();
-      expect(detail.affectedBranches).toBeDefined();
-      expect(detail.recentExecutions).toBeDefined();
-      expect((detail.affectedTests as unknown[]).length).toBeGreaterThan(0);
-      expect((detail.affectedBranches as unknown[]).length).toBeGreaterThan(0);
-      expect((detail.recentExecutions as unknown[]).length).toBeGreaterThan(0);
+      // 3 occurrences across 2 distinct test names and 2 branches
+      expect(detail.affectedTests).toHaveLength(2);
+      expect(detail.affectedBranches).toHaveLength(2);
+      expect(detail.recentExecutions).toHaveLength(3);
     });
 
     it('returns 404 for non-existent error group', async () => {
@@ -393,9 +429,9 @@ describe('Error Explorer endpoints', () => {
         topErrors: Array<{ errorGroupId: string; title: string; occurrences: number }>;
       };
       expect(summary.runId).toBe(RUN_1);
-      expect(summary.totalErrorGroups).toBe(2);
-      expect(summary.totalFailedTests).toBe(2);
-      expect(summary.topErrors.length).toBeGreaterThan(0);
+      expect(summary.totalErrorGroups).toBe(3);
+      expect(summary.totalFailedTests).toBe(3);
+      expect(summary.topErrors).toHaveLength(3);
       expect(summary.topErrors[0].occurrences).toBeGreaterThanOrEqual(1);
     });
 

@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { useDebouncedParam } from '../hooks/use-debounced-param';
 import { useUpdateParam } from '../hooks/use-update-param';
 
 import { PeriodSelector } from '@/shared/components/period-selector';
@@ -17,7 +17,7 @@ const CATEGORIES = [
 ] as const;
 
 export function ErrorFilters() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const updateParam = useUpdateParam();
 
   const { days, setDays, options } = usePeriodSelector({
@@ -26,51 +26,10 @@ export function ErrorFilters() {
     syncWithUrl: true,
   });
 
-  const branch = searchParams.get('branch') || '';
-  const search = searchParams.get('search') || '';
   const category = searchParams.get('category') || '';
 
-  const [searchInput, setSearchInput] = useState(search);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  const [branchInput, setBranchInput] = useState(branch);
-  const branchDebounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(() => {
-    if (searchInput === search) return;
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (searchInput) {
-          next.set('search', searchInput);
-        } else {
-          next.delete('search');
-        }
-        next.delete('page');
-        return next;
-      });
-    }, 300);
-    return () => clearTimeout(debounceRef.current);
-  }, [searchInput, search, setSearchParams]);
-
-  useEffect(() => {
-    if (branchInput === branch) return;
-    clearTimeout(branchDebounceRef.current);
-    branchDebounceRef.current = setTimeout(() => {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (branchInput) {
-          next.set('branch', branchInput);
-        } else {
-          next.delete('branch');
-        }
-        next.delete('page');
-        return next;
-      });
-    }, 300);
-    return () => clearTimeout(branchDebounceRef.current);
-  }, [branchInput, branch, setSearchParams]);
+  const [searchInput, setSearchInput] = useDebouncedParam('search');
+  const [branchInput, setBranchInput] = useDebouncedParam('branch');
 
   return (
     <div className="flex flex-wrap items-center gap-3">

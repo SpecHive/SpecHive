@@ -4,6 +4,8 @@ import { Button } from '@/shared/components/ui/button';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /** Optional custom fallback UI. When omitted the full-page error screen is shown. */
+  fallback?: ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -33,6 +35,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (!this.state.hasError) {
       return this.props.children;
+    }
+
+    if (this.props.fallback !== undefined) {
+      return this.props.fallback;
     }
 
     return (
