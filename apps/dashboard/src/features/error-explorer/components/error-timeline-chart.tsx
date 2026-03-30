@@ -19,8 +19,6 @@ const SERIES_COLORS = [
   CHART_COLORS.purple,
   CHART_COLORS.pass,
 ];
-const OTHER_COLOR = '#94a3b8';
-
 export type ErrorMetric = 'occurrences' | 'uniqueTests' | 'uniqueBranches';
 
 interface ErrorTimelineChartProps {
@@ -34,7 +32,7 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
     return <div className="h-[300px] animate-pulse rounded bg-muted" />;
   }
 
-  if (!data || (data.series.length === 0 && data.otherSeries.length === 0)) {
+  if (!data || data.series.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center">
         <p className="text-muted-foreground">No errors in this period</p>
@@ -51,20 +49,11 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
       dateMap.set(dp.date, entry);
     }
   }
-  for (const dp of data.otherSeries) {
-    const entry = dateMap.get(dp.date) ?? {};
-    entry['Other'] = dp[metric];
-    dateMap.set(dp.date, entry);
-  }
-
   const chartData = Array.from(dateMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => ({ date, ...values }));
 
-  const seriesKeys = [
-    ...data.series.map((s) => s.errorGroupId),
-    ...(data.otherSeries.length > 0 ? ['Other'] : []),
-  ];
+  const seriesKeys = data.series.map((s) => s.errorGroupId);
 
   // Map errorGroupId → title for human-readable tooltip labels
   const labelMap = new Map(data.series.map((s) => [s.errorGroupId, s.title]));
@@ -91,8 +80,8 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
             type="monotone"
             dataKey={key}
             stackId="1"
-            stroke={i < data.series.length ? SERIES_COLORS[i % SERIES_COLORS.length] : OTHER_COLOR}
-            fill={i < data.series.length ? SERIES_COLORS[i % SERIES_COLORS.length] : OTHER_COLOR}
+            stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+            fill={SERIES_COLORS[i % SERIES_COLORS.length]}
           />
         ))}
       </RechartsAreaChart>

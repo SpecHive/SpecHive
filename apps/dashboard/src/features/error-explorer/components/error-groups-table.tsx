@@ -119,7 +119,7 @@ export function ErrorGroupsTable({
                               className={`mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                             />
                             <div className="min-w-0">
-                              <p className="line-clamp-2">{group.title}</p>
+                              <p className="line-clamp-2 break-all">{group.title}</p>
                               <CategoryBadge category={group.errorCategory} />
                             </div>
                           </div>

@@ -4,8 +4,6 @@ import { useSearchParams } from 'react-router';
 import { useDebouncedParam } from '../hooks/use-debounced-param';
 import { useUpdateParam } from '../hooks/use-update-param';
 
-import { PeriodSelector } from '@/shared/components/period-selector';
-import { usePeriodSelector } from '@/shared/hooks/use-period-selector';
 import { cn } from '@/shared/lib/utils';
 
 const CATEGORIES = [
@@ -16,24 +14,15 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ] as const;
 
-export function ErrorFilters() {
+export function ErrorTableFilters() {
   const [searchParams] = useSearchParams();
   const updateParam = useUpdateParam();
-
-  const { days, setDays, options } = usePeriodSelector({
-    options: [7, 14, 30, 60, 90],
-    defaultDays: 30,
-    syncWithUrl: true,
-  });
-
   const category = searchParams.get('category') || '';
-
   const [searchInput, setSearchInput] = useDebouncedParam('search');
   const [branchInput, setBranchInput] = useDebouncedParam('branch');
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <PeriodSelector options={options} value={days} onChange={setDays} />
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 p-3 backdrop-blur-sm">
       <div className="flex gap-1">
         {CATEGORIES.map((cat) => (
           <button
@@ -56,7 +45,7 @@ export function ErrorFilters() {
         value={branchInput}
         onChange={(e) => setBranchInput(e.target.value)}
         placeholder="Branch…"
-        className="rounded-md border bg-background px-3 py-2 text-sm"
+        className="rounded-md border bg-background px-3 py-1.5 text-sm"
         aria-label="Filter by branch"
       />
       <div className="relative">
@@ -66,7 +55,7 @@ export function ErrorFilters() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search errors…"
-          className="rounded-md border bg-background py-2 pl-9 pr-3 text-sm"
+          className="rounded-md border bg-background py-1.5 pl-9 pr-3 text-sm"
           aria-label="Search errors"
         />
       </div>

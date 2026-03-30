@@ -38,7 +38,6 @@ export type {
   ErrorTimelineDataPoint,
   AffectedTest,
   AffectedBranch,
-  RecentExecution,
   ErrorGroupDetail,
   RunErrorItem,
   RunErrorsSummary,

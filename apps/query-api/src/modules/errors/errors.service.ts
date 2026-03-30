@@ -23,7 +23,6 @@ import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 import {
   DETAIL_AFFECTED_TESTS_LIMIT,
   DETAIL_BRANCHES_LIMIT,
-  DETAIL_EXECUTIONS_LIMIT,
   ERRORS_MAX_DAYS,
   ERRORS_TOP_N_MAX,
   ERRORS_TOP_N_MIN,
@@ -349,7 +348,7 @@ export class ErrorsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
-      const [groupResult, testsResult, branchesResult, executionsResult] = await Promise.all([
+      const [groupResult, testsResult, branchesResult, latestMessageResult] = await Promise.all([
         tx.execute(sql`
           SELECT
             eg.id,
@@ -375,7 +374,8 @@ export class ErrorsService {
             COUNT(eo.id)::int AS "occurrenceCount",
             MAX(eo.occurred_at)::text AS "lastSeenAt",
             (ARRAY_AGG(eo.run_id ORDER BY eo.occurred_at DESC))[1] AS "lastRunId",
-            (ARRAY_AGG(eo.test_id ORDER BY eo.occurred_at DESC))[1] AS "lastTestId"
+            (ARRAY_AGG(eo.test_id ORDER BY eo.occurred_at DESC))[1] AS "lastTestId",
+            (ARRAY_AGG(eo.branch ORDER BY eo.occurred_at DESC))[1] AS "lastBranch"
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
             ${dateFilter}
@@ -396,20 +396,12 @@ export class ErrorsService {
           LIMIT ${DETAIL_BRANCHES_LIMIT}
         `),
         tx.execute(sql`
-          SELECT
-            eo.id AS "occurrenceId",
-            eo.test_id AS "testId",
-            eo.test_name AS "testName",
-            eo.run_id AS "runId",
-            eo.branch,
-            eo.commit_sha AS "commitSha",
-            eo.error_message AS "errorMessage",
-            eo.occurred_at::text AS "occurredAt"
+          SELECT eo.error_message AS "latestErrorMessage"
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
             ${dateFilter}
           ORDER BY eo.occurred_at DESC
-          LIMIT ${DETAIL_EXECUTIONS_LIMIT}
+          LIMIT 1
         `),
       ]);
 
@@ -422,7 +414,9 @@ export class ErrorsService {
         ...group,
         affectedTests: testsResult,
         affectedBranches: branchesResult,
-        recentExecutions: executionsResult,
+        latestErrorMessage:
+          (latestMessageResult[0] as { latestErrorMessage: string | null } | undefined)
+            ?.latestErrorMessage ?? null,
       });
     });
   }

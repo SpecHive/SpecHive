@@ -53,6 +53,7 @@ export const affectedTestSchema = z.object({
   lastSeenAt: z.string().nullable(),
   lastRunId: z.string().nullable(),
   lastTestId: z.string().nullable(),
+  lastBranch: z.string().nullable(),
 });
 
 export type AffectedTest = z.infer<typeof affectedTestSchema>;
@@ -64,19 +65,6 @@ export const affectedBranchSchema = z.object({
 });
 
 export type AffectedBranch = z.infer<typeof affectedBranchSchema>;
-
-export const recentExecutionSchema = z.object({
-  occurrenceId: z.string(),
-  testId: z.string(),
-  testName: z.string(),
-  runId: z.string(),
-  branch: z.string().nullable(),
-  commitSha: z.string().nullable(),
-  errorMessage: z.string().nullable(),
-  occurredAt: z.string().nullable(),
-});
-
-export type RecentExecution = z.infer<typeof recentExecutionSchema>;
 
 export const errorGroupDetailSchema = z.object({
   id: z.string(),
@@ -95,7 +83,7 @@ export const errorGroupDetailSchema = z.object({
   updatedAt: z.string().nullable(),
   affectedTests: affectedTestSchema.array(),
   affectedBranches: affectedBranchSchema.array(),
-  recentExecutions: recentExecutionSchema.array(),
+  latestErrorMessage: z.string().nullable(),
 });
 
 export type ErrorGroupDetail = z.infer<typeof errorGroupDetailSchema>;

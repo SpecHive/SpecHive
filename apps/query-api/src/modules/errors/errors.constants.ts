@@ -7,4 +7,3 @@ export const ERRORS_TOP_N_DEFAULT = 5;
 
 export const DETAIL_AFFECTED_TESTS_LIMIT = 20;
 export const DETAIL_BRANCHES_LIMIT = 10;
-export const DETAIL_EXECUTIONS_LIMIT = 20;

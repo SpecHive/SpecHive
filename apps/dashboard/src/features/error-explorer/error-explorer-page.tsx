@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
-import { ErrorFilters } from './components/error-filters';
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
 import { ErrorGroupsTable } from './components/error-groups-table';
 import { ErrorMetricToggle } from './components/error-metric-toggle';
+import { ErrorTableFilters } from './components/error-table-filters';
 import type { ErrorMetric } from './components/error-timeline-chart';
 import { ErrorTimelineChart } from './components/error-timeline-chart';
 import { useErrorGroups } from './hooks/use-error-groups';
@@ -14,15 +14,24 @@ import { useUpdateParam } from './hooks/use-update-param';
 import { useProject } from '@/contexts/project-context';
 import { PageHeader } from '@/layout/page-header';
 import { ErrorBoundary } from '@/shared/components/error-boundary';
+import { PeriodSelector } from '@/shared/components/period-selector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { usePeriodSelector } from '@/shared/hooks/use-period-selector';
 import { useSortable } from '@/shared/hooks/use-sortable';
 
 export function ErrorExplorerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedProjectIds, isAllSelected } = useProject();
   const { sortBy, sortDirection: sortOrder, handleSort } = useSortable({ syncWithUrl: true });
-
-  const days = Number(searchParams.get('days')) || 30;
+  const {
+    days,
+    setDays,
+    options: periodOptions,
+  } = usePeriodSelector({
+    options: [7, 14, 30, 60, 90],
+    defaultDays: 30,
+    syncWithUrl: true,
+  });
   const metricParam = searchParams.get('metric');
   const metric: ErrorMetric =
     metricParam === 'uniqueTests' || metricParam === 'uniqueBranches' ? metricParam : 'occurrences';
@@ -114,7 +123,7 @@ export function ErrorExplorerPage() {
         </Card>
       ) : (
         <>
-          <ErrorFilters />
+          <PeriodSelector options={periodOptions} value={days} onChange={setDays} />
 
           {(timelineError || groupsError) && (
             <Card>
@@ -135,6 +144,8 @@ export function ErrorExplorerPage() {
               <ErrorTimelineChart data={timelineData} loading={timelineLoading} metric={metric} />
             </CardContent>
           </Card>
+
+          <ErrorTableFilters />
 
           <ErrorGroupsTable
             data={groupsData}

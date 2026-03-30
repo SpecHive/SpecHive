@@ -390,7 +390,7 @@ describe('Error Explorer endpoints', () => {
       // 3 occurrences across 2 distinct test names and 2 branches
       expect(detail.affectedTests).toHaveLength(2);
       expect(detail.affectedBranches).toHaveLength(2);
-      expect(detail.recentExecutions).toHaveLength(3);
+      expect(detail.latestErrorMessage).toEqual(expect.any(String));
     });
 
     it('returns 404 for non-existent error group', async () => {
