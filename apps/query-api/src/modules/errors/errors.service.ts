@@ -137,13 +137,15 @@ export class ErrorsService {
   /** Returns a metric expression for use with error_occurrences or daily stats queries. */
   private getMetricExpression(metric: ErrorMetric, source: 'occurrences' | 'dailyStats') {
     if (source === 'dailyStats') {
+      // Use raw SQL with the `des` alias — Drizzle column refs resolve to the full table name
+      // which conflicts with the alias used in raw SQL queries.
       switch (metric) {
         case 'occurrences':
-          return dailyErrorStats.occurrences;
+          return sql`des.occurrences`;
         case 'uniqueTests':
-          return dailyErrorStats.uniqueTests;
+          return sql`des.unique_tests`;
         case 'uniqueBranches':
-          return dailyErrorStats.uniqueBranches;
+          return sql`des.unique_branches`;
       }
     }
     switch (metric) {
