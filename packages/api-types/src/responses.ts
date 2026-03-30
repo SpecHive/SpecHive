@@ -67,6 +67,7 @@ export interface TestSummary {
   errorMessage: string | null;
   stackTrace: string | null;
   retryCount: number;
+  errorGroupId: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string | null;

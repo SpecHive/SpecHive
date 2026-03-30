@@ -39,6 +39,7 @@ export const errorGroups = pgTable(
     title: text('title').notNull(),
     normalizedMessage: text('normalized_message').notNull(),
     errorName: text('error_name'),
+    errorCategory: text('error_category'),
     totalOccurrences: integer('total_occurrences').notNull().default(0),
     uniqueTestCount: integer('unique_test_count').notNull().default(0),
     uniqueBranchCount: integer('unique_branch_count').notNull().default(0),

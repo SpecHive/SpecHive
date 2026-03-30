@@ -4,6 +4,15 @@ import { useSearchParams } from 'react-router';
 
 import { PeriodSelector } from '@/shared/components/period-selector';
 import { usePeriodSelector } from '@/shared/hooks/use-period-selector';
+import { cn } from '@/shared/lib/utils';
+
+const CATEGORIES = [
+  { value: '', label: 'All' },
+  { value: 'assertion', label: 'Assertions' },
+  { value: 'timeout', label: 'Timeouts' },
+  { value: 'action', label: 'Actions' },
+  { value: 'runtime', label: 'Runtime' },
+] as const;
 
 export function ErrorFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +25,7 @@ export function ErrorFilters() {
 
   const branch = searchParams.get('branch') || '';
   const search = searchParams.get('search') || '';
+  const category = searchParams.get('category') || '';
 
   const [searchInput, setSearchInput] = useState(search);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -52,6 +62,23 @@ export function ErrorFilters() {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <PeriodSelector options={options} value={days} onChange={setDays} />
+      <div className="flex gap-1">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat.value}
+            type="button"
+            onClick={() => updateParam('category', cat.value)}
+            className={cn(
+              'rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors',
+              category === cat.value
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+            )}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
       <input
         type="text"
         value={branch}

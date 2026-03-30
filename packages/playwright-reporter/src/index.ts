@@ -30,6 +30,7 @@ import {
 import type { ArtifactId } from '@spechive/shared-types';
 import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 
+import { parsePlaywrightError } from './error-parser.js';
 import type { SpecHiveReporterConfig } from './types.js';
 
 const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
@@ -59,10 +60,13 @@ function extractErrorMetadata(error: TestResult['error']) {
 
   const errorSnippet = error.snippet ? error.snippet.slice(0, MAX_ERROR_SNIPPET_LENGTH) : undefined;
 
+  const parsed = parsePlaywrightError(error.message);
+
   return {
     ...(errorName ? { errorName } : {}),
     ...(errorLocation ? { errorLocation } : {}),
     ...(errorSnippet ? { errorSnippet } : {}),
+    ...(parsed ?? {}),
   };
 }
 

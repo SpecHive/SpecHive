@@ -92,6 +92,22 @@ const errorLocationSchema = z.object({
   column: z.number().int().nonnegative().optional(),
 });
 
+export const ErrorCategorySchema = z.enum(['assertion', 'timeout', 'action', 'runtime']);
+
+const errorFieldsSchema = {
+  errorMessage: z.string().max(10_000).optional(),
+  stackTrace: z.string().max(50_000).optional(),
+  errorName: z.string().max(200).optional(),
+  errorLocation: errorLocationSchema.optional(),
+  errorSnippet: z.string().max(5000).optional(),
+  errorExpected: z.string().max(10_000).optional(),
+  errorActual: z.string().max(10_000).optional(),
+  errorDiff: z.string().max(50_000).optional(),
+  errorCategory: ErrorCategorySchema.optional(),
+  errorMatcher: z.string().max(200).optional(),
+  errorTarget: z.string().max(2000).optional(),
+};
+
 export const TestEndSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('test.end'),
@@ -99,14 +115,7 @@ export const TestEndSchema = z.object({
     testId: z.string().uuid().transform(asTestId),
     status: z.nativeEnum(TestStatus),
     durationMs: z.number().nonnegative().optional(),
-    errorMessage: z.string().max(10_000).optional(),
-    stackTrace: z.string().max(50_000).optional(),
-    errorName: z.string().max(200).optional(),
-    errorLocation: errorLocationSchema.optional(),
-    errorSnippet: z.string().max(5000).optional(),
-    errorExpected: z.string().max(10_000).optional(),
-    errorActual: z.string().max(10_000).optional(),
-    errorDiff: z.string().max(50_000).optional(),
+    ...errorFieldsSchema,
     retryCount: z.number().nonnegative().int().optional(),
     attempts: z
       .array(
@@ -116,14 +125,7 @@ export const TestEndSchema = z.object({
           durationMs: z.number().nonnegative().optional(),
           startedAt: z.string().datetime().optional(),
           finishedAt: z.string().datetime().optional(),
-          errorMessage: z.string().max(10_000).optional(),
-          stackTrace: z.string().max(50_000).optional(),
-          errorName: z.string().max(200).optional(),
-          errorLocation: errorLocationSchema.optional(),
-          errorSnippet: z.string().max(5000).optional(),
-          errorExpected: z.string().max(10_000).optional(),
-          errorActual: z.string().max(10_000).optional(),
-          errorDiff: z.string().max(50_000).optional(),
+          ...errorFieldsSchema,
         }),
       )
       .optional(),

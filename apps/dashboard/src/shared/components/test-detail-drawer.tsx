@@ -1,5 +1,6 @@
-import { Download, X } from 'lucide-react';
+import { Download, ExternalLink, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 
 import { StatusBadge } from '@/shared/components/status-badge';
@@ -108,6 +109,15 @@ export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps)
               <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
                 <p className="text-sm font-medium text-destructive">Error</p>
                 <p className="mt-1 text-sm">{errorMessage}</p>
+                {testDetail.errorGroupId && (
+                  <Link
+                    to={`/errors?errorGroupId=${testDetail.errorGroupId}`}
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    View error group
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
               </div>
             )}
 

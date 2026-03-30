@@ -10,12 +10,15 @@ import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ERRORS_TOP_N_MAX, ERRORS_TOP_N_MIN, ERRORS_TOP_N_DEFAULT } from './errors.constants';
 import { ErrorsService } from './errors.service';
 
+const categoryEnum = z.enum(['assertion', 'timeout', 'action', 'runtime']);
+
 const listErrorsQuerySchema = paginationSchema.extend({
   projectId: z.string().uuid(),
   dateFrom: z.coerce.number().int().positive().optional(),
   dateTo: z.coerce.number().int().positive().optional(),
   branch: z.string().max(500).optional(),
   search: z.string().max(200).optional(),
+  category: categoryEnum.optional(),
   sortBy: z
     .enum(['totalOccurrences', 'uniqueTestCount', 'uniqueBranchCount', 'lastSeenAt', 'title'])
     .default('totalOccurrences'),
@@ -28,6 +31,7 @@ const timelineQuerySchema = z.object({
   dateTo: z.coerce.number().int().positive().optional(),
   branch: z.string().max(500).optional(),
   search: z.string().max(200).optional(),
+  category: categoryEnum.optional(),
   metric: z.enum(['occurrences', 'uniqueTests', 'uniqueBranches']).default('occurrences'),
   topN: z.coerce
     .number()
@@ -53,6 +57,7 @@ export class ErrorsController {
       ...(query.dateTo != null && { dateTo: new Date(query.dateTo) }),
       ...(query.branch != null && { branch: query.branch }),
       ...(query.search != null && { search: query.search }),
+      ...(query.category != null && { category: query.category }),
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       page: query.page,
@@ -73,6 +78,7 @@ export class ErrorsController {
       ...(query.dateTo != null && { dateTo: new Date(query.dateTo) }),
       ...(query.branch != null && { branch: query.branch }),
       ...(query.search != null && { search: query.search }),
+      ...(query.category != null && { category: query.category }),
       metric: query.metric,
       topN: query.topN,
     });

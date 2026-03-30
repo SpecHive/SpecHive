@@ -7,6 +7,7 @@ interface UseErrorTimelineParams {
   dateTo?: number | undefined;
   branch?: string | undefined;
   search?: string | undefined;
+  category?: string | undefined;
   metric?: string | undefined;
   topN?: number | undefined;
 }
@@ -19,6 +20,7 @@ export function useErrorTimeline(params: UseErrorTimelineParams) {
   if (params.dateTo != null) queryParams.dateTo = String(params.dateTo);
   if (params.branch) queryParams.branch = params.branch;
   if (params.search) queryParams.search = params.search;
+  if (params.category) queryParams.category = params.category;
   if (params.metric) queryParams.metric = params.metric;
   if (params.topN) queryParams.topN = String(params.topN);
 

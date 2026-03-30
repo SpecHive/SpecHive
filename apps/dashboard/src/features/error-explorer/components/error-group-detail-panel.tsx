@@ -30,8 +30,16 @@ export function ErrorGroupDetailPanel({ errorGroupId }: ErrorGroupDetailPanelPro
 
   if (!detail) return null;
 
+  const latestErrorMessage = detail.recentExecutions[0]?.errorMessage ?? null;
+
   return (
     <div>
+      {latestErrorMessage && (
+        <pre className="mb-4 max-h-48 overflow-auto rounded-md bg-muted/50 p-3 font-mono text-xs leading-relaxed text-foreground">
+          {latestErrorMessage}
+        </pre>
+      )}
+
       <div className="mb-3 flex gap-1">
         {TABS.map((tab) => (
           <button

@@ -23,7 +23,12 @@ import { sql } from 'drizzle-orm';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 
-import { ERRORS_SHORT_RANGE_DAYS, ERRORS_TOP_N_MAX, ERRORS_TOP_N_MIN } from './errors.constants';
+import {
+  ERRORS_MAX_DAYS,
+  ERRORS_SHORT_RANGE_DAYS,
+  ERRORS_TOP_N_MAX,
+  ERRORS_TOP_N_MIN,
+} from './errors.constants';
 
 interface ListErrorGroupsParams {
   projectId: string;
@@ -31,6 +36,7 @@ interface ListErrorGroupsParams {
   dateTo?: Date;
   branch?: string;
   search?: string;
+  category?: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
   page: number;
@@ -43,6 +49,7 @@ interface ErrorTimelineParams {
   dateTo?: Date;
   branch?: string;
   search?: string;
+  category?: string;
   metric: 'occurrences' | 'uniqueTests' | 'uniqueBranches';
   topN: number;
 }
@@ -71,7 +78,11 @@ export class ErrorsService {
   async listErrorGroups(organizationId: OrganizationId, params: ListErrorGroupsParams) {
     const now = new Date();
     const dateTo = params.dateTo ?? now;
-    const dateFrom = params.dateFrom ?? new Date(now.getTime() - 30 * 86_400_000);
+    const maxRange = ERRORS_MAX_DAYS * 86_400_000;
+    const dateFrom =
+      params.dateFrom != null
+        ? new Date(Math.max(params.dateFrom.getTime(), dateTo.getTime() - maxRange))
+        : new Date(now.getTime() - 30 * 86_400_000);
     const rangeDays = Math.ceil((dateTo.getTime() - dateFrom.getTime()) / 86_400_000);
     const useOccurrences = !!params.branch || rangeDays <= ERRORS_SHORT_RANGE_DAYS;
 
@@ -81,6 +92,10 @@ export class ErrorsService {
 
       const searchFilter = params.search
         ? sql`(eg.title ILIKE ${`%${escapeLikePattern(params.search)}%`} OR eg.normalized_message ILIKE ${`%${escapeLikePattern(params.search)}%`})`
+        : sql``;
+
+      const categoryFilter = params.category
+        ? sql`AND eg.error_category = ${params.category}`
         : sql``;
 
       const orderByClause = this.buildOrderByClause(params.sortBy, params.sortOrder);
@@ -94,6 +109,7 @@ export class ErrorsService {
           dateTo,
           offset,
           searchFilter,
+          categoryFilter,
           orderByClause,
         );
       }
@@ -107,6 +123,7 @@ export class ErrorsService {
         dateTo,
         offset,
         searchFilter,
+        categoryFilter,
         orderByClause,
         includesToday,
       );
@@ -121,6 +138,7 @@ export class ErrorsService {
     dateTo: Date,
     offset: number,
     searchFilter: ReturnType<typeof sql>,
+    categoryFilter: ReturnType<typeof sql>,
     orderByClause: ReturnType<typeof sql>,
   ) {
     const branchFilter = params.branch ? sql`AND eo.branch = ${params.branch}` : sql``;
@@ -132,6 +150,7 @@ export class ErrorsService {
         eg.title,
         eg.normalized_message AS "normalizedMessage",
         eg.error_name AS "errorName",
+        eg.error_category AS "errorCategory",
         COUNT(eo.id)::int AS "totalOccurrences",
         COUNT(DISTINCT eo.test_id)::int AS "uniqueTestCount",
         COUNT(DISTINCT eo.branch)::int AS "uniqueBranchCount",
@@ -144,6 +163,7 @@ export class ErrorsService {
         AND eo.occurred_at < ${new Date(dateTo.getTime() + 86_400_000).toISOString()}
         ${branchFilter}
         ${params.search ? sql`AND ${searchFilter}` : sql``}
+        ${categoryFilter}
       GROUP BY eg.id
       ${orderByClause}
       LIMIT ${params.pageSize} OFFSET ${offset}
@@ -160,6 +180,7 @@ export class ErrorsService {
           AND eo.occurred_at < ${new Date(dateTo.getTime() + 86_400_000).toISOString()}
           ${branchFilter}
           ${params.search ? sql`AND ${searchFilter}` : sql``}
+          ${categoryFilter}
         GROUP BY eg.id
       ) sub
     `;
@@ -183,6 +204,7 @@ export class ErrorsService {
     dateTo: Date,
     offset: number,
     searchFilter: ReturnType<typeof sql>,
+    categoryFilter: ReturnType<typeof sql>,
     orderByClause: ReturnType<typeof sql>,
     includesToday: boolean,
   ) {
@@ -212,7 +234,7 @@ export class ErrorsService {
       ? sql`, (d."totalOccurrences" + COALESCE(ts."totalOccurrences", 0))::int AS "totalOccurrences",
            (d."uniqueTestCount" + COALESCE(ts."uniqueTestCount", 0))::int AS "uniqueTestCount",
            (d."uniqueBranchCount" + COALESCE(ts."uniqueBranchCount", 0))::int AS "uniqueBranchCount"`
-      : sql``;
+      : sql`, d."totalOccurrences", d."uniqueTestCount", d."uniqueBranchCount"`;
 
     const dataQuery = sql`
       WITH daily AS (
@@ -222,6 +244,7 @@ export class ErrorsService {
           eg.title,
           eg.normalized_message AS "normalizedMessage",
           eg.error_name AS "errorName",
+          eg.error_category AS "errorCategory",
           COALESCE(SUM(des.occurrences), 0)::int AS "totalOccurrences",
           COALESCE(SUM(des.unique_tests), 0)::int AS "uniqueTestCount",
           COALESCE(SUM(des.unique_branches), 0)::int AS "uniqueBranchCount",
@@ -233,6 +256,7 @@ export class ErrorsService {
           AND des.date >= ${dateFromStr}::date
           AND des.date <= ${dateToStr}::date
           ${params.search ? sql`AND ${searchFilter}` : sql``}
+          ${categoryFilter}
         GROUP BY eg.id
       )
       ${todayCte}
@@ -241,7 +265,8 @@ export class ErrorsService {
         d."projectId",
         d.title,
         d."normalizedMessage",
-        d."errorName"
+        d."errorName",
+        d."errorCategory"
         ${todaySelects}
         ,
         d."firstSeenAt",
@@ -261,6 +286,7 @@ export class ErrorsService {
           AND des.date >= ${dateFromStr}::date
           AND des.date <= ${dateToStr}::date
           ${params.search ? sql`AND ${searchFilter}` : sql``}
+          ${categoryFilter}
         GROUP BY eg.id
       ) sub
     `;
@@ -268,12 +294,46 @@ export class ErrorsService {
     const [rows, countResult] = await Promise.all([tx.execute(dataQuery), tx.execute(countQuery)]);
 
     const total = (countResult[0] as { total: number })?.total ?? 0;
-    return buildPaginatedResponse(
-      rows as unknown as ErrorGroupSummary[],
-      total,
-      params.page,
-      params.pageSize,
-    );
+    const groups = rows as unknown as ErrorGroupSummary[];
+
+    // Daily stats sums overcount unique_tests/unique_branches across days.
+    // Compute exact values from error_occurrences for the displayed page.
+    if (groups.length > 0) {
+      const groupIds = groups.map((g) => g.id);
+      const exactCounts = await tx.execute(sql`
+        SELECT
+          eo.error_group_id AS id,
+          COUNT(DISTINCT eo.test_name)::int AS "uniqueTestCount",
+          COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranchCount"
+        FROM ${errorOccurrences} eo
+        WHERE eo.error_group_id = ANY(ARRAY[${sql.join(
+          groupIds.map((id) => sql`${id}`),
+          sql`, `,
+        )}]::uuid[])
+          AND eo.occurred_at >= ${dateFrom.toISOString()}
+          AND eo.occurred_at < ${new Date(dateTo.getTime() + 86_400_000).toISOString()}
+        GROUP BY eo.error_group_id
+      `);
+
+      const countMap = new Map(
+        (
+          exactCounts as unknown as {
+            id: string;
+            uniqueTestCount: number;
+            uniqueBranchCount: number;
+          }[]
+        ).map((r) => [r.id, r]),
+      );
+      for (const group of groups) {
+        const counts = countMap.get(group.id);
+        if (counts) {
+          group.uniqueTestCount = counts.uniqueTestCount;
+          group.uniqueBranchCount = counts.uniqueBranchCount;
+        }
+      }
+    }
+
+    return buildPaginatedResponse(groups, total, params.page, params.pageSize);
   }
 
   // ── Error Timeline ────────────────────────────────────────────
@@ -284,7 +344,11 @@ export class ErrorsService {
   ): Promise<ErrorTimelineResponse> {
     const now = new Date();
     const dateTo = params.dateTo ?? now;
-    const dateFrom = params.dateFrom ?? new Date(now.getTime() - 30 * 86_400_000);
+    const maxRange = ERRORS_MAX_DAYS * 86_400_000;
+    const dateFrom =
+      params.dateFrom != null
+        ? new Date(Math.max(params.dateFrom.getTime(), dateTo.getTime() - maxRange))
+        : new Date(now.getTime() - 30 * 86_400_000);
     const clampedTopN = clampTopN(params.topN);
 
     return this.db.transaction(async (tx) => {
@@ -310,13 +374,19 @@ export class ErrorsService {
 
     const metricColumn = this.getMetricColumn(params.metric);
 
+    const timelineCategoryFilter = params.category
+      ? sql`AND eg.error_category = ${params.category}`
+      : sql``;
+
     const topGroupsQuery = sql`
-      SELECT ${dailyErrorStats.errorGroupId} AS "errorGroupId"
-      FROM ${dailyErrorStats}
-      WHERE ${dailyErrorStats.projectId} = ${params.projectId}
-        AND ${dailyErrorStats.date} >= ${dateFromStr}::date
-        AND ${dailyErrorStats.date} <= ${dateToStr}::date
-      GROUP BY ${dailyErrorStats.errorGroupId}
+      SELECT des.error_group_id AS "errorGroupId"
+      FROM ${dailyErrorStats} des
+      JOIN ${errorGroups} eg ON eg.id = des.error_group_id
+      WHERE des.project_id = ${params.projectId}
+        AND des.date >= ${dateFromStr}::date
+        AND des.date <= ${dateToStr}::date
+        ${timelineCategoryFilter}
+      GROUP BY des.error_group_id
       ORDER BY SUM(${metricColumn}) DESC
       LIMIT ${topN}
     `;
@@ -424,46 +494,75 @@ export class ErrorsService {
     topN: number,
   ): Promise<ErrorTimelineResponse> {
     const dateToExclusive = new Date(dateTo.getTime() + 86_400_000);
+    const metricExpr = this.getOccurrenceMetricExpression(params.metric);
+    const occCategoryFilter = params.category
+      ? sql`AND eg.error_category = ${params.category}`
+      : sql``;
 
-    const result = await tx.execute(sql`
-      SELECT
-        eo.error_group_id AS "errorGroupId",
-        eg.title,
-        eg.error_name AS "errorName",
-        DATE(eo.occurred_at)::text AS "date",
-        COUNT(eo.id)::int AS occurrences,
-        COUNT(DISTINCT eo.test_id)::int AS "uniqueTests",
-        COUNT(DISTINCT eo.branch)::int AS "uniqueBranches",
-        SUM(COUNT(eo.id)) OVER (PARTITION BY eo.error_group_id) AS group_total
+    // Step 1: Identify top N groups by selected metric (SQL-level)
+    const topGroupsResult = await tx.execute(sql`
+      SELECT eo.error_group_id AS "errorGroupId"
       FROM ${errorOccurrences} eo
       JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
       WHERE eg.project_id = ${params.projectId}
         AND eo.occurred_at >= ${dateFrom.toISOString()}
         AND eo.occurred_at < ${dateToExclusive.toISOString()}
+        ${occCategoryFilter}
         AND eo.branch = ${params.branch}
-      GROUP BY eo.error_group_id, eg.title, eg.error_name, DATE(eo.occurred_at)
-      ORDER BY group_total DESC, "date" ASC
+      GROUP BY eo.error_group_id
+      ORDER BY ${metricExpr} DESC
+      LIMIT ${topN}
     `);
 
-    const metricKey = params.metric;
-    const rows = result as unknown as {
-      errorGroupId: string;
-      title: string;
-      errorName: string | null;
-      date: string;
-      occurrences: number;
-      uniqueTests: number;
-      uniqueBranches: number;
-      groupTotal: number;
-    }[];
+    const topGroupIds = topGroupsResult.map((r) => (r as { errorGroupId: string }).errorGroupId);
 
-    // Identify top N groups by total metric
-    const groupTotals = new Map<string, number>();
-    for (const row of rows) {
-      groupTotals.set(row.errorGroupId, (groupTotals.get(row.errorGroupId) ?? 0) + row[metricKey]);
+    if (topGroupIds.length === 0) {
+      return errorTimelineResponseSchema.parse({ series: [], otherSeries: [] });
     }
-    const sortedGroups = [...groupTotals.entries()].sort((a, b) => b[1] - a[1]);
-    const topGroupIds = new Set(sortedGroups.slice(0, topN).map(([id]) => id));
+
+    // Step 2: Fetch daily breakdown for top groups + "other" aggregate in parallel
+    const groupIdArray = sql`ARRAY[${sql.join(
+      topGroupIds.map((id) => sql`${id}`),
+      sql`, `,
+    )}]::uuid[]`;
+
+    const [seriesResult, otherResult] = await Promise.all([
+      tx.execute(sql`
+        SELECT
+          eo.error_group_id AS "errorGroupId",
+          eg.title,
+          eg.error_name AS "errorName",
+          DATE(eo.occurred_at)::text AS "date",
+          COUNT(eo.id)::int AS occurrences,
+          COUNT(DISTINCT eo.test_id)::int AS "uniqueTests",
+          COUNT(DISTINCT eo.branch)::int AS "uniqueBranches"
+        FROM ${errorOccurrences} eo
+        JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
+        WHERE eg.project_id = ${params.projectId}
+          AND eo.occurred_at >= ${dateFrom.toISOString()}
+          AND eo.occurred_at < ${dateToExclusive.toISOString()}
+          AND eo.branch = ${params.branch}
+          AND eo.error_group_id = ANY(${groupIdArray})
+        GROUP BY eo.error_group_id, eg.title, eg.error_name, DATE(eo.occurred_at)
+        ORDER BY "date" ASC, eo.error_group_id ASC
+      `),
+      tx.execute(sql`
+        SELECT
+          DATE(eo.occurred_at)::text AS "date",
+          COALESCE(COUNT(eo.id), 0)::int AS occurrences,
+          COALESCE(COUNT(DISTINCT eo.test_id), 0)::int AS "uniqueTests",
+          COALESCE(COUNT(DISTINCT eo.branch), 0)::int AS "uniqueBranches"
+        FROM ${errorOccurrences} eo
+        JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
+        WHERE eg.project_id = ${params.projectId}
+          AND eo.occurred_at >= ${dateFrom.toISOString()}
+          AND eo.occurred_at < ${dateToExclusive.toISOString()}
+          AND eo.branch = ${params.branch}
+          AND eo.error_group_id != ALL(${groupIdArray})
+        GROUP BY DATE(eo.occurred_at)
+        ORDER BY "date" ASC
+      `),
+    ]);
 
     const seriesMap = new Map<
       string,
@@ -479,46 +578,37 @@ export class ErrorsService {
         }[];
       }
     >();
-    const otherMap = new Map<
-      string,
-      { date: string; occurrences: number; uniqueTests: number; uniqueBranches: number }
-    >();
-
-    for (const row of rows) {
-      const point = {
-        date: row.date,
-        occurrences: row.occurrences,
-        uniqueTests: row.uniqueTests,
-        uniqueBranches: row.uniqueBranches,
+    for (const row of seriesResult) {
+      const typed = row as unknown as {
+        errorGroupId: string;
+        title: string;
+        errorName: string | null;
+        date: string;
+        occurrences: number;
+        uniqueTests: number;
+        uniqueBranches: number;
       };
-
-      if (topGroupIds.has(row.errorGroupId)) {
-        let series = seriesMap.get(row.errorGroupId);
-        if (!series) {
-          series = {
-            errorGroupId: row.errorGroupId,
-            title: row.title,
-            errorName: row.errorName,
-            dataPoints: [],
-          };
-          seriesMap.set(row.errorGroupId, series);
-        }
-        series.dataPoints.push(point);
-      } else {
-        const existing = otherMap.get(row.date);
-        if (existing) {
-          existing.occurrences += point.occurrences;
-          existing.uniqueTests += point.uniqueTests;
-          existing.uniqueBranches += point.uniqueBranches;
-        } else {
-          otherMap.set(row.date, { ...point });
-        }
+      let series = seriesMap.get(typed.errorGroupId);
+      if (!series) {
+        series = {
+          errorGroupId: typed.errorGroupId,
+          title: typed.title,
+          errorName: typed.errorName,
+          dataPoints: [],
+        };
+        seriesMap.set(typed.errorGroupId, series);
       }
+      series.dataPoints.push({
+        date: typed.date,
+        occurrences: typed.occurrences,
+        uniqueTests: typed.uniqueTests,
+        uniqueBranches: typed.uniqueBranches,
+      });
     }
 
     return errorTimelineResponseSchema.parse({
       series: Array.from(seriesMap.values()),
-      otherSeries: Array.from(otherMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
+      otherSeries: otherResult,
     });
   }
 
@@ -540,6 +630,7 @@ export class ErrorsService {
             eg.title,
             eg.normalized_message AS "normalizedMessage",
             eg.error_name AS "errorName",
+            eg.error_category AS "errorCategory",
             eg.total_occurrences AS "totalOccurrences",
             eg.unique_test_count AS "uniqueTestCount",
             eg.unique_branch_count AS "uniqueBranchCount",
@@ -658,6 +749,17 @@ export class ErrorsService {
         return dailyErrorStats.uniqueTests;
       case 'uniqueBranches':
         return dailyErrorStats.uniqueBranches;
+    }
+  }
+
+  private getOccurrenceMetricExpression(metric: 'occurrences' | 'uniqueTests' | 'uniqueBranches') {
+    switch (metric) {
+      case 'uniqueTests':
+        return sql`COUNT(DISTINCT eo.test_id)`;
+      case 'uniqueBranches':
+        return sql`COUNT(DISTINCT eo.branch)`;
+      default:
+        return sql`COUNT(eo.id)`;
     }
   }
 

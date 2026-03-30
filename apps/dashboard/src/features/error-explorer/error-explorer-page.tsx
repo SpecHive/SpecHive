@@ -23,6 +23,7 @@ export function ErrorExplorerPage() {
   const metric = searchParams.get('metric') || 'occurrences';
   const branch = searchParams.get('branch') || '';
   const search = searchParams.get('search') || '';
+  const category = searchParams.get('category') || '';
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 20;
 
@@ -39,7 +40,8 @@ export function ErrorExplorerPage() {
   const projectId =
     !isAllSelected && selectedProjectIds.length === 1 ? selectedProjectIds[0] : null;
 
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
+  const initialErrorGroupId = searchParams.get('errorGroupId') || null;
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(initialErrorGroupId);
 
   const { data: timelineData, loading: timelineLoading } = useErrorTimeline({
     projectId,
@@ -47,6 +49,7 @@ export function ErrorExplorerPage() {
     dateTo,
     branch: branch || undefined,
     search: search || undefined,
+    category: category || undefined,
     metric,
     topN: 5,
   });
@@ -57,6 +60,7 @@ export function ErrorExplorerPage() {
     dateTo,
     branch: branch || undefined,
     search: search || undefined,
+    category: category || undefined,
     sortBy: sortBy || undefined,
     sortOrder: sortOrder || undefined,
     page,

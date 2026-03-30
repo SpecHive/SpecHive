@@ -7,4 +7,8 @@ export {
   type Database,
   type Transaction,
 } from './connection.js';
-export { normalizeErrorMessage, computeFingerprint } from './lib/error-fingerprint.js';
+export {
+  normalizeErrorMessage,
+  computeFingerprint,
+  type ErrorFields,
+} from './lib/error-fingerprint.js';

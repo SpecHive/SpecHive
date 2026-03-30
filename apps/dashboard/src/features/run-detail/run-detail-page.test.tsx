@@ -93,6 +93,9 @@ describe('RunDetailPage', () => {
           refetch: vi.fn(),
         };
       }
+      if (path && path.includes('/errors/summary')) {
+        return { data: null, loading: false, error: null, refetch: vi.fn() };
+      }
       return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
     });
 
@@ -112,6 +115,9 @@ describe('RunDetailPage', () => {
           error: null,
           refetch: vi.fn(),
         };
+      }
+      if (path && path.includes('/errors/summary')) {
+        return { data: null, loading: false, error: null, refetch: vi.fn() };
       }
       return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
     });
@@ -153,6 +159,9 @@ describe('RunDetailPage', () => {
             error: null,
             refetch: vi.fn(),
           };
+        }
+        if (path && path.includes('/errors/summary')) {
+          return { data: null, loading: false, error: null, refetch: vi.fn() };
         }
         return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
       });
@@ -244,6 +253,9 @@ describe('RunDetailPage', () => {
             error: null,
             refetch: vi.fn(),
           };
+        }
+        if (path && path.includes('/errors/summary')) {
+          return { data: null, loading: false, error: null, refetch: vi.fn() };
         }
         return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
       });

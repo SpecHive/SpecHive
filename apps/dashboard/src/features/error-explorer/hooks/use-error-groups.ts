@@ -7,6 +7,7 @@ interface UseErrorGroupsParams {
   dateTo?: number | undefined;
   branch?: string | undefined;
   search?: string | undefined;
+  category?: string | undefined;
   sortBy?: string | null | undefined;
   sortOrder?: string | null | undefined;
   page?: number | undefined;
@@ -21,6 +22,7 @@ export function useErrorGroups(params: UseErrorGroupsParams) {
   if (params.dateTo != null) queryParams.dateTo = String(params.dateTo);
   if (params.branch) queryParams.branch = params.branch;
   if (params.search) queryParams.search = params.search;
+  if (params.category) queryParams.category = params.category;
   if (params.sortBy) queryParams.sortBy = params.sortBy;
   if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
   if (params.page) queryParams.page = String(params.page);

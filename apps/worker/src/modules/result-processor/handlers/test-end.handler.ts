@@ -69,9 +69,15 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       (status === TestStatus.Failed || status === TestStatus.Flaky)
     ) {
       const strippedError = stripAnsi(errorMessage);
-      const { fingerprint, normalizedMessage } = computeFingerprint(
+      const { fingerprint, normalizedMessage, title } = computeFingerprint(
         strippedError,
         event.payload.errorName,
+        {
+          errorCategory: event.payload.errorCategory,
+          errorMatcher: event.payload.errorMatcher,
+          errorTarget: event.payload.errorTarget,
+          errorExpected: event.payload.errorExpected,
+        },
       );
 
       const [runInfo] = await ctx.tx
@@ -88,23 +94,23 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           organizationId: ctx.organizationId,
           projectId: ctx.projectId,
           fingerprint,
-          title: strippedError.slice(0, 500),
+          title,
           normalizedMessage,
           errorName: event.payload.errorName ?? null,
+          errorCategory: event.payload.errorCategory ?? null,
           totalOccurrences: 1,
           uniqueTestCount: 1,
           uniqueBranchCount: runInfo?.branch ? 1 : 0,
           firstSeenAt: eventTime,
           lastSeenAt: eventTime,
         })
-        // uniqueTestCount/uniqueBranchCount intentionally omitted from conflict update —
-        // run-end handler recounts from actual occurrences (see RunEndHandler)
+        // Aggregates recounted after occurrence insert — only timestamps/name updated on conflict
         .onConflictDoUpdate({
           target: [errorGroups.projectId, errorGroups.fingerprint],
           set: {
-            totalOccurrences: sql`${errorGroups.totalOccurrences} + 1`,
             lastSeenAt: sql`GREATEST(${errorGroups.lastSeenAt}, EXCLUDED.last_seen_at)`,
             errorName: sql`COALESCE(${errorGroups.errorName}, EXCLUDED.error_name)`,
+            errorCategory: sql`COALESCE(${errorGroups.errorCategory}, EXCLUDED.error_category)`,
             updatedAt: sql`NOW()`,
           },
         })
@@ -125,7 +131,25 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             errorMessage: strippedError,
             occurredAt: eventTime,
           })
-          .onConflictDoNothing();
+          .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });
+
+        // Recount aggregates from actual occurrences for mid-run accuracy
+        await ctx.tx.execute(sql`
+          UPDATE ${errorGroups} SET
+            total_occurrences = sub.total,
+            unique_test_count = sub.tests,
+            unique_branch_count = sub.branches,
+            updated_at = NOW()
+          FROM (
+            SELECT
+              COUNT(*)::int AS total,
+              COUNT(DISTINCT test_name)::int AS tests,
+              COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
+            FROM ${errorOccurrences}
+            WHERE error_group_id = ${group.id}
+          ) sub
+          WHERE ${errorGroups.id} = ${group.id}
+        `);
 
         await ctx.tx
           .update(tests)

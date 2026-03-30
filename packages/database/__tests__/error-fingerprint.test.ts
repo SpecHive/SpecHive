@@ -81,7 +81,7 @@ describe('computeFingerprint', () => {
     expect(a.normalizedMessage).toBe(b.normalizedMessage);
   });
 
-  it('produces same fingerprint for variable-only differences', () => {
+  it('produces same fingerprint for variable-only differences (fallback mode)', () => {
     const a = computeFingerprint('Timeout after 30000ms');
     const b = computeFingerprint('Timeout after 60000ms');
     expect(a.fingerprint).toBe(b.fingerprint);
@@ -102,5 +102,109 @@ describe('computeFingerprint', () => {
   it('returns the normalized message alongside the fingerprint', () => {
     const { normalizedMessage } = computeFingerprint('Error at 2024-01-15T10:30:45Z');
     expect(normalizedMessage).toBe('Error at <TIMESTAMP>');
+  });
+
+  it('returns a title', () => {
+    const { title } = computeFingerprint('TypeError: Cannot read properties of undefined');
+    expect(title).toBe('TypeError: Cannot read properties of undefined');
+  });
+
+  describe('with structured fields', () => {
+    it('uses structured fields for fingerprint when provided', () => {
+      const withFields = computeFingerprint('some long error message\nwith many lines', 'Error', {
+        errorCategory: 'assertion',
+        errorMatcher: 'toHaveText',
+        errorTarget: "locator('h1')",
+        errorExpected: '"Dashboard"',
+      });
+      const withoutFields = computeFingerprint('some long error message\nwith many lines', 'Error');
+      expect(withFields.fingerprint).not.toBe(withoutFields.fingerprint);
+    });
+
+    it('same structured fields produce same fingerprint regardless of message differences', () => {
+      const fields = {
+        errorCategory: 'assertion' as const,
+        errorMatcher: 'toHaveText',
+        errorTarget: "locator('h1')",
+        errorExpected: '"Dashboard"',
+      };
+
+      const a = computeFingerprint('Error: element(s) not found\nCall log: ...', 'Error', fields);
+      const b = computeFingerprint(
+        'Error: received wrong text "Welcome"\nCall log: different...',
+        'Error',
+        fields,
+      );
+      expect(a.fingerprint).toBe(b.fingerprint);
+    });
+
+    it('different errorTarget produces different fingerprint', () => {
+      const base = {
+        errorCategory: 'assertion' as const,
+        errorMatcher: 'toHaveText',
+        errorExpected: '"Dashboard"',
+      };
+
+      const a = computeFingerprint('msg', 'Error', {
+        ...base,
+        errorTarget: "locator('h1')",
+      });
+      const b = computeFingerprint('msg', 'Error', {
+        ...base,
+        errorTarget: "locator('h2')",
+      });
+      expect(a.fingerprint).not.toBe(b.fingerprint);
+    });
+
+    it('generates structured title for assertion errors', () => {
+      const { title } = computeFingerprint('long raw message...', 'Error', {
+        errorCategory: 'assertion',
+        errorMatcher: 'toHaveText',
+        errorTarget: "locator('h1')",
+        errorExpected: '"Dashboard"',
+      });
+      expect(title).toBe('toHaveText failed: h1 expected "Dashboard"');
+    });
+
+    it('generates structured title for timeout errors', () => {
+      const { title } = computeFingerprint('long raw message...', 'TimeoutError', {
+        errorCategory: 'timeout',
+        errorMatcher: 'waitForURL',
+        errorTarget: '/',
+      });
+      expect(title).toBe('Timeout: waitForURL on /');
+    });
+
+    it('generates title with simplified getByRole locator', () => {
+      const { title } = computeFingerprint('long raw message...', 'Error', {
+        errorCategory: 'assertion',
+        errorMatcher: 'toBeVisible',
+        errorTarget: "getByRole('button', { name: 'Submit' })",
+      });
+      expect(title).toBe('toBeVisible failed: button "Submit"');
+    });
+  });
+
+  describe('fallback mode (no structured fields)', () => {
+    it('uses first line only for fingerprint', () => {
+      const multiLine = 'Error: something failed\n\nCall log:\n  - details here';
+      const firstLineOnly = 'Error: something failed';
+      const a = computeFingerprint(multiLine, 'Error');
+      const b = computeFingerprint(firstLineOnly, 'Error');
+      expect(a.fingerprint).toBe(b.fingerprint);
+    });
+
+    it('uses first line as title', () => {
+      const { title } = computeFingerprint(
+        "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.handler",
+      );
+      expect(title).toBe("TypeError: Cannot read properties of undefined (reading 'id')");
+    });
+
+    it('truncates long first-line titles to 150 chars', () => {
+      const longMessage = 'Error: ' + 'a'.repeat(200);
+      const { title } = computeFingerprint(longMessage);
+      expect(title.length).toBe(150);
+    });
   });
 });

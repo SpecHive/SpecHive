@@ -80,6 +80,7 @@ export class TestsService {
             durationMs: tests.durationMs,
             errorMessage: tests.errorMessage,
             retryCount: tests.retryCount,
+            errorGroupId: tests.errorGroupId,
             startedAt: tests.startedAt,
             finishedAt: tests.finishedAt,
             createdAt: tests.createdAt,

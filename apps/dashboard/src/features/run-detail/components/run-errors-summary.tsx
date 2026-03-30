@@ -39,7 +39,7 @@ export function RunErrorsSummary({ runId }: RunErrorsSummaryProps) {
             {data!.topErrors.slice(0, 5).map((error) => (
               <Link
                 key={error.errorGroupId}
-                to={`/errors?search=${encodeURIComponent(error.title)}`}
+                to={`/errors?errorGroupId=${error.errorGroupId}`}
                 className="flex items-center justify-between rounded-md border p-3 text-sm transition-colors hover:bg-accent"
               >
                 <div className="min-w-0 flex-1">
