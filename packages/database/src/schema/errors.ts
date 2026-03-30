@@ -6,17 +6,7 @@ import {
   type RunId,
   type TestId,
 } from '@spechive/shared-types';
-import {
-  date,
-  index,
-  integer,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
 import { runs } from './execution.js';
@@ -91,32 +81,5 @@ export const errorOccurrences = pgTable(
     index('idx_error_occurrences_test').on(table.testId),
     index('idx_error_occurrences_branch').on(table.errorGroupId, table.branch),
     uniqueIndex('uq_error_occurrences_run_test').on(table.runId, table.testId),
-  ],
-);
-
-export const dailyErrorStats = pgTable(
-  'daily_error_stats',
-  {
-    organizationId: uuid('organization_id')
-      .$type<OrganizationId>()
-      .notNull()
-      .references(() => organizations.id, { onDelete: 'cascade' }),
-    projectId: uuid('project_id')
-      .$type<ProjectId>()
-      .notNull()
-      .references(() => projects.id, { onDelete: 'cascade' }),
-    errorGroupId: uuid('error_group_id')
-      .$type<ErrorGroupId>()
-      .notNull()
-      .references(() => errorGroups.id, { onDelete: 'cascade' }),
-    date: date('date', { mode: 'string' }).notNull(),
-    occurrences: integer('occurrences').notNull().default(0),
-    uniqueTests: integer('unique_tests').notNull().default(0),
-    uniqueBranches: integer('unique_branches').notNull().default(0),
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.projectId, table.errorGroupId, table.date] }),
-    index('idx_daily_error_stats_project_date').on(table.projectId, table.date),
   ],
 );

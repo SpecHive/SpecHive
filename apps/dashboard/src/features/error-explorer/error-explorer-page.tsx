@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
@@ -57,23 +57,22 @@ export function ErrorExplorerPage() {
 
   // Consume errorGroupId from URL (e.g. linked from RunErrorsSummary) then clear it
   // to avoid stale param on refresh. Expansion state is intentionally local.
-  const didClearUrlParam = useRef(false);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() => {
-    const fromUrl = searchParams.get('errorGroupId');
-    return fromUrl || null;
+    return searchParams.get('errorGroupId') || null;
   });
 
-  if (!didClearUrlParam.current && searchParams.has('errorGroupId')) {
-    didClearUrlParam.current = true;
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('errorGroupId');
-        return next;
-      },
-      { replace: true },
-    );
-  }
+  useEffect(() => {
+    if (searchParams.has('errorGroupId')) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('errorGroupId');
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [searchParams, setSearchParams]);
 
   const {
     data: timelineData,

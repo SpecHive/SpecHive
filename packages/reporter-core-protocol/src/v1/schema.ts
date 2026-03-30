@@ -2,6 +2,7 @@ import {
   RunStatus,
   TestStatus,
   ArtifactType,
+  ERROR_CATEGORIES,
   asArtifactId,
   asRunId,
   asSuiteId,
@@ -92,7 +93,7 @@ const errorLocationSchema = z.object({
   column: z.number().int().nonnegative().optional(),
 });
 
-export const ErrorCategorySchema = z.enum(['assertion', 'timeout', 'action', 'runtime']);
+export const ErrorCategorySchema = z.enum(ERROR_CATEGORIES);
 
 const errorFieldsSchema = {
   errorMessage: z.string().max(10_000).optional(),

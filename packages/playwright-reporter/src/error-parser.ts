@@ -1,4 +1,4 @@
-type ErrorCategory = 'assertion' | 'timeout' | 'action' | 'runtime';
+import type { ErrorCategory } from '@spechive/shared-types';
 
 export interface ParsedPlaywrightError {
   errorCategory: ErrorCategory;

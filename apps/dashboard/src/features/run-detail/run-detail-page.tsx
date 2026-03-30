@@ -93,7 +93,7 @@ export function RunDetailPage() {
   return (
     <div className="space-y-6">
       <RunHeader run={run} />
-      <RunErrorsSummary runId={id!} projectId={run.projectId} />
+      <RunErrorsSummary runId={id!} />
 
       <div className="flex gap-6">
         {suites && suites.length > 0 && (

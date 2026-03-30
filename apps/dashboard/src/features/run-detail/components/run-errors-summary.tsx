@@ -7,10 +7,9 @@ import type { RunErrorsSummary } from '@/types/api';
 
 interface RunErrorsSummaryProps {
   runId: string;
-  projectId: string;
 }
 
-export function RunErrorsSummary({ runId, projectId: _projectId }: RunErrorsSummaryProps) {
+export function RunErrorsSummary({ runId }: RunErrorsSummaryProps) {
   const { data, loading } = useApi<RunErrorsSummary>(`/v1/runs/${runId}/errors/summary`);
 
   if (!loading && (!data || data.totalFailedTests === 0 || data.topErrors.length === 0)) {

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ZodValidationPipe } from '@spechive/nestjs-common';
 import type { UserContext } from '@spechive/nestjs-common';
+import { ERROR_CATEGORIES } from '@spechive/shared-types';
 import type { ErrorGroupId, ProjectId } from '@spechive/shared-types';
 import { z } from 'zod';
 
@@ -10,15 +11,13 @@ import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ERRORS_TOP_N_MAX, ERRORS_TOP_N_MIN, ERRORS_TOP_N_DEFAULT } from './errors.constants';
 import { ErrorsService } from './errors.service';
 
-const categoryEnum = z.enum(['assertion', 'timeout', 'action', 'other']);
-
 const commonFilterSchema = z.object({
   projectId: z.string().uuid(),
   dateFrom: z.coerce.number().int().positive().optional(),
   dateTo: z.coerce.number().int().positive().optional(),
   branch: z.string().max(500).optional(),
   search: z.string().max(200).optional(),
-  category: categoryEnum.optional(),
+  category: z.enum([...ERROR_CATEGORIES, 'other']).optional(),
 });
 
 function buildCommonParams(query: z.infer<typeof commonFilterSchema>) {

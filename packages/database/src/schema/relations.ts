@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm';
 
 import { dailyRunStats, dailyFlakyTestStats } from './analytics.js';
 import { refreshTokens } from './auth.js';
-import { errorGroups, errorOccurrences, dailyErrorStats } from './errors.js';
+import { errorGroups, errorOccurrences } from './errors.js';
 import { runs, suites, tests, artifacts, testAttempts } from './execution.js';
 import { projects, projectTokens } from './project.js';
 import { organizations, users, memberships, invitations } from './tenant.js';
@@ -156,7 +156,6 @@ export const errorGroupsRelations = relations(errorGroups, ({ one, many }) => ({
     references: [organizations.id],
   }),
   occurrences: many(errorOccurrences),
-  dailyStats: many(dailyErrorStats),
 }));
 
 export const errorOccurrencesRelations = relations(errorOccurrences, ({ one }) => ({
@@ -170,17 +169,6 @@ export const errorOccurrencesRelations = relations(errorOccurrences, ({ one }) =
   }),
   organization: one(organizations, {
     fields: [errorOccurrences.organizationId],
-    references: [organizations.id],
-  }),
-}));
-
-export const dailyErrorStatsRelations = relations(dailyErrorStats, ({ one }) => ({
-  errorGroup: one(errorGroups, {
-    fields: [dailyErrorStats.errorGroupId],
-    references: [errorGroups.id],
-  }),
-  organization: one(organizations, {
-    fields: [dailyErrorStats.organizationId],
     references: [organizations.id],
   }),
 }));

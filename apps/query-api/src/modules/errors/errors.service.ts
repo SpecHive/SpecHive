@@ -32,6 +32,16 @@ import {
 type SqlFragment = ReturnType<typeof sql>;
 type ErrorMetric = 'occurrences' | 'uniqueTests' | 'uniqueBranches';
 
+const timelineRowSchema = z.object({
+  errorGroupId: z.string(),
+  title: z.string(),
+  errorName: z.string().nullable(),
+  date: z.string(),
+  occurrences: z.number(),
+  uniqueTests: z.number(),
+  uniqueBranches: z.number(),
+});
+
 interface ListErrorGroupsParams {
   projectId: ProjectId;
   dateFrom?: Date;
@@ -139,15 +149,7 @@ export class ErrorsService {
   private assembleTimelineSeries(rows: Record<string, unknown>[]): ErrorTimelineSeries[] {
     const seriesMap = new Map<string, ErrorTimelineSeries>();
     for (const row of rows) {
-      const typed = row as unknown as {
-        errorGroupId: string;
-        title: string;
-        errorName: string | null;
-        date: string;
-        occurrences: number;
-        uniqueTests: number;
-        uniqueBranches: number;
-      };
+      const typed = timelineRowSchema.parse(row);
       let series = seriesMap.get(typed.errorGroupId);
       if (!series) {
         series = {
@@ -279,7 +281,7 @@ export class ErrorsService {
       const topGroupIds = topGroupsResult.map((r) => (r as { errorGroupId: string }).errorGroupId);
 
       if (topGroupIds.length === 0) {
-        return errorTimelineResponseSchema.parse({ series: [], otherSeries: [] });
+        return errorTimelineResponseSchema.parse({ series: [] });
       }
 
       const groupIdArray = sql`ARRAY[${sql.join(
@@ -290,47 +292,28 @@ export class ErrorsService {
       const dateToExclusive = new Date(dateTo.getTime() + MS_PER_DAY).toISOString();
       const branchFilter = params.branch ? sql`AND eo.branch = ${params.branch}` : sql``;
 
-      const [seriesResult, otherResult] = await Promise.all([
-        tx.execute(sql`
-          SELECT
-            eo.error_group_id AS "errorGroupId",
-            eg.title,
-            eg.error_name AS "errorName",
-            DATE(eo.occurred_at)::text AS "date",
-            COUNT(eo.id)::int AS occurrences,
-            COUNT(DISTINCT eo.test_name)::int AS "uniqueTests",
-            COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranches"
-          FROM ${errorOccurrences} eo
-          JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
-          WHERE eg.project_id = ${params.projectId}
-            AND eo.occurred_at >= ${dateFrom.toISOString()}
-            AND eo.occurred_at < ${dateToExclusive}
-            ${branchFilter}
-            AND eo.error_group_id = ANY(${groupIdArray})
-          GROUP BY eo.error_group_id, eg.title, eg.error_name, DATE(eo.occurred_at)
-          ORDER BY "date" ASC, eo.error_group_id ASC
-        `),
-        tx.execute(sql`
-          SELECT
-            DATE(eo.occurred_at)::text AS "date",
-            COUNT(eo.id)::int AS occurrences,
-            COUNT(DISTINCT eo.test_name)::int AS "uniqueTests",
-            COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranches"
-          FROM ${errorOccurrences} eo
-          JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
-          WHERE eg.project_id = ${params.projectId}
-            AND eo.occurred_at >= ${dateFrom.toISOString()}
-            AND eo.occurred_at < ${dateToExclusive}
-            ${branchFilter}
-            AND eo.error_group_id != ALL(${groupIdArray})
-          GROUP BY DATE(eo.occurred_at)
-          ORDER BY "date" ASC
-        `),
-      ]);
+      const seriesResult = await tx.execute(sql`
+        SELECT
+          eo.error_group_id AS "errorGroupId",
+          eg.title,
+          eg.error_name AS "errorName",
+          DATE(eo.occurred_at)::text AS "date",
+          COUNT(eo.id)::int AS occurrences,
+          COUNT(DISTINCT eo.test_name)::int AS "uniqueTests",
+          COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranches"
+        FROM ${errorOccurrences} eo
+        JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
+        WHERE eg.project_id = ${params.projectId}
+          AND eo.occurred_at >= ${dateFrom.toISOString()}
+          AND eo.occurred_at < ${dateToExclusive}
+          ${branchFilter}
+          AND eo.error_group_id = ANY(${groupIdArray})
+        GROUP BY eo.error_group_id, eg.title, eg.error_name, DATE(eo.occurred_at)
+        ORDER BY "date" ASC, eo.error_group_id ASC
+      `);
 
       return errorTimelineResponseSchema.parse({
         series: this.assembleTimelineSeries(seriesResult as Record<string, unknown>[]),
-        otherSeries: otherResult,
       });
     });
   }
@@ -358,9 +341,6 @@ export class ErrorsService {
             eg.normalized_message AS "normalizedMessage",
             eg.error_name AS "errorName",
             eg.error_category AS "errorCategory",
-            eg.total_occurrences AS "totalOccurrences",
-            eg.unique_test_count AS "uniqueTestCount",
-            eg.unique_branch_count AS "uniqueBranchCount",
             eg.first_seen_at::text AS "firstSeenAt",
             eg.last_seen_at::text AS "lastSeenAt",
             eg.created_at::text AS "createdAt",

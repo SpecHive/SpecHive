@@ -30,6 +30,9 @@ export enum MembershipRole {
   Viewer = 'viewer',
 }
 
+export const ERROR_CATEGORIES = ['assertion', 'timeout', 'action', 'runtime'] as const;
+export type ErrorCategory = (typeof ERROR_CATEGORIES)[number];
+
 export enum InvitationStatus {
   Pending = 'pending',
   Accepted = 'accepted',

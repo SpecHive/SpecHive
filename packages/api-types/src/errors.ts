@@ -40,7 +40,6 @@ export type ErrorTimelineSeries = z.infer<typeof errorTimelineSeriesSchema>;
 
 export const errorTimelineResponseSchema = z.object({
   series: errorTimelineSeriesSchema.array(),
-  otherSeries: errorTimelineDataPointSchema.array(),
 });
 
 export type ErrorTimelineResponse = z.infer<typeof errorTimelineResponseSchema>;
@@ -74,9 +73,6 @@ export const errorGroupDetailSchema = z.object({
   normalizedMessage: z.string(),
   errorName: z.string().nullable(),
   errorCategory: z.string().nullable(),
-  totalOccurrences: z.number(),
-  uniqueTestCount: z.number(),
-  uniqueBranchCount: z.number(),
   firstSeenAt: z.string().nullable(),
   lastSeenAt: z.string().nullable(),
   createdAt: z.string().nullable(),
