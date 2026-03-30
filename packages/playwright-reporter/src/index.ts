@@ -26,6 +26,7 @@ import {
   asSuiteId,
   asTestId,
   sanitizeArtifactName,
+  stripAnsi,
 } from '@spechive/shared-types';
 import type { ArtifactId } from '@spechive/shared-types';
 import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
@@ -48,7 +49,9 @@ export function parseErrorName(message: string | undefined): string | undefined 
 function extractErrorMetadata(error: TestResult['error']) {
   if (!error) return {};
 
-  const errorName = parseErrorName(error.message);
+  // Strip ANSI codes before parsing — Playwright includes formatting in error.message
+  const cleanMessage = error.message ? stripAnsi(error.message) : undefined;
+  const errorName = parseErrorName(cleanMessage);
 
   const errorLocation = error.location
     ? {
@@ -60,7 +63,7 @@ function extractErrorMetadata(error: TestResult['error']) {
 
   const errorSnippet = error.snippet ? error.snippet.slice(0, MAX_ERROR_SNIPPET_LENGTH) : undefined;
 
-  const parsed = parsePlaywrightError(error.message);
+  const parsed = parsePlaywrightError(cleanMessage);
   // Fallback: errors with a recognized errorName but no structured pattern are 'runtime'
   const errorCategory = parsed?.errorCategory ?? (errorName ? 'runtime' : undefined);
 

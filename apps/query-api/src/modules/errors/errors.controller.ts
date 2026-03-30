@@ -10,7 +10,7 @@ import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ERRORS_TOP_N_MAX, ERRORS_TOP_N_MIN, ERRORS_TOP_N_DEFAULT } from './errors.constants';
 import { ErrorsService } from './errors.service';
 
-const categoryEnum = z.enum(['assertion', 'timeout', 'action', 'runtime', 'uncategorized']);
+const categoryEnum = z.enum(['assertion', 'timeout', 'action', 'other']);
 
 const commonFilterSchema = z.object({
   projectId: z.string().uuid(),

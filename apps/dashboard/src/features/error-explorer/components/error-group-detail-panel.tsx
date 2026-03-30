@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { useErrorGroupDetail } from '../hooks/use-error-group-detail';
 
+import { CategoryBadge } from '@/shared/components/category-badge';
 import { formatRelativeTime, truncateId } from '@/shared/lib/formatters';
 import { cn } from '@/shared/lib/utils';
 
@@ -49,6 +50,13 @@ export function ErrorGroupDetailPanel({
 
   return (
     <div>
+      <div className="mb-3 flex items-center gap-2">
+        <CategoryBadge category={detail.errorCategory} />
+        {detail.errorName && (
+          <span className="text-xs text-muted-foreground">{detail.errorName}</span>
+        )}
+      </div>
+
       {latestErrorMessage && (
         <pre className="mb-4 max-h-48 overflow-auto rounded-md bg-muted/50 p-3 font-mono text-xs leading-relaxed text-foreground">
           {latestErrorMessage}

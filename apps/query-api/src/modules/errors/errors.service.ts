@@ -111,8 +111,8 @@ export class ErrorsService {
       : sql``;
 
     const categoryFilter = params.category
-      ? params.category === 'uncategorized'
-        ? sql`AND eg.error_category IS NULL`
+      ? params.category === 'other'
+        ? sql`AND (eg.error_category IS NULL OR eg.error_category = 'runtime')`
         : sql`AND eg.error_category = ${params.category}`
       : sql``;
 
@@ -442,11 +442,12 @@ export class ErrorsService {
             eg.id AS "errorGroupId",
             eg.title,
             eg.error_name AS "errorName",
+            eg.error_category AS "errorCategory",
             COUNT(eo.id)::int AS "occurrences"
           FROM ${errorOccurrences} eo
           JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
           WHERE eo.run_id = ${runId}
-          GROUP BY eg.id, eg.title, eg.error_name
+          GROUP BY eg.id, eg.title, eg.error_name, eg.error_category
           ORDER BY "occurrences" DESC
           LIMIT 5
         `),

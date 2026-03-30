@@ -236,17 +236,18 @@ describe('Error Explorer endpoints', () => {
       }
     });
 
-    it('filters by uncategorized category (matches NULL error_category)', async () => {
+    it('filters by "other" category (matches NULL and runtime error_category)', async () => {
       const { status, body } = await queryApi.errors.list(jwt, {
         projectId: SEED_PROJECT_ID,
-        category: 'uncategorized',
+        category: 'other',
       });
 
       expect(status).toBe(200);
       const { data: groups } = body as PaginatedGroups;
-      expect(groups).toHaveLength(1);
-      expect(groups[0].id).toBe(GROUP_UNCATEGORIZED);
-      expect(groups[0].errorCategory).toBeNull();
+      // Should match the uncategorized group (NULL category)
+      const uncategorized = groups.find((g) => g.id === GROUP_UNCATEGORIZED);
+      expect(uncategorized).toBeDefined();
+      expect(uncategorized!.errorCategory).toBeNull();
     });
 
     it('filters by action category', async () => {

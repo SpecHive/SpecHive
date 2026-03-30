@@ -416,6 +416,71 @@ describe('SpecHiveReporter', () => {
     });
   });
 
+  describe('error metadata extraction', () => {
+    it('strips ANSI codes before parsing error category', async () => {
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+      mockSendEvent.mockClear();
+
+      const test = makeTest('my test', child);
+      reporter.onTestBegin(test, makeTestResult());
+
+      // Playwright wraps assertion errors with ANSI escape codes in error.message
+      const ansiMessage =
+        '\x1b[2mError: \x1b[22mexpect(locator).toHaveText(expected) failed\n\nLocator: locator(\'h1\')\nExpected: "Dashboard"\nReceived: "Welcome"';
+
+      reporter.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          error: { message: ansiMessage, stack: 'stack' } as TestResult['error'],
+        }),
+      );
+      mockOutcome(test, 'unexpected');
+      await reporter.onEnd({ status: 'failed' } as FullResult);
+      await flushQueue();
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd).toBeDefined();
+      expect(testEnd!.payload.errorCategory).toBe('assertion');
+      expect(testEnd!.payload.errorMatcher).toBe('toHaveText');
+      expect(testEnd!.payload.errorName).toBe('Error');
+    });
+
+    it('categorises non-ANSI assertion errors correctly', async () => {
+      const child = makeSuite('suite');
+      const root = makeSuite('', [child]);
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+      mockSendEvent.mockClear();
+
+      const test = makeTest('my test', child);
+      reporter.onTestBegin(test, makeTestResult());
+
+      const cleanMessage =
+        'Error: expect(page).not.toHaveURL(expected) failed\n\nExpected pattern: not /\\/login/\nReceived string: "http://localhost:5173/login"';
+
+      reporter.onTestEnd(
+        test,
+        makeTestResult({
+          status: 'failed',
+          error: { message: cleanMessage, stack: 'stack' } as TestResult['error'],
+        }),
+      );
+      mockOutcome(test, 'unexpected');
+      await reporter.onEnd({ status: 'failed' } as FullResult);
+      await flushQueue();
+
+      const events = sentEvents();
+      const testEnd = events.find((e) => e.eventType === 'test.end');
+      expect(testEnd!.payload.errorCategory).toBe('assertion');
+      expect(testEnd!.payload.errorMatcher).toBe('not.toHaveURL');
+    });
+  });
+
   describe('flaky detection', () => {
     async function beginReporter(): Promise<{ reporter: SpecHiveReporter; suite: Suite }> {
       const r = new SpecHiveReporter(makeConfig());

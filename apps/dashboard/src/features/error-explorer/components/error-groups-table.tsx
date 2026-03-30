@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { Fragment } from 'react';
 
+import { CategoryBadge } from '@/shared/components/category-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Pagination } from '@/shared/components/ui/pagination';
 import { SortableHeader } from '@/shared/components/ui/sortable-header';
@@ -119,11 +120,7 @@ export function ErrorGroupsTable({
                             />
                             <div className="min-w-0">
                               <p className="line-clamp-2">{group.title}</p>
-                              {group.errorName && (
-                                <span className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                                  {group.errorName}
-                                </span>
-                              )}
+                              <CategoryBadge category={group.errorCategory} />
                             </div>
                           </div>
                         </td>

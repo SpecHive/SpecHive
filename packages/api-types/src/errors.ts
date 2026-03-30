@@ -106,6 +106,7 @@ export const runErrorItemSchema = z.object({
   errorGroupId: z.string(),
   title: z.string(),
   errorName: z.string().nullable(),
+  errorCategory: z.string().nullable(),
   occurrences: z.number(),
 });
 

@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 
+import { CategoryBadge } from '@/shared/components/category-badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useApi } from '@/shared/hooks/use-api';
 import type { RunErrorsSummary } from '@/types/api';
@@ -45,11 +46,7 @@ export function RunErrorsSummary({ runId, projectId: _projectId }: RunErrorsSumm
               >
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 font-medium">{error.title}</p>
-                  {error.errorName && (
-                    <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                      {error.errorName}
-                    </span>
-                  )}
+                  <CategoryBadge category={error.errorCategory} />
                 </div>
                 <span className="ml-4 shrink-0 text-muted-foreground">
                   {error.occurrences} occurrence{error.occurrences !== 1 ? 's' : ''}
