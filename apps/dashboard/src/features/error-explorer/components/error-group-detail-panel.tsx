@@ -15,7 +15,7 @@ type Tab = (typeof TABS)[number];
 
 export function ErrorGroupDetailPanel({ errorGroupId }: ErrorGroupDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Affected Tests');
-  const { data: detail, loading } = useErrorGroupDetail(errorGroupId);
+  const { data: detail, loading, error } = useErrorGroupDetail(errorGroupId);
 
   if (!errorGroupId) return null;
 
@@ -27,6 +27,11 @@ export function ErrorGroupDetailPanel({ errorGroupId }: ErrorGroupDetailPanelPro
       </div>
     );
   }
+
+  if (error)
+    return (
+      <p className="py-4 text-center text-sm text-destructive">Failed to load error details</p>
+    );
 
   if (!detail) return null;
 

@@ -128,7 +128,13 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       WHERE eo.run_id = ${event.runId}
       GROUP BY eo.error_group_id, date_trunc('day', eo.occurred_at AT TIME ZONE 'UTC')::date
       ON CONFLICT (project_id, error_group_id, date) DO UPDATE SET
-        occurrences = ${dailyErrorStats.occurrences} + EXCLUDED.occurrences,
+        occurrences = (
+          SELECT COUNT(*)::int
+          FROM ${errorOccurrences} eo2
+          WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
+            AND eo2.project_id = ${ctx.projectId}
+            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+        ),
         unique_tests = (
           SELECT COUNT(DISTINCT eo2.test_name)::int
           FROM ${errorOccurrences} eo2

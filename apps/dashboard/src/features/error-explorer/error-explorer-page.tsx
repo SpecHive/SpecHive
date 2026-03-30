@@ -8,6 +8,7 @@ import { ErrorMetricToggle } from './components/error-metric-toggle';
 import { ErrorTimelineChart } from './components/error-timeline-chart';
 import { useErrorGroups } from './hooks/use-error-groups';
 import { useErrorTimeline } from './hooks/use-error-timeline';
+import { useUpdateParam } from './hooks/use-update-param';
 
 import { useProject } from '@/contexts/project-context';
 import { PageHeader } from '@/layout/page-header';
@@ -15,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { useSortable } from '@/shared/hooks/use-sortable';
 
 export function ErrorExplorerPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { selectedProjectIds, isAllSelected } = useProject();
   const { sortBy, sortDirection: sortOrder, handleSort } = useSortable({ syncWithUrl: true });
 
@@ -27,12 +28,13 @@ export function ErrorExplorerPage() {
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 20;
 
-  // Memoize to prevent infinite re-render loop
+  // Memoize to prevent infinite re-render loop; round to minute boundary for stability
   const { dateFrom, dateTo } = useMemo(() => {
     const now = Date.now();
+    const roundedNow = now - (now % 60_000);
     return {
-      dateFrom: now - days * 24 * 60 * 60 * 1000,
-      dateTo: now,
+      dateFrom: roundedNow - days * 24 * 60 * 60 * 1000,
+      dateTo: roundedNow,
     };
   }, [days]);
 
@@ -67,16 +69,7 @@ export function ErrorExplorerPage() {
     pageSize,
   });
 
-  const updateParam = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-    if (key !== 'page') next.delete('page');
-    setSearchParams(next);
-  };
+  const updateParam = useUpdateParam();
 
   return (
     <div className="space-y-6">

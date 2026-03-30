@@ -1,4 +1,4 @@
-type ErrorCategory = 'assertion' | 'timeout' | 'action' | 'runtime';
+type ErrorCategory = 'assertion' | 'timeout' | 'action';
 
 export interface ParsedPlaywrightError {
   errorCategory: ErrorCategory;
@@ -100,9 +100,5 @@ function parseAction(message: string): ParsedPlaywrightError | null {
 export function parsePlaywrightError(message: string | undefined): ParsedPlaywrightError | null {
   if (!message) return null;
 
-  return (
-    parseAssertion(message) ??
-    parseTimeout(message) ??
-    parseAction(message) ?? { errorCategory: 'runtime' as ErrorCategory }
-  );
+  return parseAssertion(message) ?? parseTimeout(message) ?? parseAction(message);
 }

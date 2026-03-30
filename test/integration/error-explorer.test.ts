@@ -325,4 +325,37 @@ describe('Error Explorer endpoints', () => {
       expect(status).toBe(404);
     });
   });
+
+  // ── GET /v1/runs/:runId/errors/summary ─────────────────────────
+
+  describe('GET /v1/runs/:runId/errors/summary', () => {
+    it('returns top errors and counts for a run', async () => {
+      const { status, body } = await queryApi.errors.runSummary(jwt, RUN_1);
+
+      expect(status).toBe(200);
+      const summary = body as {
+        runId: string;
+        totalErrorGroups: number;
+        totalFailedTests: number;
+        topErrors: Array<{ errorGroupId: string; title: string; occurrences: number }>;
+      };
+      expect(summary.runId).toBe(RUN_1);
+      expect(summary.totalErrorGroups).toBe(2);
+      expect(summary.totalFailedTests).toBe(2);
+      expect(summary.topErrors.length).toBeGreaterThan(0);
+      expect(summary.topErrors[0].occurrences).toBeGreaterThanOrEqual(1);
+    });
+
+    it('returns zero counts for a run with no errors', async () => {
+      // RUN_2 has only assertion errors — run with 1 occurrence
+      // Use a non-existent but valid UUID to test empty case
+      const fakeRunId = '01970000-0000-7000-8000-eeeeeeeeeeee';
+      const { status, body } = await queryApi.errors.runSummary(jwt, fakeRunId);
+
+      expect(status).toBe(200);
+      const summary = body as { totalErrorGroups: number; totalFailedTests: number };
+      expect(summary.totalErrorGroups).toBe(0);
+      expect(summary.totalFailedTests).toBe(0);
+    });
+  });
 });

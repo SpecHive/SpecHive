@@ -40,12 +40,12 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
     );
   }
 
-  // Merge all dates into a unified dataset
+  // Merge all dates into a unified dataset, keyed by errorGroupId to avoid title collisions
   const dateMap = new Map<string, Record<string, number>>();
   for (const s of data.series) {
     for (const dp of s.dataPoints) {
       const entry = dateMap.get(dp.date) ?? {};
-      entry[s.title] = dp[metric as keyof typeof dp] as number;
+      entry[s.errorGroupId] = dp[metric as keyof typeof dp] as number;
       dateMap.set(dp.date, entry);
     }
   }
@@ -60,9 +60,12 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
     .map(([date, values]) => ({ date, ...values }));
 
   const seriesKeys = [
-    ...data.series.map((s) => s.title),
+    ...data.series.map((s) => s.errorGroupId),
     ...(data.otherSeries.length > 0 ? ['Other'] : []),
   ];
+
+  // Map errorGroupId → title for human-readable tooltip labels
+  const labelMap = new Map(data.series.map((s) => [s.errorGroupId, s.title]));
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -77,6 +80,7 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
         <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
         <Tooltip
           labelFormatter={(label) => formatDateLabel(String(label))}
+          formatter={(value, name) => [value, labelMap.get(String(name)) ?? name]}
           contentStyle={{ fontSize: '0.875rem' }}
         />
         {seriesKeys.map((key, i) => (

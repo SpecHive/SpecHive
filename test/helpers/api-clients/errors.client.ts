@@ -60,4 +60,11 @@ export class ErrorsClient extends BaseClient {
       headers: this.authHeaders(token),
     });
   }
+
+  /** GET /v1/runs/:runId/errors/summary — run error summary. */
+  async runSummary(token: string, runId: string): Promise<ApiResponse> {
+    return this.request('GET', `/v1/runs/${runId}/errors/summary`, {
+      headers: this.authHeaders(token),
+    });
+  }
 }

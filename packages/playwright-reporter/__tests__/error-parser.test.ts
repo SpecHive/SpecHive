@@ -166,15 +166,15 @@ Call log:
     });
   });
 
-  describe('runtime fallback', () => {
-    it('returns runtime category for generic TypeError', () => {
+  describe('unrecognized errors', () => {
+    it('returns null for generic TypeError', () => {
       const message = `TypeError: Cannot read properties of undefined (reading 'id')`;
-      expect(parsePlaywrightError(message)).toEqual({ errorCategory: 'runtime' });
+      expect(parsePlaywrightError(message)).toBeNull();
     });
 
-    it('returns runtime category for simple error messages', () => {
+    it('returns null for simple error messages', () => {
       const message = `Error: Flaky failure on first attempt`;
-      expect(parsePlaywrightError(message)).toEqual({ errorCategory: 'runtime' });
+      expect(parsePlaywrightError(message)).toBeNull();
     });
 
     it('returns null for undefined', () => {

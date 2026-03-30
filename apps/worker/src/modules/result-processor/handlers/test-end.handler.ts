@@ -133,23 +133,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           })
           .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });
 
-        // Recount aggregates from actual occurrences for mid-run accuracy
-        await ctx.tx.execute(sql`
-          UPDATE ${errorGroups} SET
-            total_occurrences = sub.total,
-            unique_test_count = sub.tests,
-            unique_branch_count = sub.branches,
-            updated_at = NOW()
-          FROM (
-            SELECT
-              COUNT(*)::int AS total,
-              COUNT(DISTINCT test_name)::int AS tests,
-              COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
-            FROM ${errorOccurrences}
-            WHERE error_group_id = ${group.id}
-          ) sub
-          WHERE ${errorGroups.id} = ${group.id}
-        `);
+        // Aggregate counters are authoritatively recounted by RunEndHandler.
+        // No per-test recount — avoids concurrency races and full-table scans.
 
         await ctx.tx
           .update(tests)

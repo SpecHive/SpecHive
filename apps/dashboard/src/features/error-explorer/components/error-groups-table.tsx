@@ -108,7 +108,8 @@ export function ErrorGroupsTable({
                           }
                         }}
                         tabIndex={0}
-                        role="button"
+                        role="row"
+                        aria-expanded={isExpanded}
                         className="cursor-pointer border-b transition-colors hover:bg-accent"
                       >
                         <td className="max-w-[400px] py-3 pr-4">

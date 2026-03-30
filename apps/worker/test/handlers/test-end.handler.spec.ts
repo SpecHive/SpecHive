@@ -202,8 +202,8 @@ describe('TestEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // 2 execute calls: error_groups recount + dailyFlakyTestStats
-    expect(mocks.execute).toHaveBeenCalledTimes(2);
+    // 1 execute call: dailyFlakyTestStats (no per-test recount — RunEndHandler handles it)
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
     // 3 update calls: tests status + tests.errorGroupId + runs counters
     expect(mocks.update.update).toHaveBeenCalledTimes(3);
     // 2 insert calls: errorGroups upsert + errorOccurrences
@@ -253,8 +253,8 @@ describe('TestEndHandler', () => {
     await handler.handle(event, ctx);
 
     // Error processing fires for flaky tests too
-    // 2 execute calls: error_groups recount + dailyFlakyTestStats
-    expect(mocks.execute).toHaveBeenCalledTimes(2);
+    // 1 execute call: dailyFlakyTestStats (no per-test recount)
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
     expect(mocks.update.update).toHaveBeenCalledTimes(3);
     // 2 insert calls: errorGroups upsert + errorOccurrences
     expect(mocks.insert.insert).toHaveBeenCalledTimes(2);
@@ -368,8 +368,8 @@ describe('TestEndHandler', () => {
     expect(mocks.insert.onConflictDoNothing).toHaveBeenCalledTimes(2);
     // errorGroups uses onConflictDoUpdate
     expect(mocks.insert.onConflictDoUpdate).toHaveBeenCalledOnce();
-    // 2 execute calls: error_groups recount + dailyFlakyTestStats
-    expect(mocks.execute).toHaveBeenCalledTimes(2);
+    // 1 execute call: dailyFlakyTestStats (no per-test recount)
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
     // 3 update calls: tests status + tests.errorGroupId + runs counters
     expect(mocks.update.update).toHaveBeenCalledTimes(3);
   });

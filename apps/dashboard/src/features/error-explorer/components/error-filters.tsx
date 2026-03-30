@@ -2,6 +2,8 @@ import { Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
+import { useUpdateParam } from '../hooks/use-update-param';
+
 import { PeriodSelector } from '@/shared/components/period-selector';
 import { usePeriodSelector } from '@/shared/hooks/use-period-selector';
 import { cn } from '@/shared/lib/utils';
@@ -11,11 +13,12 @@ const CATEGORIES = [
   { value: 'assertion', label: 'Assertions' },
   { value: 'timeout', label: 'Timeouts' },
   { value: 'action', label: 'Actions' },
-  { value: 'runtime', label: 'Runtime' },
+  { value: 'runtime', label: 'Uncategorized' },
 ] as const;
 
 export function ErrorFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const updateParam = useUpdateParam();
 
   const { days, setDays, options } = usePeriodSelector({
     options: [7, 14, 30, 60, 90],
@@ -68,17 +71,6 @@ export function ErrorFilters() {
     }, 300);
     return () => clearTimeout(branchDebounceRef.current);
   }, [branchInput, branch, setSearchParams]);
-
-  const updateParam = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value) {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-    if (key !== 'page') next.delete('page');
-    setSearchParams(next);
-  };
 
   return (
     <div className="flex flex-wrap items-center gap-3">

@@ -80,6 +80,7 @@ export const errorOccurrences = pgTable(
     branch: text('branch'),
     commitSha: text('commit_sha'),
     testName: text('test_name').notNull(),
+    // TODO: Make NOT NULL in a future migration (always populated by test-end handler)
     errorMessage: text('error_message'),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
