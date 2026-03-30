@@ -5,6 +5,7 @@ import { ErrorFilters } from './components/error-filters';
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
 import { ErrorGroupsTable } from './components/error-groups-table';
 import { ErrorMetricToggle } from './components/error-metric-toggle';
+import type { ErrorMetric } from './components/error-timeline-chart';
 import { ErrorTimelineChart } from './components/error-timeline-chart';
 import { useErrorGroups } from './hooks/use-error-groups';
 import { useErrorTimeline } from './hooks/use-error-timeline';
@@ -21,7 +22,9 @@ export function ErrorExplorerPage() {
   const { sortBy, sortDirection: sortOrder, handleSort } = useSortable({ syncWithUrl: true });
 
   const days = Number(searchParams.get('days')) || 30;
-  const metric = searchParams.get('metric') || 'occurrences';
+  const metricParam = searchParams.get('metric');
+  const metric: ErrorMetric =
+    metricParam === 'uniqueTests' || metricParam === 'uniqueBranches' ? metricParam : 'occurrences';
   const branch = searchParams.get('branch') || '';
   const search = searchParams.get('search') || '';
   const category = searchParams.get('category') || '';
@@ -45,7 +48,11 @@ export function ErrorExplorerPage() {
   const initialErrorGroupId = searchParams.get('errorGroupId') || null;
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(initialErrorGroupId);
 
-  const { data: timelineData, loading: timelineLoading } = useErrorTimeline({
+  const {
+    data: timelineData,
+    loading: timelineLoading,
+    error: timelineError,
+  } = useErrorTimeline({
     projectId,
     dateFrom,
     dateTo,
@@ -56,7 +63,11 @@ export function ErrorExplorerPage() {
     topN: 5,
   });
 
-  const { data: groupsData, loading: groupsLoading } = useErrorGroups({
+  const {
+    data: groupsData,
+    loading: groupsLoading,
+    error: groupsError,
+  } = useErrorGroups({
     projectId,
     dateFrom,
     dateTo,
@@ -86,11 +97,21 @@ export function ErrorExplorerPage() {
       ) : (
         <>
           <ErrorFilters />
-          <ErrorMetricToggle />
+
+          {(timelineError || groupsError) && (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-center text-destructive">
+                  Failed to load error data. Please try again.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Error Timeline</CardTitle>
+              <ErrorMetricToggle />
             </CardHeader>
             <CardContent>
               <ErrorTimelineChart data={timelineData} loading={timelineLoading} metric={metric} />
@@ -109,7 +130,7 @@ export function ErrorExplorerPage() {
             onPageChange={(p) => updateParam('page', String(p))}
             onPageSizeChange={(s) => updateParam('pageSize', String(s))}
           >
-            <ErrorGroupDetailPanel key={expandedGroupId} errorGroupId={expandedGroupId} />
+            <ErrorGroupDetailPanel errorGroupId={expandedGroupId} />
           </ErrorGroupsTable>
         </>
       )}

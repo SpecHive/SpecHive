@@ -25,8 +25,8 @@ export function useErrorGroups(params: UseErrorGroupsParams) {
   if (params.category) queryParams.category = params.category;
   if (params.sortBy) queryParams.sortBy = params.sortBy;
   if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
-  if (params.page) queryParams.page = String(params.page);
-  if (params.pageSize) queryParams.pageSize = String(params.pageSize);
+  if (params.page != null) queryParams.page = String(params.page);
+  if (params.pageSize != null) queryParams.pageSize = String(params.pageSize);
 
   const path = params.projectId ? '/v1/errors' : null;
   return useApi<PaginatedResponse<ErrorGroupSummary>>(path, queryParams);

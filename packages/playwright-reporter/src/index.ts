@@ -61,12 +61,15 @@ function extractErrorMetadata(error: TestResult['error']) {
   const errorSnippet = error.snippet ? error.snippet.slice(0, MAX_ERROR_SNIPPET_LENGTH) : undefined;
 
   const parsed = parsePlaywrightError(error.message);
+  // Fallback: errors with a recognized errorName but no structured pattern are 'runtime'
+  const errorCategory = parsed?.errorCategory ?? (errorName ? 'runtime' : undefined);
 
   return {
     ...(errorName ? { errorName } : {}),
     ...(errorLocation ? { errorLocation } : {}),
     ...(errorSnippet ? { errorSnippet } : {}),
     ...(parsed ?? {}),
+    ...(errorCategory ? { errorCategory } : {}),
   };
 }
 

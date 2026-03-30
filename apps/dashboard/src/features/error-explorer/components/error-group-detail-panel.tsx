@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 
 import { useErrorGroupDetail } from '../hooks/use-error-group-detail';
@@ -16,6 +16,10 @@ type Tab = (typeof TABS)[number];
 export function ErrorGroupDetailPanel({ errorGroupId }: ErrorGroupDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('Affected Tests');
   const { data: detail, loading, error } = useErrorGroupDetail(errorGroupId);
+
+  useEffect(() => {
+    setActiveTab('Affected Tests');
+  }, [errorGroupId]);
 
   if (!errorGroupId) return null;
 

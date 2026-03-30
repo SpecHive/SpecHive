@@ -80,8 +80,7 @@ export const errorOccurrences = pgTable(
     branch: text('branch'),
     commitSha: text('commit_sha'),
     testName: text('test_name').notNull(),
-    // TODO: Make NOT NULL in a future migration (always populated by test-end handler)
-    errorMessage: text('error_message'),
+    errorMessage: text('error_message').notNull(),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -119,6 +118,5 @@ export const dailyErrorStats = pgTable(
   (table) => [
     primaryKey({ columns: [table.projectId, table.errorGroupId, table.date] }),
     index('idx_daily_error_stats_project_date').on(table.projectId, table.date),
-    index('idx_daily_error_stats_error_group').on(table.errorGroupId),
   ],
 );

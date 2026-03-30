@@ -1,1 +1,0 @@
-ALTER TABLE "error_groups" ADD COLUMN "error_category" text;

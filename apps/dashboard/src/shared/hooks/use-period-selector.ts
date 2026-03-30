@@ -30,6 +30,7 @@ export function usePeriodSelector({
         setSearchParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set('days', String(d));
+          next.delete('page');
           return next;
         });
       } else {

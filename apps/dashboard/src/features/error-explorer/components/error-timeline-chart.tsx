@@ -21,10 +21,12 @@ const SERIES_COLORS = [
 ];
 const OTHER_COLOR = '#94a3b8';
 
+export type ErrorMetric = 'occurrences' | 'uniqueTests' | 'uniqueBranches';
+
 interface ErrorTimelineChartProps {
   data: ErrorTimelineResponse | null;
   loading: boolean;
-  metric: string;
+  metric: ErrorMetric;
 }
 
 export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChartProps) {
@@ -45,13 +47,13 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
   for (const s of data.series) {
     for (const dp of s.dataPoints) {
       const entry = dateMap.get(dp.date) ?? {};
-      entry[s.errorGroupId] = dp[metric as keyof typeof dp] as number;
+      entry[s.errorGroupId] = dp[metric];
       dateMap.set(dp.date, entry);
     }
   }
   for (const dp of data.otherSeries) {
     const entry = dateMap.get(dp.date) ?? {};
-    entry['Other'] = dp[metric as keyof typeof dp] as number;
+    entry['Other'] = dp[metric];
     dateMap.set(dp.date, entry);
   }
 

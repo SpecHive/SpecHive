@@ -1,4 +1,4 @@
-type ErrorCategory = 'assertion' | 'timeout' | 'action';
+type ErrorCategory = 'assertion' | 'timeout' | 'action' | 'runtime';
 
 export interface ParsedPlaywrightError {
   errorCategory: ErrorCategory;

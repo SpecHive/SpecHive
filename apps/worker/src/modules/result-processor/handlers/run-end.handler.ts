@@ -132,22 +132,22 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
           SELECT COUNT(*)::int
           FROM ${errorOccurrences} eo2
           WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.project_id = ${ctx.projectId}
-            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
+            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
         ),
         unique_tests = (
           SELECT COUNT(DISTINCT eo2.test_name)::int
           FROM ${errorOccurrences} eo2
           WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.project_id = ${ctx.projectId}
-            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
+            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
         ),
         unique_branches = (
           SELECT COUNT(DISTINCT eo2.branch) FILTER (WHERE eo2.branch IS NOT NULL)::int
           FROM ${errorOccurrences} eo2
           WHERE eo2.error_group_id = ${dailyErrorStats.errorGroupId}
-            AND eo2.project_id = ${ctx.projectId}
-            AND date_trunc('day', eo2.occurred_at AT TIME ZONE 'UTC')::date = ${dailyErrorStats.date}
+            AND eo2.occurred_at >= ${dailyErrorStats.date}::timestamptz
+            AND eo2.occurred_at < (${dailyErrorStats.date} + INTERVAL '1 day')::timestamptz
         ),
         updated_at = NOW()
     `);

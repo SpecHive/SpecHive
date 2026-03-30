@@ -117,7 +117,9 @@ export class ErrorsService {
       : sql``;
 
     const categoryFilter = params.category
-      ? sql`AND eg.error_category = ${params.category}`
+      ? params.category === 'uncategorized'
+        ? sql`AND eg.error_category IS NULL`
+        : sql`AND eg.error_category = ${params.category}`
       : sql``;
 
     return { searchFilter, categoryFilter };
@@ -145,7 +147,7 @@ export class ErrorsService {
       case 'uniqueTests':
         return sql`COUNT(DISTINCT eo.test_name)`;
       case 'uniqueBranches':
-        return sql`COUNT(DISTINCT eo.branch)`;
+        return sql`COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)`;
       default:
         return sql`COUNT(eo.id)`;
     }
@@ -258,7 +260,7 @@ export class ErrorsService {
           eg.error_category AS "errorCategory",
           COUNT(eo.id)::int AS "totalOccurrences",
           COUNT(DISTINCT eo.test_name)::int AS "uniqueTestCount",
-          COUNT(DISTINCT eo.branch)::int AS "uniqueBranchCount",
+          COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranchCount",
           MIN(eo.occurred_at)::text AS "firstSeenAt",
           MAX(eo.occurred_at)::text AS "lastSeenAt"
         FROM ${errorOccurrences} eo
@@ -304,7 +306,7 @@ export class ErrorsService {
             eo.error_group_id,
             COUNT(eo.id)::int AS "totalOccurrences",
             COUNT(DISTINCT eo.test_name)::int AS "uniqueTestCount",
-            COUNT(DISTINCT eo.branch)::int AS "uniqueBranchCount"
+            COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranchCount"
           FROM ${errorOccurrences} eo
           JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
           WHERE eg.project_id = ${params.projectId}
@@ -591,7 +593,7 @@ export class ErrorsService {
           DATE(eo.occurred_at)::text AS "date",
           COUNT(eo.id)::int AS occurrences,
           COUNT(DISTINCT eo.test_name)::int AS "uniqueTests",
-          COUNT(DISTINCT eo.branch)::int AS "uniqueBranches"
+          COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranches"
         FROM ${errorOccurrences} eo
         JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
         WHERE eg.project_id = ${params.projectId}
@@ -607,7 +609,7 @@ export class ErrorsService {
           DATE(eo.occurred_at)::text AS "date",
           COALESCE(COUNT(eo.id), 0)::int AS occurrences,
           COALESCE(COUNT(DISTINCT eo.test_name), 0)::int AS "uniqueTests",
-          COALESCE(COUNT(DISTINCT eo.branch), 0)::int AS "uniqueBranches"
+          COALESCE(COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL), 0)::int AS "uniqueBranches"
         FROM ${errorOccurrences} eo
         JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
         WHERE eg.project_id = ${params.projectId}

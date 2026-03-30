@@ -13,7 +13,7 @@ const CATEGORIES = [
   { value: 'assertion', label: 'Assertions' },
   { value: 'timeout', label: 'Timeouts' },
   { value: 'action', label: 'Actions' },
-  { value: 'runtime', label: 'Uncategorized' },
+  { value: 'uncategorized', label: 'Uncategorized' },
 ] as const;
 
 export function ErrorFilters() {

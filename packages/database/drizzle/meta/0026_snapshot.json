@@ -2045,21 +2045,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "idx_daily_error_stats_error_group": {
-          "name": "idx_daily_error_stats_error_group",
-          "columns": [
-            {
-              "expression": "error_group_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -2144,6 +2129,12 @@
         },
         "error_name": {
           "name": "error_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_category": {
+          "name": "error_category",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2364,7 +2355,7 @@
           "name": "error_message",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "occurred_at": {
           "name": "occurred_at",

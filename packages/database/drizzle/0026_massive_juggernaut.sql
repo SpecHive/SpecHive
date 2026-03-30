@@ -19,6 +19,7 @@ CREATE TABLE "error_groups" (
 	"title" text NOT NULL,
 	"normalized_message" text NOT NULL,
 	"error_name" text,
+	"error_category" text,
 	"total_occurrences" integer DEFAULT 0 NOT NULL,
 	"unique_test_count" integer DEFAULT 0 NOT NULL,
 	"unique_branch_count" integer DEFAULT 0 NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE "error_occurrences" (
 	"branch" text,
 	"commit_sha" text,
 	"test_name" text NOT NULL,
-	"error_message" text,
+	"error_message" text NOT NULL,
 	"occurred_at" timestamp with time zone NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -54,7 +55,6 @@ ALTER TABLE "error_occurrences" ADD CONSTRAINT "error_occurrences_error_group_id
 ALTER TABLE "error_occurrences" ADD CONSTRAINT "error_occurrences_run_id_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "error_occurrences" ADD CONSTRAINT "error_occurrences_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_daily_error_stats_project_date" ON "daily_error_stats" USING btree ("project_id","date");--> statement-breakpoint
-CREATE INDEX "idx_daily_error_stats_error_group" ON "daily_error_stats" USING btree ("error_group_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_error_groups_fingerprint" ON "error_groups" USING btree ("project_id","fingerprint");--> statement-breakpoint
 CREATE INDEX "idx_error_groups_project_last_seen" ON "error_groups" USING btree ("project_id","last_seen_at");--> statement-breakpoint
 CREATE INDEX "idx_error_groups_project_occurrences" ON "error_groups" USING btree ("project_id","total_occurrences");--> statement-breakpoint
