@@ -49,6 +49,20 @@ export function ErrorTimelineChart({ data, loading, metric }: ErrorTimelineChart
       dateMap.set(dp.date, entry);
     }
   }
+
+  // Fill date gaps so recharts doesn't interpolate over missing days
+  if (dateMap.size > 0) {
+    const dates = Array.from(dateMap.keys()).sort();
+    const start = new Date(dates[0]);
+    const end = new Date(dates[dates.length - 1]);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      if (!dateMap.has(key)) {
+        dateMap.set(key, {});
+      }
+    }
+  }
+
   const chartData = Array.from(dateMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => ({ date, ...values }));

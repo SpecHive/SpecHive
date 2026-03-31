@@ -150,7 +150,7 @@ describe('Error Explorer endpoints', () => {
     `;
 
     // ── Tenant isolation seed data (different org — should be invisible) ──
-    await sql`INSERT INTO organizations (id, name) VALUES (${OTHER_ORG_ID}, 'Other Org') ON CONFLICT DO NOTHING`;
+    await sql`INSERT INTO organizations (id, name, slug) VALUES (${OTHER_ORG_ID}, 'Other Org', 'other-org') ON CONFLICT DO NOTHING`;
     await sql`INSERT INTO projects (id, organization_id, name) VALUES (${OTHER_PROJECT_ID}, ${OTHER_ORG_ID}, 'Other Project') ON CONFLICT DO NOTHING`;
     await sql`
       INSERT INTO runs (id, project_id, organization_id, status, branch, total_tests, passed_tests, failed_tests, skipped_tests, flaky_tests, started_at, finished_at)

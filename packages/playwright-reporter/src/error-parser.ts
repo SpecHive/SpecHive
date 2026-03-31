@@ -85,11 +85,13 @@ function parseAction(message: string): ParsedPlaywrightError | null {
   const match = firstLine.match(ACTION_RE);
   if (!match) return null;
 
+  const object = match[1]; // e.g. "page", "locator"
   const method = match[2]; // e.g. "click", "goto"
 
   return {
     errorCategory: 'action',
     errorMatcher: method,
+    errorTarget: truncate(`${object}.${method}`, MAX_FIELD_LENGTH),
   };
 }
 

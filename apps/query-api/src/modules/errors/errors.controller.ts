@@ -9,6 +9,7 @@ import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 
 import {
+  ERROR_SORT_FIELDS,
   ERRORS_SEARCH_MAX_LENGTH,
   ERRORS_TOP_N_DEFAULT,
   ERRORS_TOP_N_MAX,
@@ -40,9 +41,7 @@ function buildCommonParams(query: z.infer<typeof commonFilterSchema>) {
 const listErrorsQuerySchema = commonFilterSchema.extend({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z
-    .enum(['occurrences', 'uniqueTests', 'uniqueBranches', 'lastSeenAt', 'title'])
-    .default('occurrences'),
+  sortBy: z.enum(ERROR_SORT_FIELDS).default('occurrences'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

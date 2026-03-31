@@ -20,6 +20,7 @@ import { z } from 'zod';
 
 import { buildPaginatedResponse, getOffset } from '../../common/pagination';
 
+import type { ErrorSortField } from './errors.constants';
 import {
   DETAIL_AFFECTED_TESTS_LIMIT,
   DETAIL_BRANCHES_LIMIT,
@@ -50,7 +51,7 @@ interface ListErrorGroupsParams {
   branch?: string;
   search?: string;
   category?: string;
-  sortBy: string;
+  sortBy: ErrorSortField;
   sortOrder: 'asc' | 'desc';
   page: number;
   pageSize: number;
@@ -103,7 +104,7 @@ export class ErrorsService {
 
   // ── Shared filter/sort helpers ──────────────────────────────────
 
-  private static readonly sortColumns: Record<string, SqlFragment> = {
+  private static readonly sortColumns: Record<ErrorSortField, SqlFragment> = {
     occurrences: sql`"occurrences"`,
     uniqueTests: sql`"uniqueTests"`,
     uniqueBranches: sql`"uniqueBranches"`,
@@ -129,9 +130,9 @@ export class ErrorsService {
     return { searchFilter, categoryFilter };
   }
 
-  private buildOrderByClause(sortBy: string, sortOrder: 'asc' | 'desc'): SqlFragment {
+  private buildOrderByClause(sortBy: ErrorSortField, sortOrder: 'asc' | 'desc'): SqlFragment {
     const direction = sortOrder === 'asc' ? sql`ASC` : sql`DESC`;
-    const column = ErrorsService.sortColumns[sortBy] ?? ErrorsService.sortColumns.occurrences;
+    const column = ErrorsService.sortColumns[sortBy];
     return sql`ORDER BY ${column} ${direction}`;
   }
 
@@ -179,11 +180,10 @@ export class ErrorsService {
     categoryFilter: SqlFragment,
   ): SqlFragment {
     const branchFilter = params.branch ? sql`AND eo.branch = ${params.branch}` : sql``;
-    const dateToExclusive = new Date(dateTo.getTime() + MS_PER_DAY).toISOString();
     return sql`
       WHERE eg.project_id = ${params.projectId}
         AND eo.occurred_at >= ${dateFrom.toISOString()}
-        AND eo.occurred_at < ${dateToExclusive}
+        AND eo.occurred_at < ${dateTo.toISOString()}
         ${branchFilter}
         ${searchFilter}
         ${categoryFilter}
@@ -290,9 +290,12 @@ export class ErrorsService {
         sql`, `,
       )}]::uuid[]`;
 
-      const dateToExclusive = new Date(dateTo.getTime() + MS_PER_DAY).toISOString();
       const branchFilter = params.branch ? sql`AND eo.branch = ${params.branch}` : sql``;
 
+      // The series query intentionally omits search/category filters.
+      // These filters are group-level (applied to eg.title, eg.error_category),
+      // not occurrence-level. The rank query above already filtered group IDs
+      // by search/category, so restricting by error_group_id here is equivalent.
       const seriesResult = await tx.execute(sql`
         SELECT
           eo.error_group_id AS "errorGroupId",
@@ -306,7 +309,7 @@ export class ErrorsService {
         JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
         WHERE eg.project_id = ${params.projectId}
           AND eo.occurred_at >= ${dateFrom.toISOString()}
-          AND eo.occurred_at < ${dateToExclusive}
+          AND eo.occurred_at < ${dateTo.toISOString()}
           ${branchFilter}
           AND eo.error_group_id = ANY(${groupIdArray})
         GROUP BY eo.error_group_id, eg.title, eg.error_name, DATE(eo.occurred_at)
@@ -326,8 +329,7 @@ export class ErrorsService {
     params: ErrorGroupDetailParams,
   ): Promise<ErrorGroupDetail> {
     const { dateFrom, dateTo } = resolveDateRange(params);
-    const dateToExclusive = new Date(dateTo.getTime() + MS_PER_DAY).toISOString();
-    const dateFilter = sql`AND eo.occurred_at >= ${dateFrom.toISOString()} AND eo.occurred_at < ${dateToExclusive}`;
+    const dateFilter = sql`AND eo.occurred_at >= ${dateFrom.toISOString()} AND eo.occurred_at < ${dateTo.toISOString()}`;
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);

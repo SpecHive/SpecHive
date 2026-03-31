@@ -10,3 +10,12 @@ export const DETAIL_AFFECTED_TESTS_LIMIT = 20;
 export const DETAIL_BRANCHES_LIMIT = 10;
 
 export const UI_CATEGORY_OTHER = 'other';
+
+export const ERROR_SORT_FIELDS = [
+  'occurrences',
+  'uniqueTests',
+  'uniqueBranches',
+  'lastSeenAt',
+  'title',
+] as const;
+export type ErrorSortField = (typeof ERROR_SORT_FIELDS)[number];

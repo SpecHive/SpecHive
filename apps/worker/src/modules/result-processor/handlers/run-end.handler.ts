@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { dailyRunStats, errorGroups, errorOccurrences, runs, tests } from '@spechive/database';
+import { dailyRunStats, runs, tests } from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { RunEndEvent } from '@spechive/reporter-core-protocol';
 import { RunStatus } from '@spechive/shared-types';
@@ -103,31 +103,33 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    // These denormalized aggregates are reserved for upcoming analytics/dashboard widgets.
-    // The current list endpoint computes period-scoped counts live and does not read them.
-    // Tech debt: this full recount grows linearly with occurrences per error group.
-    // TODO: when analytics starts consuming these columns, move the recount to an async
-    // CQRS event processed by a dedicated worker to keep run-end latency low.
-    await ctx.tx.execute(sql`
-      UPDATE ${errorGroups} eg SET
-        total_occurrences = sub.total,
-        unique_test_count = sub.tests,
-        unique_branch_count = sub.branches,
-        updated_at = NOW()
-      FROM (
-        SELECT
-          error_group_id,
-          COUNT(*)::int AS total,
-          COUNT(DISTINCT test_name)::int AS tests,
-          COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
-        FROM ${errorOccurrences}
-        WHERE error_group_id IN (
-          SELECT DISTINCT error_group_id FROM ${errorOccurrences} WHERE run_id = ${event.runId}
-        )
-        GROUP BY error_group_id
-      ) sub
-      WHERE eg.id = sub.error_group_id
-    `);
+    // TODO(analytics): Re-enable when analytics dashboard consumes denormalized aggregates.
+    // These columns (total_occurrences, unique_test_count, unique_branch_count) exist on
+    // error_groups but are not read by any current endpoint — the list endpoint computes
+    // period-scoped counts live from error_occurrences. When analytics needs all-time counts,
+    // move this recount to an async CQRS worker to avoid blocking run-end latency.
+    //
+    // Original implementation:
+    // await ctx.tx.execute(sql`
+    //   UPDATE ${errorGroups} eg SET
+    //     total_occurrences = sub.total,
+    //     unique_test_count = sub.tests,
+    //     unique_branch_count = sub.branches,
+    //     updated_at = NOW()
+    //   FROM (
+    //     SELECT
+    //       error_group_id,
+    //       COUNT(*)::int AS total,
+    //       COUNT(DISTINCT test_name)::int AS tests,
+    //       COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
+    //     FROM ${errorOccurrences}
+    //     WHERE error_group_id IN (
+    //       SELECT DISTINCT error_group_id FROM ${errorOccurrences} WHERE run_id = ${event.runId}
+    //     )
+    //     GROUP BY error_group_id
+    //   ) sub
+    //   WHERE eg.id = sub.error_group_id
+    // `);
 
     this.logger.info({ runId: event.runId, status: event.payload.status }, 'Run finished');
   }

@@ -27,11 +27,8 @@ describe('RunEndHandler', () => {
       },
     ]);
 
-    // Execute calls: retried tests COUNT, daily_run_stats UPSERT, error_groups recount
-    mocks.execute
-      .mockResolvedValueOnce([{ retriedTests: 2 }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+    // Execute calls: retried tests COUNT, daily_run_stats UPSERT
+    mocks.execute.mockResolvedValueOnce([{ retriedTests: 2 }]).mockResolvedValueOnce([]);
 
     const module = await Test.createTestingModule({
       providers: [RunEndHandler, createMockPinoLogger('RunEndHandler')],
@@ -94,8 +91,8 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Three execute calls: retried count + daily_run_stats + error_groups recount
-    expect(mocks.execute).toHaveBeenCalledTimes(3);
+    // Two execute calls: retried count + daily_run_stats
+    expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 
   it('does not UPSERT when run is already in terminal state', async () => {
@@ -126,10 +123,7 @@ describe('RunEndHandler', () => {
         startedAt: null,
       },
     ]);
-    mocks.execute
-      .mockResolvedValueOnce([{ retriedTests: 0 }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+    mocks.execute.mockResolvedValueOnce([{ retriedTests: 0 }]).mockResolvedValueOnce([]);
 
     const event = {
       version: '1' as const,
@@ -141,7 +135,7 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
-    // Three execute calls: retried count + daily_run_stats + error_groups recount
-    expect(mocks.execute).toHaveBeenCalledTimes(3);
+    // Two execute calls: retried count + daily_run_stats
+    expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 });

@@ -104,7 +104,7 @@ describe('computeFingerprint', () => {
     expect(normalizedMessage).toBe('Error at <TIMESTAMP>');
   });
 
-  it('returns a title', () => {
+  it('returns a normalized title', () => {
     const { title } = computeFingerprint('TypeError: Cannot read properties of undefined');
     expect(title).toBe('TypeError: Cannot read properties of undefined');
   });
@@ -194,7 +194,7 @@ describe('computeFingerprint', () => {
       expect(a.fingerprint).toBe(b.fingerprint);
     });
 
-    it('uses first line as title', () => {
+    it('uses normalized first line as title', () => {
       const { title } = computeFingerprint(
         "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.handler",
       );

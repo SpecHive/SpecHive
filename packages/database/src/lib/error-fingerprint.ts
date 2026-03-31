@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 
+import type { ErrorCategory } from '@spechive/shared-types';
+
 /**
  * Structured error fields sent by framework-aware reporters.
  * When present, these produce better fingerprints and titles than raw message parsing.
  */
 export interface ErrorFields {
-  errorCategory?: string | undefined;
+  errorCategory?: ErrorCategory | undefined;
   errorMatcher?: string | undefined;
   errorTarget?: string | undefined;
   errorExpected?: string | undefined;
@@ -147,7 +149,8 @@ export function computeFingerprint(
 
   // Title: use structured fields if available, otherwise first line
   const structuredTitle = fields?.errorCategory ? generateStructuredTitle(fields) : '';
-  const title = structuredTitle || firstLine(errorMessage).slice(0, MAX_TITLE_LENGTH);
+  const title =
+    structuredTitle || normalizeErrorMessage(firstLine(errorMessage)).slice(0, MAX_TITLE_LENGTH);
 
   return { fingerprint, normalizedMessage, title };
 }

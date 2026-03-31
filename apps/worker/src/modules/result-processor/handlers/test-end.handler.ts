@@ -16,6 +16,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
 
+const MAX_STORED_ERROR_MESSAGE = 10_000;
+
 @EventHandler()
 @Injectable()
 export class TestEndHandler implements IEventHandler<TestEndEvent> {
@@ -130,7 +132,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             branch: runInfo?.branch ?? null,
             commitSha: runInfo?.commitSha ?? null,
             testName: updatedTest.name,
-            errorMessage: strippedErrorMessage,
+            errorMessage: strippedErrorMessage.slice(0, MAX_STORED_ERROR_MESSAGE),
             occurredAt: eventTime,
           })
           .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });

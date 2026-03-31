@@ -152,6 +152,7 @@ Call log:
       expect(result).toEqual({
         errorCategory: 'action',
         errorMatcher: 'click',
+        errorTarget: 'locator.click',
       });
     });
 
@@ -162,6 +163,7 @@ Call log:
       expect(result).toEqual({
         errorCategory: 'action',
         errorMatcher: 'goto',
+        errorTarget: 'page.goto',
       });
     });
   });
