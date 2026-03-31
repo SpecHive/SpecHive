@@ -13,9 +13,9 @@ import { waitForService } from '../helpers/wait';
 
 interface ErrorGroupRow {
   id: string;
-  totalOccurrences: number;
-  uniqueTestCount: number;
-  uniqueBranchCount: number;
+  occurrences: number;
+  uniqueTests: number;
+  uniqueBranches: number;
   errorCategory: string | null;
   errorName: string | null;
 }
@@ -206,8 +206,8 @@ describe('Error Explorer endpoints', () => {
 
       const assertion = seeded.find((g) => g.id === GROUP_ASSERTION)!;
       expect(assertion).toBeDefined();
-      expect(assertion.totalOccurrences).toBe(3);
-      expect(assertion.uniqueTestCount).toBe(2);
+      expect(assertion.occurrences).toBe(3);
+      expect(assertion.uniqueTests).toBe(2);
       expect(assertion.errorCategory).toBe('assertion');
     });
 
@@ -247,7 +247,7 @@ describe('Error Explorer endpoints', () => {
       const seeded = groups.filter((g) => seededIds.includes(g.id));
       expect(seeded).toHaveLength(2);
       const assertion = seeded.find((g) => g.id === GROUP_ASSERTION)!;
-      expect(assertion.totalOccurrences).toBe(1);
+      expect(assertion.occurrences).toBe(1);
     });
 
     it('paginates results', async () => {
@@ -268,7 +268,7 @@ describe('Error Explorer endpoints', () => {
     it('sorts by specified column', async () => {
       const { status, body } = await queryApi.errors.list(jwt, {
         projectId: SEED_PROJECT_ID,
-        sortBy: 'totalOccurrences',
+        sortBy: 'occurrences',
         sortOrder: 'asc',
       });
 
@@ -285,7 +285,7 @@ describe('Error Explorer endpoints', () => {
       expect(seeded).toHaveLength(5);
       // Verify ascending sort order is respected
       for (let i = 1; i < seeded.length; i++) {
-        expect(seeded[i - 1].totalOccurrences).toBeLessThanOrEqual(seeded[i].totalOccurrences);
+        expect(seeded[i - 1].occurrences).toBeLessThanOrEqual(seeded[i].occurrences);
       }
     });
 
@@ -331,7 +331,7 @@ describe('Error Explorer endpoints', () => {
       const { data: groups } = body as PaginatedGroups;
       expect(groups).toHaveLength(1);
       expect(groups[0].id).toBe(GROUP_ASSERTION);
-      expect(groups[0].totalOccurrences).toBe(1);
+      expect(groups[0].occurrences).toBe(1);
     });
 
     it('excludes errors outside date range', async () => {
@@ -349,7 +349,7 @@ describe('Error Explorer endpoints', () => {
       // Assertion group should have fewer occurrences (only recent ones)
       const assertion = groups.find((g) => g.id === GROUP_ASSERTION);
       if (assertion) {
-        expect(assertion.totalOccurrences).toBeLessThan(3);
+        expect(assertion.occurrences).toBeLessThan(3);
       }
     });
 
@@ -376,7 +376,7 @@ describe('Error Explorer endpoints', () => {
 
       const assertion = seeded.find((g) => g.id === GROUP_ASSERTION);
       // 3 occurrences total across the full range
-      expect(assertion?.totalOccurrences).toBe(3);
+      expect(assertion?.occurrences).toBe(3);
     });
   });
 

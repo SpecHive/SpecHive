@@ -9,9 +9,9 @@ export const errorGroupSummarySchema = z.object({
   normalizedMessage: z.string(),
   errorName: z.string().nullable(),
   errorCategory: z.string().nullable(),
-  totalOccurrences: z.number(),
-  uniqueTestCount: z.number(),
-  uniqueBranchCount: z.number(),
+  occurrences: z.number(),
+  uniqueTests: z.number(),
+  uniqueBranches: z.number(),
   firstSeenAt: z.string().nullable(),
   lastSeenAt: z.string().nullable(),
 });

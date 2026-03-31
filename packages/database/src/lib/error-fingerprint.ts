@@ -104,7 +104,7 @@ function generateStructuredTitle(fields: ErrorFields): string {
  * Without: uses just the first line of the normalized message.
  */
 function buildSignature(
-  normalizedMessage: string,
+  message: string,
   errorName: string | undefined,
   fields: ErrorFields | undefined,
 ): string {
@@ -121,8 +121,8 @@ function buildSignature(
     return errorName ? `${errorName}::${signature}` : signature;
   }
 
-  // Fallback: use only the first line of the normalized message
-  const normalizedFirstLine = normalizeErrorMessage(firstLine(normalizedMessage));
+  // Fallback: normalize the first line of the raw message
+  const normalizedFirstLine = normalizeErrorMessage(firstLine(message));
   return errorName ? `${errorName}::${normalizedFirstLine}` : normalizedFirstLine;
 }
 

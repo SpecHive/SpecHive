@@ -44,6 +44,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   projectTokens: many(projectTokens),
   runs: many(runs),
+  errorGroups: many(errorGroups),
 }));
 
 export const projectTokensRelations = relations(projectTokens, ({ one }) => ({
@@ -156,6 +157,8 @@ export const errorGroupsRelations = relations(errorGroups, ({ one, many }) => ({
     references: [organizations.id],
   }),
   occurrences: many(errorOccurrences),
+  // No tests back-relation — tests table uses composite PK (id, createdAt) which
+  // prevents a standard FK, and tests.errorGroupId has no FK constraint.
 }));
 
 export const errorOccurrencesRelations = relations(errorOccurrences, ({ one }) => ({

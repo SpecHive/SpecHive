@@ -17,6 +17,7 @@ const commonFilterSchema = z.object({
   dateTo: z.coerce.number().int().positive().optional(),
   branch: z.string().max(500).optional(),
   search: z.string().max(200).optional(),
+  /** 'other' is a UI catch-all that maps to errors with NULL or 'runtime' category in the service layer. */
   category: z.enum([...ERROR_CATEGORIES, 'other']).optional(),
 });
 
@@ -35,8 +36,8 @@ const listErrorsQuerySchema = commonFilterSchema.extend({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   sortBy: z
-    .enum(['totalOccurrences', 'uniqueTestCount', 'uniqueBranchCount', 'lastSeenAt', 'title'])
-    .default('totalOccurrences'),
+    .enum(['occurrences', 'uniqueTests', 'uniqueBranches', 'lastSeenAt', 'title'])
+    .default('occurrences'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

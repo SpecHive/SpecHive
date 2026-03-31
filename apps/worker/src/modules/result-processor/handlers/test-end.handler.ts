@@ -27,13 +27,16 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
     const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
       event.payload;
 
+    const strippedErrorMessage = errorMessage ? stripAnsi(errorMessage) : null;
+    const strippedStackTrace = stackTrace ? stripAnsi(stackTrace) : null;
+
     const [updatedTest] = await ctx.tx
       .update(tests)
       .set({
         status,
         durationMs: durationMs ?? null,
-        errorMessage: errorMessage ? stripAnsi(errorMessage) : null,
-        stackTrace: stackTrace ? stripAnsi(stackTrace) : null,
+        errorMessage: strippedErrorMessage,
+        stackTrace: strippedStackTrace,
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
       })
@@ -65,12 +68,11 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
     // --- Error fingerprinting & grouping ---
     if (
       updatedTest &&
-      errorMessage &&
+      strippedErrorMessage &&
       (status === TestStatus.Failed || status === TestStatus.Flaky)
     ) {
-      const strippedError = stripAnsi(errorMessage);
       const { fingerprint, normalizedMessage, title } = computeFingerprint(
-        strippedError,
+        strippedErrorMessage,
         event.payload.errorName,
         {
           errorCategory: event.payload.errorCategory,
@@ -128,7 +130,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             branch: runInfo?.branch ?? null,
             commitSha: runInfo?.commitSha ?? null,
             testName: updatedTest.name,
-            errorMessage: strippedError,
+            errorMessage: strippedErrorMessage,
             occurredAt: eventTime,
           })
           .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });

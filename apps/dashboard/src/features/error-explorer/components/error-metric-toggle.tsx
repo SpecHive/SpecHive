@@ -1,8 +1,7 @@
 import { useSearchParams } from 'react-router';
 
-import { useUpdateParam } from '../hooks/use-update-param';
-
 import { Button } from '@/shared/components/ui/button';
+import { useUpdateParam } from '@/shared/hooks/use-update-param';
 
 const METRICS = [
   { key: 'occurrences', label: 'Occurrences' },

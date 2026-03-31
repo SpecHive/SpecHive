@@ -67,21 +67,21 @@ export function ErrorGroupsTable({
                   />
                   <SortableHeader
                     label="Occurrences"
-                    column="totalOccurrences"
+                    column="occurrences"
                     currentSort={sortBy}
                     currentDirection={sortDirection}
                     onSort={onSort}
                   />
                   <SortableHeader
                     label="Affected Tests"
-                    column="uniqueTestCount"
+                    column="uniqueTests"
                     currentSort={sortBy}
                     currentDirection={sortDirection}
                     onSort={onSort}
                   />
                   <SortableHeader
                     label="Affected Branches"
-                    column="uniqueBranchCount"
+                    column="uniqueBranches"
                     currentSort={sortBy}
                     currentDirection={sortDirection}
                     onSort={onSort}
@@ -124,9 +124,9 @@ export function ErrorGroupsTable({
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 pr-4">{group.totalOccurrences}</td>
-                        <td className="py-3 pr-4">{group.uniqueTestCount}</td>
-                        <td className="py-3 pr-4">{group.uniqueBranchCount}</td>
+                        <td className="py-3 pr-4">{group.occurrences}</td>
+                        <td className="py-3 pr-4">{group.uniqueTests}</td>
+                        <td className="py-3 pr-4">{group.uniqueBranches}</td>
                         <td className="py-3">{formatRelativeTime(group.lastSeenAt)}</td>
                       </tr>
                       {isExpanded && (

@@ -1,10 +1,9 @@
 import { Search } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 
-import { useDebouncedParam } from '../hooks/use-debounced-param';
-import { useUpdateParam } from '../hooks/use-update-param';
-
-import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/components/ui/button';
+import { useDebouncedParam } from '@/shared/hooks/use-debounced-param';
+import { useUpdateParam } from '@/shared/hooks/use-update-param';
 
 const CATEGORIES = [
   { value: '', label: 'All' },
@@ -25,19 +24,14 @@ export function ErrorTableFilters() {
     <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 p-3 backdrop-blur-sm">
       <div className="flex gap-1">
         {CATEGORIES.map((cat) => (
-          <button
+          <Button
             key={cat.value}
-            type="button"
+            variant={category === cat.value ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => updateParam('category', cat.value)}
-            className={cn(
-              'rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors',
-              category === cat.value
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )}
           >
             {cat.label}
-          </button>
+          </Button>
         ))}
       </div>
       <input

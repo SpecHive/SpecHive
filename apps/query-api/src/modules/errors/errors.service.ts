@@ -103,9 +103,9 @@ export class ErrorsService {
   // ── Shared filter/sort helpers ──────────────────────────────────
 
   private static readonly sortColumns: Record<string, SqlFragment> = {
-    totalOccurrences: sql`"totalOccurrences"`,
-    uniqueTestCount: sql`"uniqueTestCount"`,
-    uniqueBranchCount: sql`"uniqueBranchCount"`,
+    occurrences: sql`"occurrences"`,
+    uniqueTests: sql`"uniqueTests"`,
+    uniqueBranches: sql`"uniqueBranches"`,
     lastSeenAt: sql`"lastSeenAt"`,
     title: sql`title`,
   };
@@ -130,7 +130,7 @@ export class ErrorsService {
 
   private buildOrderByClause(sortBy: string, sortOrder: 'asc' | 'desc'): SqlFragment {
     const direction = sortOrder === 'asc' ? sql`ASC` : sql`DESC`;
-    const column = ErrorsService.sortColumns[sortBy] ?? ErrorsService.sortColumns.totalOccurrences;
+    const column = ErrorsService.sortColumns[sortBy] ?? ErrorsService.sortColumns.occurrences;
     return sql`ORDER BY ${column} ${direction}`;
   }
 
@@ -217,9 +217,9 @@ export class ErrorsService {
             eg.normalized_message AS "normalizedMessage",
             eg.error_name AS "errorName",
             eg.error_category AS "errorCategory",
-            COUNT(eo.id)::int AS "totalOccurrences",
-            COUNT(DISTINCT eo.test_name)::int AS "uniqueTestCount",
-            COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranchCount",
+            COUNT(eo.id)::int AS "occurrences",
+            COUNT(DISTINCT eo.test_name)::int AS "uniqueTests",
+            COUNT(DISTINCT eo.branch) FILTER (WHERE eo.branch IS NOT NULL)::int AS "uniqueBranches",
             eg.first_seen_at::text AS "firstSeenAt",
             MAX(eo.occurred_at)::text AS "lastSeenAt"
           FROM ${errorOccurrences} eo
@@ -347,6 +347,7 @@ export class ErrorsService {
             eg.updated_at::text AS "updatedAt"
           FROM ${errorGroups} eg
           WHERE eg.id = ${params.errorGroupId}
+            AND eg.organization_id = ${organizationId}
         `),
         tx.execute(sql`
           SELECT
@@ -421,6 +422,7 @@ export class ErrorsService {
           FROM ${errorOccurrences} eo
           JOIN ${errorGroups} eg ON eg.id = eo.error_group_id
           WHERE eo.run_id = ${runId}
+            AND eo.organization_id = ${organizationId}
           GROUP BY eg.id, eg.title, eg.error_name, eg.error_category
           ORDER BY "occurrences" DESC
           LIMIT 5
@@ -431,6 +433,7 @@ export class ErrorsService {
             COUNT(DISTINCT eo.test_id)::int AS "totalFailedTests"
           FROM ${errorOccurrences} eo
           WHERE eo.run_id = ${runId}
+            AND eo.organization_id = ${organizationId}
         `),
       ]);
 

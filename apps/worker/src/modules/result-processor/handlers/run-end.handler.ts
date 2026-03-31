@@ -67,7 +67,7 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       FROM ${tests}
       WHERE ${tests.runId} = ${event.runId} AND ${tests.retryCount} > 0
     `);
-    const retriedTests = (retriedRow as { retriedTests: number }).retriedTests;
+    const retriedTests = (retriedRow as { retriedTests: number } | undefined)?.retriedTests ?? 0;
 
     await ctx.tx.execute(sql`
       INSERT INTO ${dailyRunStats} (

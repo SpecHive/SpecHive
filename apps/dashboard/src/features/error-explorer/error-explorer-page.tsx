@@ -9,7 +9,6 @@ import type { ErrorMetric } from './components/error-timeline-chart';
 import { ErrorTimelineChart } from './components/error-timeline-chart';
 import { useErrorGroups } from './hooks/use-error-groups';
 import { useErrorTimeline } from './hooks/use-error-timeline';
-import { useUpdateParam } from './hooks/use-update-param';
 
 import { useProject } from '@/contexts/project-context';
 import { PageHeader } from '@/layout/page-header';
@@ -18,6 +17,7 @@ import { PeriodSelector } from '@/shared/components/period-selector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { usePeriodSelector } from '@/shared/hooks/use-period-selector';
 import { useSortable } from '@/shared/hooks/use-sortable';
+import { useUpdateParam } from '@/shared/hooks/use-update-param';
 
 export function ErrorExplorerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
