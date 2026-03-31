@@ -8,7 +8,13 @@ import { z } from 'zod';
 import { uuidSchema } from '../../common/pagination';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 
-import { ERRORS_TOP_N_MAX, ERRORS_TOP_N_MIN, ERRORS_TOP_N_DEFAULT } from './errors.constants';
+import {
+  ERRORS_SEARCH_MAX_LENGTH,
+  ERRORS_TOP_N_DEFAULT,
+  ERRORS_TOP_N_MAX,
+  ERRORS_TOP_N_MIN,
+  UI_CATEGORY_OTHER,
+} from './errors.constants';
 import { ErrorsService } from './errors.service';
 
 const commonFilterSchema = z.object({
@@ -16,9 +22,8 @@ const commonFilterSchema = z.object({
   dateFrom: z.coerce.number().int().positive().optional(),
   dateTo: z.coerce.number().int().positive().optional(),
   branch: z.string().max(500).optional(),
-  search: z.string().max(200).optional(),
-  /** 'other' is a UI catch-all that maps to errors with NULL or 'runtime' category in the service layer. */
-  category: z.enum([...ERROR_CATEGORIES, 'other']).optional(),
+  search: z.string().max(ERRORS_SEARCH_MAX_LENGTH).optional(),
+  category: z.enum([...ERROR_CATEGORIES, UI_CATEGORY_OTHER]).optional(),
 });
 
 function buildCommonParams(query: z.infer<typeof commonFilterSchema>) {

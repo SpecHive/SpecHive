@@ -6,7 +6,17 @@ import {
   type RunId,
   type TestId,
 } from '@spechive/shared-types';
-import { index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { timestamps, uuidv7PK } from './_common.js';
 import { runs } from './execution.js';
@@ -42,6 +52,10 @@ export const errorGroups = pgTable(
     index('idx_error_groups_project_last_seen').on(table.projectId, table.lastSeenAt),
     index('idx_error_groups_project_occurrences').on(table.projectId, table.totalOccurrences),
     index('idx_error_groups_org').on(table.organizationId),
+    check(
+      'chk_error_groups_category',
+      sql`error_category IN ('assertion', 'timeout', 'action', 'runtime') OR error_category IS NULL`,
+    ),
   ],
 );
 

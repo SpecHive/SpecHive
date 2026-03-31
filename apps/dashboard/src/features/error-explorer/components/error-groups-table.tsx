@@ -19,7 +19,7 @@ interface ErrorGroupsTableProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
-  children?: React.ReactNode;
+  renderDetail?: (groupId: string) => React.ReactNode;
 }
 
 export function ErrorGroupsTable({
@@ -33,7 +33,7 @@ export function ErrorGroupsTable({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  children,
+  renderDetail,
 }: ErrorGroupsTableProps) {
   const groups = data?.data || [];
   const meta = data?.meta;
@@ -129,10 +129,10 @@ export function ErrorGroupsTable({
                         <td className="py-3 pr-4">{group.uniqueBranches}</td>
                         <td className="py-3">{formatRelativeTime(group.lastSeenAt)}</td>
                       </tr>
-                      {isExpanded && (
+                      {isExpanded && renderDetail && (
                         <tr key={`${group.id}-detail`}>
                           <td colSpan={5} className="bg-muted/30 px-4 py-4">
-                            {children}
+                            {renderDetail(group.id)}
                           </td>
                         </tr>
                       )}

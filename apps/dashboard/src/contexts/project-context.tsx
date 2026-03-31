@@ -24,7 +24,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // Empty array means "all selected" — no explicit selection made yet
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const projects = projectsData?.data ?? [];
+  const projects = useMemo(() => projectsData?.data ?? [], [projectsData?.data]);
 
   const isAllSelected = selectedIds.length === 0 || selectedIds.length === projects.length;
 

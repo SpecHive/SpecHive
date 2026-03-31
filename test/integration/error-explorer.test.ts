@@ -178,6 +178,8 @@ describe('Error Explorer endpoints', () => {
   afterAll(async () => {
     await sql`DELETE FROM error_occurrences WHERE error_group_id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION}, ${GROUP_RUNTIME}, ${OTHER_GROUP})`;
     await sql`DELETE FROM error_groups WHERE id IN (${GROUP_ASSERTION}, ${GROUP_TIMEOUT}, ${GROUP_UNCATEGORIZED}, ${GROUP_ACTION}, ${GROUP_RUNTIME}, ${OTHER_GROUP})`;
+    await sql`DELETE FROM tests WHERE run_id IN (${RUN_1}, ${RUN_2}, ${RUN_3}, ${OTHER_RUN})`;
+    await sql`DELETE FROM suites WHERE run_id IN (${RUN_1}, ${RUN_2}, ${RUN_3}, ${OTHER_RUN})`;
     await sql`DELETE FROM runs WHERE id IN (${RUN_1}, ${RUN_2}, ${RUN_3}, ${OTHER_RUN})`;
     await sql`DELETE FROM projects WHERE id = ${OTHER_PROJECT_ID}`;
     await sql`DELETE FROM organizations WHERE id = ${OTHER_ORG_ID}`;

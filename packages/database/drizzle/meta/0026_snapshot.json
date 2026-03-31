@@ -2163,7 +2163,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chk_error_groups_category": {
+          "name": "chk_error_groups_category",
+          "value": "error_category IN ('assertion', 'timeout', 'action', 'runtime') OR error_category IS NULL"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.error_occurrences": {

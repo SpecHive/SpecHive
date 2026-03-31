@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
@@ -61,8 +61,10 @@ export function ErrorExplorerPage() {
     return searchParams.get('errorGroupId') || null;
   });
 
+  const consumedErrorGroupParam = useRef(false);
   useEffect(() => {
-    if (searchParams.has('errorGroupId')) {
+    if (!consumedErrorGroupParam.current && searchParams.has('errorGroupId')) {
+      consumedErrorGroupParam.current = true;
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -157,21 +159,18 @@ export function ErrorExplorerPage() {
             pageSize={pageSize}
             onPageChange={(p) => updateParam('page', String(p))}
             onPageSizeChange={(s) => updateParam('pageSize', String(s))}
-          >
-            <ErrorBoundary
-              fallback={
-                <p className="py-4 text-center text-sm text-destructive">
-                  Failed to render error details
-                </p>
-              }
-            >
-              <ErrorGroupDetailPanel
-                errorGroupId={expandedGroupId}
-                dateFrom={dateFrom}
-                dateTo={dateTo}
-              />
-            </ErrorBoundary>
-          </ErrorGroupsTable>
+            renderDetail={(groupId) => (
+              <ErrorBoundary
+                fallback={
+                  <p className="py-4 text-center text-sm text-destructive">
+                    Failed to render error details
+                  </p>
+                }
+              >
+                <ErrorGroupDetailPanel errorGroupId={groupId} dateFrom={dateFrom} dateTo={dateTo} />
+              </ErrorBoundary>
+            )}
+          />
         </>
       )}
     </div>

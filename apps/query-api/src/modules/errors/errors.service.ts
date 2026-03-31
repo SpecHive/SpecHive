@@ -27,6 +27,7 @@ import {
   ERRORS_TOP_N_MAX,
   ERRORS_TOP_N_MIN,
   MS_PER_DAY,
+  UI_CATEGORY_OTHER,
 } from './errors.constants';
 
 type SqlFragment = ReturnType<typeof sql>;
@@ -120,7 +121,7 @@ export class ErrorsService {
       : sql``;
 
     const categoryFilter = params.category
-      ? params.category === 'other'
+      ? params.category === UI_CATEGORY_OTHER
         ? sql`AND (eg.error_category IS NULL OR eg.error_category = 'runtime')`
         : sql`AND eg.error_category = ${params.category}`
       : sql``;
@@ -359,6 +360,7 @@ export class ErrorsService {
             (ARRAY_AGG(eo.branch ORDER BY eo.occurred_at DESC))[1] AS "lastBranch"
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
+            AND eo.organization_id = ${organizationId}
             ${dateFilter}
           GROUP BY eo.test_name
           ORDER BY "occurrenceCount" DESC
@@ -371,6 +373,7 @@ export class ErrorsService {
             MAX(eo.occurred_at)::text AS "lastSeenAt"
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
+            AND eo.organization_id = ${organizationId}
             ${dateFilter}
           GROUP BY eo.branch
           ORDER BY "occurrenceCount" DESC
@@ -380,6 +383,7 @@ export class ErrorsService {
           SELECT eo.error_message AS "latestErrorMessage"
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
+            AND eo.organization_id = ${organizationId}
             ${dateFilter}
           ORDER BY eo.occurred_at DESC
           LIMIT 1

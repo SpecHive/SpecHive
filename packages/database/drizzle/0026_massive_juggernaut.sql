@@ -66,4 +66,6 @@ DROP POLICY IF EXISTS "tenant_isolation_policy" ON "error_occurrences";--> state
 CREATE POLICY tenant_isolation_policy ON "error_occurrences"
   FOR ALL
   USING (organization_id = current_setting('app.current_organization_id')::uuid)
-  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);
+  WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
+
+ALTER TABLE "error_groups" ADD CONSTRAINT "chk_error_groups_category" CHECK (error_category IN ('assertion', 'timeout', 'action', 'runtime') OR error_category IS NULL);
