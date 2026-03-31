@@ -332,6 +332,9 @@ export class ErrorsService {
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
 
+      // Group metadata (firstSeenAt, lastSeenAt) is returned unscoped (all-time),
+      // while affectedTests, affectedBranches, and latestMessage are scoped to dateFrom/dateTo.
+      // This is intentional: users need to know when an error first appeared even in a narrow window.
       const [groupResult, testsResult, branchesResult, latestMessageResult] = await Promise.all([
         tx.execute(sql`
           SELECT

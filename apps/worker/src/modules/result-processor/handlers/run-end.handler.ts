@@ -103,10 +103,11 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    // Tech debt: this full recount grows linearly with the number of occurrences per error group.
-    // For high-volume groups it will become a bottleneck on the run-end critical path.
-    // TODO: move aggregate recount to an async CQRS event processed by a dedicated worker,
-    // so run-end only emits a lightweight "recount-needed" signal.
+    // These denormalized aggregates are reserved for upcoming analytics/dashboard widgets.
+    // The current list endpoint computes period-scoped counts live and does not read them.
+    // Tech debt: this full recount grows linearly with occurrences per error group.
+    // TODO: when analytics starts consuming these columns, move the recount to an async
+    // CQRS event processed by a dedicated worker to keep run-end latency low.
     await ctx.tx.execute(sql`
       UPDATE ${errorGroups} eg SET
         total_occurrences = sub.total,

@@ -40,6 +40,9 @@ export const errorGroups = pgTable(
     normalizedMessage: text('normalized_message').notNull(),
     errorName: text('error_name'),
     errorCategory: text('error_category'),
+    // Denormalized all-time aggregates — maintained by RunEndHandler recount.
+    // Not used by the current list endpoint (which computes period-scoped counts live).
+    // Reserved for upcoming analytics/dashboard widgets that need all-time counts.
     totalOccurrences: integer('total_occurrences').notNull().default(0),
     uniqueTestCount: integer('unique_test_count').notNull().default(0),
     uniqueBranchCount: integer('unique_branch_count').notNull().default(0),

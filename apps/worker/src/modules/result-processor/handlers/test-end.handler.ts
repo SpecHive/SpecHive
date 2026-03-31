@@ -111,8 +111,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           target: [errorGroups.projectId, errorGroups.fingerprint],
           set: {
             lastSeenAt: sql`GREATEST(${errorGroups.lastSeenAt}, EXCLUDED.last_seen_at)`,
-            errorName: sql`COALESCE(${errorGroups.errorName}, EXCLUDED.error_name)`,
-            errorCategory: sql`COALESCE(${errorGroups.errorCategory}, EXCLUDED.error_category)`,
+            errorName: sql`COALESCE(EXCLUDED.error_name, ${errorGroups.errorName})`,
+            errorCategory: sql`COALESCE(EXCLUDED.error_category, ${errorGroups.errorCategory})`,
             updatedAt: sql`NOW()`,
           },
         })

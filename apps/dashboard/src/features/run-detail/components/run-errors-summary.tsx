@@ -7,9 +7,10 @@ import type { RunErrorsSummary } from '@/types/api';
 
 interface RunErrorsSummaryProps {
   runId: string;
+  branch?: string | null;
 }
 
-export function RunErrorsSummary({ runId }: RunErrorsSummaryProps) {
+export function RunErrorsSummary({ runId, branch }: RunErrorsSummaryProps) {
   const { data, loading } = useApi<RunErrorsSummary>(`/v1/runs/${runId}/errors/summary`);
 
   if (!loading && (!data || data.totalFailedTests === 0 || data.topErrors.length === 0)) {
@@ -57,7 +58,10 @@ export function RunErrorsSummary({ runId }: RunErrorsSummaryProps) {
       </CardContent>
       {!loading && data && (
         <CardFooter>
-          <Link to="/errors" className="text-sm text-primary hover:underline">
+          <Link
+            to={branch ? `/errors?branch=${encodeURIComponent(branch)}` : '/errors'}
+            className="text-sm text-primary hover:underline"
+          >
             View all errors &rarr;
           </Link>
         </CardFooter>
