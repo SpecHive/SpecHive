@@ -1,12 +1,15 @@
 import type { V1Event } from '@spechive/reporter-core-protocol';
 
 import type { SpecHiveClient } from './client.js';
+import { createLogger } from './logger.js';
+import type { Logger } from './logger.js';
 
 const DEFAULT_MAX_QUEUE_SIZE = 10_000;
 
 export interface QueueOptions {
   flushTimeout: number;
   maxQueueSize?: number;
+  logger?: Logger;
 }
 
 export interface QueueStats {
@@ -21,6 +24,7 @@ export class ReporterQueue {
   private readonly drainCallbacks = new Set<() => void>();
   private readonly maxQueueSize: number;
   private readonly flushTimeout: number;
+  private readonly logger: Logger;
 
   private _eventsSent = 0;
   private _eventsFailed = 0;
@@ -32,6 +36,7 @@ export class ReporterQueue {
   ) {
     this.maxQueueSize = options.maxQueueSize ?? DEFAULT_MAX_QUEUE_SIZE;
     this.flushTimeout = options.flushTimeout;
+    this.logger = options.logger ?? createLogger('info');
   }
 
   get stats(): QueueStats {
@@ -45,7 +50,7 @@ export class ReporterQueue {
   enqueue(event: V1Event): void {
     if (this.items.length >= this.maxQueueSize) {
       this.items.shift();
-      console.warn('[spechive] Event queue full — dropping oldest event');
+      this.logger.warn('[spechive] Event queue full — dropping oldest event');
     }
     this.items.push(event);
     this.processQueue();
@@ -68,7 +73,7 @@ export class ReporterQueue {
       const timeout = setTimeout(() => {
         const remaining = this.items.length;
         if (remaining > 0) {
-          console.warn(`[spechive] Flush timeout — ${remaining} events unsent`);
+          this.logger.warn(`[spechive] Flush timeout — ${remaining} events unsent`);
         }
         this.drainCallbacks.delete(resolve);
         resolve();
@@ -95,7 +100,7 @@ export class ReporterQueue {
         this._eventsSent++;
       } else {
         this._eventsFailed++;
-        console.warn(`[spechive] Event ${event.eventType} failed after retries`);
+        this.logger.warn(`[spechive] Event ${event.eventType} failed after retries`);
       }
       this._retriesTotal += result.retries ?? 0;
     }

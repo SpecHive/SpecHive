@@ -15,4 +15,7 @@ export type { BaseResolvedConfig } from './config.js';
 export { ReporterQueue } from './queue.js';
 export type { QueueOptions, QueueStats } from './queue.js';
 
+export { createLogger } from './logger.js';
+export type { LogLevel, Logger } from './logger.js';
+
 export type { BaseReporterConfig } from './types.js';

@@ -86,6 +86,7 @@ function resolveConfig(config: SpecHiveReporterConfig): PlaywrightResolvedConfig
 
 export default class SpecHiveReporter implements Reporter {
   private readonly config: PlaywrightResolvedConfig;
+  private readonly logger: BaseResolvedConfig['logger'];
   private readonly client: SpecHiveClient;
   private readonly reporterQueue: ReporterQueue;
   private runId!: RunId;
@@ -104,14 +105,17 @@ export default class SpecHiveReporter implements Reporter {
 
   constructor(config: SpecHiveReporterConfig = {}) {
     this.config = resolveConfig(config);
+    this.logger = this.config.logger;
     this.client = new SpecHiveClient(
       this.config.apiUrl,
       this.config.projectToken,
       undefined,
       this.config.maxRetries,
+      this.logger,
     );
     this.reporterQueue = new ReporterQueue(this.client, {
       flushTimeout: this.config.flushTimeout,
+      logger: this.logger,
     });
   }
 
@@ -133,7 +137,7 @@ export default class SpecHiveReporter implements Reporter {
           `[spechive] Cannot reach ${this.config.apiUrl}/health — aborting because failOnConnectionError is enabled`,
         );
       }
-      console.warn(`[spechive] Cannot reach ${this.config.apiUrl}/health — events may be lost`);
+      this.logger.warn(`[spechive] Cannot reach ${this.config.apiUrl}/health — events may be lost`);
     }
 
     this.runId = asRunId(crypto.randomUUID());
@@ -189,7 +193,7 @@ export default class SpecHiveReporter implements Reporter {
 
     const entry = this.testTracker.get(test.id);
     if (!entry) {
-      console.warn(
+      this.logger.warn(
         `[spechive] onTestEnd called for unknown test "${test.title}" (id=${test.id}) — was onTestBegin skipped?`,
       );
       return;
@@ -225,7 +229,7 @@ export default class SpecHiveReporter implements Reporter {
     await this.reporterQueue.waitForDrain();
 
     const { eventsSent, eventsFailed, retriesTotal } = this.reporterQueue.stats;
-    console.warn(
+    this.logger.info(
       `[spechive] Run complete: ${eventsSent} sent, ${eventsFailed} failed, ${retriesTotal} retries`,
     );
   }
@@ -340,14 +344,14 @@ export default class SpecHiveReporter implements Reporter {
       }
 
       if (buffer.length > ARTIFACT_SIZE_LIMIT) {
-        console.error(
+        this.logger.error(
           `[spechive] Skipping artifact "${attachment.name}" (${buffer.length} bytes exceeds ${ARTIFACT_SIZE_LIMIT} byte limit)`,
         );
         continue;
       }
 
       if (buffer.length > ARTIFACT_SIZE_WARNING) {
-        console.warn(`[spechive] Large artifact "${attachment.name}" (${buffer.length} bytes)`);
+        this.logger.warn(`[spechive] Large artifact "${attachment.name}" (${buffer.length} bytes)`);
       }
 
       const contentType = attachment.contentType ?? 'application/octet-stream';
@@ -362,7 +366,9 @@ export default class SpecHiveReporter implements Reporter {
       });
 
       if (!presign) {
-        console.warn(`[spechive] Failed to get presigned URL for artifact "${attachment.name}"`);
+        this.logger.warn(
+          `[spechive] Failed to get presigned URL for artifact "${attachment.name}"`,
+        );
         continue;
       }
 
@@ -372,7 +378,7 @@ export default class SpecHiveReporter implements Reporter {
         contentType,
       );
       if (!uploaded) {
-        console.warn(`[spechive] Failed to upload artifact "${attachment.name}" to S3`);
+        this.logger.warn(`[spechive] Failed to upload artifact "${attachment.name}" to S3`);
         continue;
       }
 

@@ -3,6 +3,9 @@ import { RunStatus, asRunId } from '@spechive/shared-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SpecHiveClient } from '../src/client.js';
+import { createLogger } from '../src/logger.js';
+
+const silentLogger = createLogger('silent');
 
 const MOCK_EVENT: V1Event = {
   version: '1',
@@ -41,9 +44,8 @@ describe('SpecHiveClient retry logic', () => {
     fetchSpy
       .mockResolvedValueOnce(textResponse('Internal Server Error', 500))
       .mockResolvedValueOnce(jsonResponse({ eventId: 'evt-1' }));
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3, silentLogger);
     const promise = client.sendEvent(MOCK_EVENT);
 
     await vi.advanceTimersByTimeAsync(2000);
@@ -56,9 +58,8 @@ describe('SpecHiveClient retry logic', () => {
 
   it('does not retry on 400', async () => {
     fetchSpy.mockResolvedValueOnce(textResponse('Bad Request', 400));
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3);
+    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, 3, silentLogger);
     const result = await client.sendEvent(MOCK_EVENT);
 
     expect(result.ok).toBe(false);
@@ -69,10 +70,15 @@ describe('SpecHiveClient retry logic', () => {
 
   it('exhausts max retries on persistent 503', async () => {
     fetchSpy.mockResolvedValue(textResponse('Service Unavailable', 503));
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const maxRetries = 2;
-    const client = new SpecHiveClient('https://api.test', 'tok-123', 10_000, maxRetries);
+    const client = new SpecHiveClient(
+      'https://api.test',
+      'tok-123',
+      10_000,
+      maxRetries,
+      silentLogger,
+    );
     const promise = client.sendEvent(MOCK_EVENT);
 
     for (let i = 0; i < maxRetries; i++) {

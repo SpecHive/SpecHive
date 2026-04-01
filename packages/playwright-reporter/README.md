@@ -53,17 +53,18 @@ export default defineConfig({
 
 ### Config Options
 
-| Option                  | Type                      | Default                      | Description                                              |
-| ----------------------- | ------------------------- | ---------------------------- | -------------------------------------------------------- |
-| `apiUrl`                | `string`                  | `https://api.spechive.dev`   | SpecHive API endpoint                                    |
-| `projectToken`          | `string`                  | `SPECHIVE_PROJECT_TOKEN` env | Project token for authentication                         |
-| `timeout`               | `number`                  | `30000`                      | HTTP request timeout in milliseconds                     |
-| `enabled`               | `boolean`                 | `true`                       | Enable or disable the reporter                           |
-| `captureArtifacts`      | `boolean`                 | `true`                       | Upload test artifacts (screenshots, traces, videos)      |
-| `maxRetries`            | `number`                  | `3`                          | Max retries for failed API calls                         |
-| `flushTimeout`          | `number`                  | `30000`                      | Max wait time for pending events on test completion (ms) |
-| `failOnConnectionError` | `boolean`                 | `false`                      | Throw if the API is unreachable instead of warning       |
-| `metadata`              | `Record<string, unknown>` | `{}`                         | Custom metadata to attach to the run                     |
+| Option                  | Type                                      | Default                      | Description                                              |
+| ----------------------- | ----------------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `apiUrl`                | `string`                                  | `https://api.spechive.dev`   | SpecHive API endpoint                                    |
+| `projectToken`          | `string`                                  | `SPECHIVE_PROJECT_TOKEN` env | Project token for authentication                         |
+| `timeout`               | `number`                                  | `30000`                      | HTTP request timeout in milliseconds                     |
+| `enabled`               | `boolean`                                 | `true`                       | Enable or disable the reporter                           |
+| `captureArtifacts`      | `boolean`                                 | `true`                       | Upload test artifacts (screenshots, traces, videos)      |
+| `maxRetries`            | `number`                                  | `3`                          | Max retries for failed API calls                         |
+| `flushTimeout`          | `number`                                  | `30000`                      | Max wait time for pending events on test completion (ms) |
+| `failOnConnectionError` | `boolean`                                 | `false`                      | Throw if the API is unreachable instead of warning       |
+| `logLevel`              | `'silent' \| 'error' \| 'warn' \| 'info'` | `'warn'`                     | Controls reporter log verbosity                          |
+| `metadata`              | `Record<string, unknown>`                 | `{}`                         | Custom metadata to attach to the run                     |
 
 ## Environment Variables
 
@@ -72,6 +73,7 @@ export default defineConfig({
 | `SPECHIVE_API_URL`       | Fallback for `apiUrl` when not set in config (defaults to `https://api.spechive.dev`) |
 | `SPECHIVE_PROJECT_TOKEN` | Fallback for `projectToken` when not set in config                                    |
 | `SPECHIVE_ENABLED`       | Set to `"false"` or `"0"` to disable the reporter                                     |
+| `SPECHIVE_LOG_LEVEL`     | Set to `"silent"`, `"error"`, `"warn"`, or `"info"` to control log verbosity          |
 
 Config values take precedence over environment variables.
 
@@ -132,6 +134,9 @@ If you see `[spechive] Reporter disabled: missing projectToken`, ensure that the
 
 **Connection errors**
 If the reporter cannot reach your SpecHive instance, verify the `apiUrl` is correct and the server is reachable. Set `failOnConnectionError: true` to make the test run fail immediately when the API is unreachable, instead of silently dropping events.
+
+**Quieting reporter output**
+Set `SPECHIVE_LOG_LEVEL=silent` in your CI environment to suppress all reporter output. Use `error` to see only data-loss warnings (e.g. oversized artifacts). Use `info` to see the run-complete summary after each run.
 
 **Missing artifacts**
 Verify that `captureArtifacts` is not set to `false`. Artifacts larger than 10 MB are skipped automatically. Check the console output for `[spechive] Skipping artifact` warnings.

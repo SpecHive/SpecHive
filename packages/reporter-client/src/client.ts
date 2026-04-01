@@ -1,6 +1,9 @@
 import type { V1Event } from '@spechive/reporter-core-protocol';
 import type { ArtifactId } from '@spechive/shared-types';
 
+import { createLogger } from './logger.js';
+import type { Logger } from './logger.js';
+
 export interface SendEventResult {
   ok: boolean;
   eventId?: string;
@@ -24,17 +27,20 @@ export class SpecHiveClient {
   private readonly projectToken: string;
   private readonly timeout: number;
   private readonly maxRetries: number;
+  private readonly logger: Logger;
 
   constructor(
     apiUrl: string,
     projectToken: string,
     timeout = DEFAULT_TIMEOUT,
     maxRetries = DEFAULT_MAX_RETRIES,
+    logger?: Logger,
   ) {
     this.apiUrl = apiUrl;
     this.projectToken = projectToken;
     this.timeout = timeout;
     this.maxRetries = maxRetries;
+    this.logger = logger ?? createLogger('info');
   }
 
   async sendEvent(event: V1Event): Promise<SendEventResult> {
@@ -43,7 +49,7 @@ export class SpecHiveClient {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) {
         const delay = 1000 * Math.pow(2, attempt - 1) + Math.random() * 500;
-        console.warn(`[spechive] Retrying event (attempt ${attempt}/${this.maxRetries})...`);
+        this.logger.warn(`[spechive] Retrying event (attempt ${attempt}/${this.maxRetries})...`);
         await this.sleep(delay);
       }
 
@@ -132,14 +138,14 @@ export class SpecHiveClient {
       });
       if (!response.ok) {
         const text = await response.text().catch(() => '');
-        console.warn(`[spechive] Event send failed (${response.status}): ${text}`);
+        this.logger.warn(`[spechive] Event send failed (${response.status}): ${text}`);
         return { ok: false, retryable: response.status >= 500, statusCode: response.status };
       }
       const body = (await response.json()) as { eventId: string };
       return { ok: true, eventId: body.eventId };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.warn(`[spechive] Event send error: ${msg}`);
+      this.logger.warn(`[spechive] Event send error: ${msg}`);
       return { ok: false, retryable: true };
     } finally {
       clearTimeout(timeoutId);
