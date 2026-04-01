@@ -1,3 +1,4 @@
+import { MAX_ERROR_FIELD_LENGTH } from '@spechive/shared-types';
 import type { ErrorCategory } from '@spechive/shared-types';
 
 export interface ParsedPlaywrightError {
@@ -34,8 +35,6 @@ const TIMEOUT_RE = /^(?:(?:\w+Error):\s*)?(?:(\w+)\.)?(\w+):\s*Timeout\s+\d+ms\s
 const ACTION_RE =
   /^(?:Error:\s*)?(locator|page|frame|elementHandle|browserContext)\.(\w+):\s*(.+)/m;
 
-const MAX_FIELD_LENGTH = 2000;
-
 function truncate(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value;
 }
@@ -52,9 +51,9 @@ function parseAssertion(message: string): ParsedPlaywrightError | null {
   return {
     errorCategory: 'assertion',
     errorMatcher,
-    ...(target ? { errorTarget: truncate(target, MAX_FIELD_LENGTH) } : {}),
-    ...(expected ? { errorExpected: truncate(expected, MAX_FIELD_LENGTH) } : {}),
-    ...(actual ? { errorActual: truncate(actual, MAX_FIELD_LENGTH) } : {}),
+    ...(target ? { errorTarget: truncate(target, MAX_ERROR_FIELD_LENGTH) } : {}),
+    ...(expected ? { errorExpected: truncate(expected, MAX_ERROR_FIELD_LENGTH) } : {}),
+    ...(actual ? { errorActual: truncate(actual, MAX_ERROR_FIELD_LENGTH) } : {}),
   };
 }
 
@@ -74,7 +73,7 @@ function parseTimeout(message: string): ParsedPlaywrightError | null {
   return {
     errorCategory: 'timeout',
     errorMatcher: action,
-    ...(target ? { errorTarget: truncate(target, MAX_FIELD_LENGTH) } : {}),
+    ...(target ? { errorTarget: truncate(target, MAX_ERROR_FIELD_LENGTH) } : {}),
   };
 }
 
@@ -91,7 +90,7 @@ function parseAction(message: string): ParsedPlaywrightError | null {
   return {
     errorCategory: 'action',
     errorMatcher: method,
-    errorTarget: truncate(`${object}.${method}`, MAX_FIELD_LENGTH),
+    errorTarget: truncate(`${object}.${method}`, MAX_ERROR_FIELD_LENGTH),
   };
 }
 

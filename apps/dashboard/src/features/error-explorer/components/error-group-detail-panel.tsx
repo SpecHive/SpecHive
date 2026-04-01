@@ -50,11 +50,17 @@ export function ErrorGroupDetailPanel({
 
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <CategoryBadge category={detail.errorCategory} />
         {detail.errorName && (
           <span className="text-xs text-muted-foreground">{detail.errorName}</span>
         )}
+        <span className="text-xs text-muted-foreground">
+          First seen {formatRelativeTime(detail.firstSeenAt)}
+          {detail.lastSeenAtAllTime && detail.lastSeenAtAllTime !== detail.lastSeenAt && (
+            <> &middot; Last seen (all time) {formatRelativeTime(detail.lastSeenAtAllTime)}</>
+          )}
+        </span>
       </div>
 
       {latestErrorMessage && (

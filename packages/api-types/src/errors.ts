@@ -1,6 +1,18 @@
 import { z } from 'zod';
 
+import type { PaginatedResponse } from './pagination.js';
+
 // ── Error Group Summary (list endpoint) ──────────────────────────
+
+export interface DateRangeMeta {
+  from: string;
+  to: string;
+  clamped: boolean;
+}
+
+export type ErrorGroupListResponse = PaginatedResponse<ErrorGroupSummary> & {
+  dateRange: DateRangeMeta;
+};
 
 export const errorGroupSummarySchema = z.object({
   id: z.string(),
@@ -74,7 +86,10 @@ export const errorGroupDetailSchema = z.object({
   errorName: z.string().nullable(),
   errorCategory: z.string().nullable(),
   firstSeenAt: z.string().nullable(),
+  /** Most recent occurrence within the requested date range. */
   lastSeenAt: z.string().nullable(),
+  /** All-time most recent occurrence (not scoped to date range). */
+  lastSeenAtAllTime: z.string().nullable(),
   createdAt: z.string().nullable(),
   updatedAt: z.string().nullable(),
   affectedTests: affectedTestSchema.array(),

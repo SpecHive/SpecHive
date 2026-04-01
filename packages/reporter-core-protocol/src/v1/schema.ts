@@ -3,6 +3,8 @@ import {
   TestStatus,
   ArtifactType,
   ERROR_CATEGORIES,
+  MAX_ERROR_FIELD_LENGTH,
+  MAX_ERROR_MESSAGE_LENGTH,
   asArtifactId,
   asRunId,
   asSuiteId,
@@ -96,17 +98,17 @@ const errorLocationSchema = z.object({
 export const ErrorCategorySchema = z.enum(ERROR_CATEGORIES);
 
 const errorFieldsSchema = {
-  errorMessage: z.string().max(10_000).optional(),
+  errorMessage: z.string().max(MAX_ERROR_MESSAGE_LENGTH).optional(),
   stackTrace: z.string().max(50_000).optional(),
   errorName: z.string().max(200).optional(),
   errorLocation: errorLocationSchema.optional(),
   errorSnippet: z.string().max(5000).optional(),
-  errorExpected: z.string().max(10_000).optional(),
-  errorActual: z.string().max(10_000).optional(),
+  errorExpected: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
+  errorActual: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
   errorDiff: z.string().max(50_000).optional(),
   errorCategory: ErrorCategorySchema.optional(),
   errorMatcher: z.string().max(200).optional(),
-  errorTarget: z.string().max(2000).optional(),
+  errorTarget: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
 };
 
 export const TestEndSchema = z.object({

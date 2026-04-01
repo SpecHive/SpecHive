@@ -10,13 +10,11 @@ import {
 } from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
-import { TestStatus, stripAnsi } from '@spechive/shared-types';
+import { MAX_ERROR_MESSAGE_LENGTH, TestStatus, stripAnsi } from '@spechive/shared-types';
 import { and, eq, sql } from 'drizzle-orm';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
-
-const MAX_STORED_ERROR_MESSAGE = 10_000;
 
 @EventHandler()
 @Injectable()
@@ -130,7 +128,10 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           firstSeenAt: eventTime,
           lastSeenAt: eventTime,
         })
-        // Aggregates recounted after occurrence insert — only timestamps/name updated on conflict
+        // Only timestamps/name/category updated on conflict — aggregate columns are not maintained (reserved for future analytics).
+        // COALESCE prefers incoming value: safe because errorName is part of the fingerprint hash,
+        // so conflicting rows always share the same errorName (or both null).
+        // errorCategory is not in the unstructured fingerprint path, but fallback categories are stable.
         .onConflictDoUpdate({
           target: [errorGroups.projectId, errorGroups.fingerprint],
           set: {
@@ -154,7 +155,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             branch: runInfo?.branch ?? null,
             commitSha: runInfo?.commitSha ?? null,
             testName: updatedTest.name,
-            errorMessage: strippedErrorMessage.slice(0, MAX_STORED_ERROR_MESSAGE),
+            errorMessage: strippedErrorMessage.slice(0, MAX_ERROR_MESSAGE_LENGTH),
             occurredAt: eventTime,
           })
           .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });

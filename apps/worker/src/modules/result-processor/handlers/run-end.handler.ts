@@ -103,11 +103,11 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    // TODO(analytics): Re-enable when analytics dashboard consumes denormalized aggregates.
-    // These columns (total_occurrences, unique_test_count, unique_branch_count) exist on
-    // error_groups but are not read by any current endpoint — the list endpoint computes
-    // period-scoped counts live from error_occurrences. When analytics needs all-time counts,
-    // move this recount to an async CQRS worker to avoid blocking run-end latency.
+    // TODO(analytics): Aggregate columns (total_occurrences, unique_test_count, unique_branch_count)
+    // on error_groups are NOT maintained — values are stale after initial insert.
+    // The list endpoint computes period-scoped counts live from error_occurrences.
+    // When analytics needs all-time counts, implement as an async CQRS worker
+    // to avoid blocking run-end latency.
     //
     // Original implementation:
     // await ctx.tx.execute(sql`

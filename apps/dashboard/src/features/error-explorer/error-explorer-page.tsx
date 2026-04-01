@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
@@ -55,26 +55,26 @@ export function ErrorExplorerPage() {
   const projectId =
     !isAllSelected && selectedProjectIds.length === 1 ? selectedProjectIds[0] : null;
 
-  // Consume errorGroupId from URL (e.g. linked from RunErrorsSummary) then clear it
-  // to avoid stale param on refresh. Expansion state is intentionally local.
-  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(() => {
-    return searchParams.get('errorGroupId') || null;
-  });
-
-  const consumedErrorGroupParam = useRef(false);
-  useEffect(() => {
-    if (!consumedErrorGroupParam.current && searchParams.has('errorGroupId')) {
-      consumedErrorGroupParam.current = true;
+  // errorGroupId is kept in the URL while the detail panel is open.
+  // Deep links (e.g. from RunErrorsSummary) set it; closing the panel clears it.
+  const expandedGroupId = searchParams.get('errorGroupId') || null;
+  const setExpandedGroupId = useCallback(
+    (id: string | null) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          next.delete('errorGroupId');
+          if (id) {
+            next.set('errorGroupId', id);
+          } else {
+            next.delete('errorGroupId');
+          }
           return next;
         },
         { replace: true },
       );
-    }
-  }, [searchParams, setSearchParams]);
+    },
+    [setSearchParams],
+  );
 
   const {
     data: timelineData,
@@ -126,7 +126,7 @@ export function ErrorExplorerPage() {
         <>
           <PeriodSelector options={periodOptions} value={days} onChange={setDays} />
 
-          {(timelineError || groupsError) && (
+          {timelineError || groupsError ? (
             <Card>
               <CardContent className="py-8">
                 <p className="text-center text-destructive">
@@ -134,43 +134,53 @@ export function ErrorExplorerPage() {
                 </p>
               </CardContent>
             </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Error Timeline</CardTitle>
+                  <ErrorMetricToggle />
+                </CardHeader>
+                <CardContent>
+                  <ErrorTimelineChart
+                    data={timelineData}
+                    loading={timelineLoading}
+                    metric={metric}
+                  />
+                </CardContent>
+              </Card>
+
+              <ErrorTableFilters />
+
+              <ErrorGroupsTable
+                data={groupsData}
+                loading={groupsLoading}
+                expandedId={expandedGroupId}
+                onExpand={setExpandedGroupId}
+                sortBy={sortBy}
+                sortDirection={sortOrder}
+                onSort={handleSort}
+                pageSize={pageSize}
+                onPageChange={(p) => updateParam('page', String(p))}
+                onPageSizeChange={(s) => updateParam('pageSize', String(s))}
+                renderDetail={(groupId) => (
+                  <ErrorBoundary
+                    fallback={
+                      <p className="py-4 text-center text-sm text-destructive">
+                        Failed to render error details
+                      </p>
+                    }
+                  >
+                    <ErrorGroupDetailPanel
+                      errorGroupId={groupId}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                    />
+                  </ErrorBoundary>
+                )}
+              />
+            </>
           )}
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Error Timeline</CardTitle>
-              <ErrorMetricToggle />
-            </CardHeader>
-            <CardContent>
-              <ErrorTimelineChart data={timelineData} loading={timelineLoading} metric={metric} />
-            </CardContent>
-          </Card>
-
-          <ErrorTableFilters />
-
-          <ErrorGroupsTable
-            data={groupsData}
-            loading={groupsLoading}
-            expandedId={expandedGroupId}
-            onExpand={setExpandedGroupId}
-            sortBy={sortBy}
-            sortDirection={sortOrder}
-            onSort={handleSort}
-            pageSize={pageSize}
-            onPageChange={(p) => updateParam('page', String(p))}
-            onPageSizeChange={(s) => updateParam('pageSize', String(s))}
-            renderDetail={(groupId) => (
-              <ErrorBoundary
-                fallback={
-                  <p className="py-4 text-center text-sm text-destructive">
-                    Failed to render error details
-                  </p>
-                }
-              >
-                <ErrorGroupDetailPanel errorGroupId={groupId} dateFrom={dateFrom} dateTo={dateTo} />
-              </ErrorBoundary>
-            )}
-          />
         </>
       )}
     </div>

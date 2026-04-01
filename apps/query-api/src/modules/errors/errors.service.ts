@@ -88,11 +88,10 @@ function resolveDateRange(params: { dateFrom?: Date; dateTo?: Date }) {
   const now = new Date();
   const dateTo = params.dateTo ?? now;
   const maxRange = ERRORS_MAX_DAYS * MS_PER_DAY;
-  const dateFrom =
-    params.dateFrom != null
-      ? new Date(Math.max(params.dateFrom.getTime(), dateTo.getTime() - maxRange))
-      : new Date(now.getTime() - 30 * MS_PER_DAY);
-  return { dateFrom, dateTo };
+  const unclamped = params.dateFrom ?? new Date(now.getTime() - 30 * MS_PER_DAY);
+  const dateFrom = new Date(Math.max(unclamped.getTime(), dateTo.getTime() - maxRange));
+  const clamped = params.dateFrom != null && dateFrom.getTime() > unclamped.getTime();
+  return { dateFrom, dateTo, clamped };
 }
 
 @Injectable()
@@ -193,7 +192,7 @@ export class ErrorsService {
   // ── List Error Groups ─────────────────────────────────────────
 
   async listErrorGroups(organizationId: OrganizationId, params: ListErrorGroupsParams) {
-    const { dateFrom, dateTo } = resolveDateRange(params);
+    const { dateFrom, dateTo, clamped } = resolveDateRange(params);
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -243,7 +242,14 @@ export class ErrorsService {
 
       const total = (countResult[0] as { total: number })?.total ?? 0;
       const groups = z.array(errorGroupSummarySchema).parse(rows);
-      return buildPaginatedResponse(groups, total, params.page, params.pageSize);
+      return {
+        ...buildPaginatedResponse(groups, total, params.page, params.pageSize),
+        dateRange: {
+          from: dateFrom.toISOString(),
+          to: dateTo.toISOString(),
+          clamped,
+        },
+      };
     });
   }
 
@@ -296,6 +302,8 @@ export class ErrorsService {
       // These filters are group-level (applied to eg.title, eg.error_category),
       // not occurrence-level. The rank query above already filtered group IDs
       // by search/category, so restricting by error_group_id here is equivalent.
+      // NOTE: This assumption holds because all filters target error_groups columns.
+      // If occurrence-level text filters are added, they must be applied here too.
       const seriesResult = await tx.execute(sql`
         SELECT
           eo.error_group_id AS "errorGroupId",
@@ -348,7 +356,14 @@ export class ErrorsService {
             eg.error_name AS "errorName",
             eg.error_category AS "errorCategory",
             eg.first_seen_at::text AS "firstSeenAt",
-            eg.last_seen_at::text AS "lastSeenAt",
+            eg.last_seen_at::text AS "lastSeenAtAllTime",
+            (
+              SELECT MAX(eo2.occurred_at)::text
+              FROM ${errorOccurrences} eo2
+              WHERE eo2.error_group_id = eg.id
+                AND eo2.organization_id = ${organizationId}
+                ${dateFilter}
+            ) AS "lastSeenAt",
             eg.created_at::text AS "createdAt",
             eg.updated_at::text AS "updatedAt"
           FROM ${errorGroups} eg

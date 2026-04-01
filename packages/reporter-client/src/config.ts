@@ -1,7 +1,6 @@
 import type { BaseReporterConfig } from './types.js';
 
 export const CLOUD_API_URL = 'https://api.spechive.dev';
-export const MAX_ERROR_MESSAGE_LENGTH = 10_000;
 export const MAX_STACK_TRACE_LENGTH = 50_000;
 
 export interface BaseResolvedConfig {

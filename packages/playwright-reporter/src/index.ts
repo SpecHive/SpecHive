@@ -14,12 +14,12 @@ import {
   detectCi,
   resolveBaseConfig,
   ReporterQueue,
-  MAX_ERROR_MESSAGE_LENGTH,
   MAX_STACK_TRACE_LENGTH,
 } from '@spechive/reporter-client';
 import type { BaseResolvedConfig } from '@spechive/reporter-client';
 import {
   ArtifactType,
+  MAX_ERROR_MESSAGE_LENGTH,
   RunStatus,
   TestStatus,
   asRunId,

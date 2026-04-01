@@ -1,3 +1,4 @@
+import type { ErrorGroupListResponse } from '@spechive/api-types';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { QueryApiClient } from '../helpers/api-clients';
@@ -11,26 +12,12 @@ import {
 import { buildSuperuserDatabaseUrl, createPostgresConnection } from '../helpers/database';
 import { waitForService } from '../helpers/wait';
 
-interface ErrorGroupRow {
-  id: string;
-  occurrences: number;
-  uniqueTests: number;
-  uniqueBranches: number;
-  errorCategory: string | null;
-  errorName: string | null;
-}
-
 interface TimelineRow {
   series: Array<{
     errorGroupId: string;
     title: string;
     dataPoints: Array<{ date: string; occurrences: number }>;
   }>;
-}
-
-interface PaginatedGroups {
-  data: ErrorGroupRow[];
-  meta: { total: number; page: number; pageSize: number; totalPages: number };
 }
 
 const queryApi = new QueryApiClient(GATEWAY_URL);
@@ -195,7 +182,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       const seededIds = [
         GROUP_ASSERTION,
         GROUP_TIMEOUT,
@@ -220,7 +207,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       expect(groups).toHaveLength(1);
       expect(groups[0].id).toBe(GROUP_TIMEOUT);
     });
@@ -232,7 +219,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       expect(groups).toHaveLength(1);
       expect(groups[0].errorCategory).toBe('assertion');
     });
@@ -244,7 +231,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       const seededIds = [GROUP_ASSERTION, GROUP_UNCATEGORIZED];
       const seeded = groups.filter((g) => seededIds.includes(g.id));
       expect(seeded).toHaveLength(2);
@@ -260,11 +247,38 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data, meta } = body as PaginatedGroups;
+      const { data, meta } = body as ErrorGroupListResponse;
       expect(data).toHaveLength(1);
       expect(meta.total).toBe(5);
       expect(meta.pageSize).toBe(1);
       expect(meta.page).toBe(1);
+    });
+
+    it('returns empty page when pageSize exceeds total', async () => {
+      const { status, body } = await queryApi.errors.list(jwt, {
+        projectId: SEED_PROJECT_ID,
+        page: 2,
+        pageSize: 100,
+      });
+
+      expect(status).toBe(200);
+      const { data, meta } = body as ErrorGroupListResponse;
+      expect(data).toHaveLength(0);
+      expect(meta.total).toBe(5);
+      expect(meta.page).toBe(2);
+    });
+
+    it('includes resolved dateRange in response', async () => {
+      const { status, body } = await queryApi.errors.list(jwt, {
+        projectId: SEED_PROJECT_ID,
+      });
+
+      expect(status).toBe(200);
+      const response = body as ErrorGroupListResponse;
+      expect(response.dateRange).toBeDefined();
+      expect(response.dateRange.from).toEqual(expect.any(String));
+      expect(response.dateRange.to).toEqual(expect.any(String));
+      expect(response.dateRange.clamped).toBe(false);
     });
 
     it('sorts by specified column', async () => {
@@ -275,7 +289,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       const seededIds = [
         GROUP_ASSERTION,
         GROUP_TIMEOUT,
@@ -298,7 +312,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       // Should match both NULL-category and runtime-category groups
       expect(groups).toHaveLength(2);
       const uncategorized = groups.find((g) => g.id === GROUP_UNCATEGORIZED);
@@ -316,7 +330,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       expect(groups).toHaveLength(1);
       expect(groups[0].id).toBe(GROUP_ACTION);
       expect(groups[0].errorCategory).toBe('action');
@@ -330,7 +344,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       expect(groups).toHaveLength(1);
       expect(groups[0].id).toBe(GROUP_ASSERTION);
       expect(groups[0].occurrences).toBe(1);
@@ -347,7 +361,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       // Assertion group should have fewer occurrences (only recent ones)
       const assertion = groups.find((g) => g.id === GROUP_ASSERTION);
       if (assertion) {
@@ -365,7 +379,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       const seededIds = [
         GROUP_ASSERTION,
         GROUP_TIMEOUT,
@@ -444,17 +458,62 @@ describe('Error Explorer endpoints', () => {
   // ── GET /v1/errors/:errorGroupId ────────────────────────────────
 
   describe('GET /v1/errors/:errorGroupId (detail)', () => {
-    it('returns full error group detail', async () => {
+    it('returns full error group detail with content verification', async () => {
       const { status, body } = await queryApi.errors.detail(jwt, GROUP_ASSERTION);
 
       expect(status).toBe(200);
-      const detail = body as Record<string, unknown>;
+      const detail = body as {
+        id: string;
+        fingerprint: string;
+        errorCategory: string;
+        errorName: string;
+        lastSeenAt: string | null;
+        lastSeenAtAllTime: string | null;
+        affectedTests: Array<{
+          testName: string;
+          occurrenceCount: number;
+          lastBranch: string | null;
+          lastRunId: string | null;
+          lastTestId: string | null;
+        }>;
+        affectedBranches: Array<{ branch: string | null; occurrenceCount: number }>;
+        latestErrorMessage: string | null;
+      };
       expect(detail.id).toBe(GROUP_ASSERTION);
       expect(detail.fingerprint).toBe('fp-assertion-login');
-      // 3 occurrences across 2 distinct test names and 2 branches
+      expect(detail.errorCategory).toBe('assertion');
+      expect(detail.errorName).toBe('AssertionError');
+
+      // lastSeenAt (scoped) and lastSeenAtAllTime should both be present
+      expect(detail.lastSeenAt).toEqual(expect.any(String));
+      expect(detail.lastSeenAtAllTime).toEqual(expect.any(String));
+
+      // Verify affected tests content (2 distinct test names: "login page renders" appears twice, "dashboard loads" once)
       expect(detail.affectedTests).toHaveLength(2);
+      const testNames = detail.affectedTests.map((t) => t.testName).sort();
+      expect(testNames).toEqual(['dashboard loads', 'login page renders']);
+
+      const loginTest = detail.affectedTests.find((t) => t.testName === 'login page renders')!;
+      expect(loginTest.occurrenceCount).toBe(2);
+      expect(loginTest.lastRunId).toEqual(expect.any(String));
+      expect(loginTest.lastTestId).toEqual(expect.any(String));
+
+      const dashboardTest = detail.affectedTests.find((t) => t.testName === 'dashboard loads')!;
+      expect(dashboardTest.occurrenceCount).toBe(1);
+      expect(dashboardTest.lastBranch).toBe('feature/login');
+
+      // Verify affected branches content (2 branches: "main" and "feature/login")
       expect(detail.affectedBranches).toHaveLength(2);
-      expect(detail.latestErrorMessage).toEqual(expect.any(String));
+      const branches = detail.affectedBranches.map((b) => b.branch).sort();
+      expect(branches).toEqual(['feature/login', 'main']);
+
+      const mainBranch = detail.affectedBranches.find((b) => b.branch === 'main')!;
+      expect(mainBranch.occurrenceCount).toBe(2);
+
+      const featureBranch = detail.affectedBranches.find((b) => b.branch === 'feature/login')!;
+      expect(featureBranch.occurrenceCount).toBe(1);
+
+      expect(detail.latestErrorMessage).toBe('Expected "Dashboard" but got "Login"');
     });
 
     it('returns 404 for non-existent error group', async () => {
@@ -506,7 +565,7 @@ describe('Error Explorer endpoints', () => {
       });
 
       expect(status).toBe(200);
-      const { data: groups } = body as PaginatedGroups;
+      const { data: groups } = body as ErrorGroupListResponse;
       const foreignGroup = groups.find((g) => g.id === OTHER_GROUP);
       expect(foreignGroup).toBeUndefined();
     });
