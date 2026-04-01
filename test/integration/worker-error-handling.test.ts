@@ -165,8 +165,8 @@ describe('Worker error handling', () => {
         durationMs: 100,
       });
 
-      // Handler updates 0 rows for non-existent test — treated as a no-op
-      expect(result.status).toBe(200);
+      // Handler throws RetryableError when test row not found → 500 PARTIAL_BATCH_FAILURE
+      expect(result.status).toBe(500);
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const testRows = await sql`SELECT * FROM tests WHERE id = ${nonExistentTestId}`;
