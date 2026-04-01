@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.11](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.10...worker-v0.0.11) (2026-03-29)
+
+
+### Refactoring
+
+* **nestjs-common:** migrate to nestjs-pino structured logging ([d511677](https://github.com/SpecHive/SpecHive/commit/d511677653c45c0b86d5d9cb1c890d33c1c438ff))
+* **nestjs-common:** migrate to nestjs-pino structured logging ([d77e98e](https://github.com/SpecHive/SpecHive/commit/d77e98e60d6253ff16496974f0ab6c6fcb85c840))
+* **worker:** complete structured logging migration to pino format ([ed80bc2](https://github.com/SpecHive/SpecHive/commit/ed80bc2a913a3dd809679f4031f5a8bb0623e476))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.12
+
 ## [0.0.10](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.9...worker-v0.0.10) (2026-03-26)
 
 

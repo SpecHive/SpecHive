@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.10...dashboard-v0.0.11) (2026-03-29)
+
+
+### Bug Fixes
+
+* **dashboard:** pass VITE_API_URL build arg in Docker publish workflow ([4d6235d](https://github.com/SpecHive/SpecHive/commit/4d6235d76242debb7d7bf74bf58521a8c1365718))
+
 ## [0.0.10](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.9...dashboard-v0.0.10) (2026-03-26)
 
 
