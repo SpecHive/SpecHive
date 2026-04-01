@@ -3,7 +3,10 @@ import { RunStatus, asRunId } from '@spechive/shared-types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { SpecHiveClient } from '../src/client.js';
+import { createLogger } from '../src/logger.js';
 import { ReporterQueue } from '../src/queue.js';
+
+const silentLogger = createLogger('silent');
 
 function makeEvent(eventType: string = 'run.end'): V1Event {
   return {
@@ -28,7 +31,7 @@ describe('ReporterQueue', () => {
   });
 
   it('resolves waitForDrain immediately when queue is empty', async () => {
-    const queue = new ReporterQueue(makeMockClient(), { flushTimeout: 1000 });
+    const queue = new ReporterQueue(makeMockClient(), { flushTimeout: 1000, logger: silentLogger });
 
     await queue.waitForDrain();
     expect(queue.stats.eventsSent).toBe(0);
@@ -36,7 +39,10 @@ describe('ReporterQueue', () => {
 
   it('sends events one-at-a-time through the client', async () => {
     const sendEvent = vi.fn().mockResolvedValue({ ok: true, eventId: 'evt-1', retries: 0 });
-    const queue = new ReporterQueue(makeMockClient(sendEvent), { flushTimeout: 5000 });
+    const queue = new ReporterQueue(makeMockClient(sendEvent), {
+      flushTimeout: 5000,
+      logger: silentLogger,
+    });
 
     queue.enqueue(makeEvent('run.start'));
     queue.enqueue(makeEvent('test.start'));
@@ -55,9 +61,11 @@ describe('ReporterQueue', () => {
       .mockResolvedValueOnce({ ok: true, eventId: 'evt-1', retries: 0 })
       .mockResolvedValueOnce({ ok: false, retries: 2 })
       .mockResolvedValueOnce({ ok: true, eventId: 'evt-3', retries: 1 });
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const queue = new ReporterQueue(makeMockClient(sendEvent), { flushTimeout: 5000 });
+    const queue = new ReporterQueue(makeMockClient(sendEvent), {
+      flushTimeout: 5000,
+      logger: silentLogger,
+    });
 
     queue.enqueue(makeEvent());
     queue.enqueue(makeEvent());
@@ -72,11 +80,13 @@ describe('ReporterQueue', () => {
 
   it('drops oldest event and warns when queue overflows', async () => {
     const sendEvent = vi.fn().mockImplementation(() => new Promise(() => {}));
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.fn();
+    const logger = { ...silentLogger, warn: warnSpy };
 
     const queue = new ReporterQueue(makeMockClient(sendEvent), {
       flushTimeout: 5000,
       maxQueueSize: 5,
+      logger,
     });
 
     for (let i = 0; i < 7; i++) {
@@ -88,11 +98,12 @@ describe('ReporterQueue', () => {
 
   it('warns about unsent events when flush timeout expires', async () => {
     const sendEvent = vi.fn().mockImplementation(() => new Promise(() => {}));
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.fn();
+    const logger = { ...silentLogger, warn: warnSpy };
 
     vi.useFakeTimers();
 
-    const queue = new ReporterQueue(makeMockClient(sendEvent), { flushTimeout: 100 });
+    const queue = new ReporterQueue(makeMockClient(sendEvent), { flushTimeout: 100, logger });
 
     queue.enqueue(makeEvent());
     queue.enqueue(makeEvent());
@@ -113,7 +124,10 @@ describe('ReporterQueue', () => {
         }),
     );
 
-    const queue = new ReporterQueue(makeMockClient(sendEvent), { flushTimeout: 5000 });
+    const queue = new ReporterQueue(makeMockClient(sendEvent), {
+      flushTimeout: 5000,
+      logger: silentLogger,
+    });
 
     queue.enqueue(makeEvent());
 

@@ -863,15 +863,26 @@ describe('SpecHiveReporter', () => {
       expect(runEnd!.payload.status).toBe(expected);
     });
 
-    it('waits for all pending events and logs summary', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('waits for all pending events and logs summary at info level', async () => {
+      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const r = new SpecHiveReporter({ ...makeConfig(), logLevel: 'info' });
+      const root = makeSuite('', [makeSuite('project')]);
+      await r.onBegin({} as FullConfig, root);
+
+      await r.onEnd({ status: 'passed' } as FullResult);
+
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('[spechive] Run complete:'));
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('retries'));
+    });
+
+    it('does not log summary at default warn level', async () => {
+      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
       const root = makeSuite('', [makeSuite('project')]);
       await reporter.onBegin({} as FullConfig, root);
 
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[spechive] Run complete:'));
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('retries'));
+      expect(infoSpy).not.toHaveBeenCalled();
     });
 
     it('does nothing when disabled', async () => {

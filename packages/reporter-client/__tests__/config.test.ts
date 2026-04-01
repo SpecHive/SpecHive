@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CLOUD_API_URL, parseBoolean, resolveBaseConfig } from '../src/config.js';
+import { createLogger } from '../src/logger.js';
 
 describe('parseBoolean', () => {
   it('returns defaultValue for undefined', () => {
@@ -44,6 +45,7 @@ describe('resolveBaseConfig', () => {
     delete process.env.SPECHIVE_PROJECT_TOKEN;
     delete process.env.SPECHIVE_ENABLED;
     delete process.env.SPECHIVE_RUN_NAME;
+    delete process.env.SPECHIVE_LOG_LEVEL;
   });
 
   afterEach(() => {
@@ -96,6 +98,41 @@ describe('resolveBaseConfig', () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
+  it('defaults logLevel to warn', () => {
+    const config = resolveBaseConfig({ projectToken: 'tok-123' });
+    expect(config.logLevel).toBe('warn');
+  });
+
+  it('uses explicit logLevel from config', () => {
+    const config = resolveBaseConfig({ projectToken: 'tok-123', logLevel: 'silent' });
+    expect(config.logLevel).toBe('silent');
+  });
+
+  it('uses SPECHIVE_LOG_LEVEL env var when no config logLevel', () => {
+    vi.stubEnv('SPECHIVE_LOG_LEVEL', 'error');
+    const config = resolveBaseConfig({ projectToken: 'tok-123' });
+    expect(config.logLevel).toBe('error');
+  });
+
+  it('config logLevel overrides SPECHIVE_LOG_LEVEL env var', () => {
+    vi.stubEnv('SPECHIVE_LOG_LEVEL', 'error');
+    const config = resolveBaseConfig({ projectToken: 'tok-123', logLevel: 'info' });
+    expect(config.logLevel).toBe('info');
+  });
+
+  it('ignores invalid SPECHIVE_LOG_LEVEL and defaults to warn', () => {
+    vi.stubEnv('SPECHIVE_LOG_LEVEL', 'verbose');
+    const config = resolveBaseConfig({ projectToken: 'tok-123' });
+    expect(config.logLevel).toBe('warn');
+  });
+
+  it('returns a logger object with info, warn, error methods', () => {
+    const config = resolveBaseConfig({ projectToken: 'tok-123' });
+    expect(typeof config.logger.info).toBe('function');
+    expect(typeof config.logger.warn).toBe('function');
+    expect(typeof config.logger.error).toBe('function');
+  });
+
   it('uses SPECHIVE_PROJECT_TOKEN env var when no config token', () => {
     vi.stubEnv('SPECHIVE_PROJECT_TOKEN', 'env-tok');
     const config = resolveBaseConfig({});
@@ -134,5 +171,71 @@ describe('resolveBaseConfig', () => {
     const config = resolveBaseConfig({ projectToken: 'tok-123', runName: 'Config Run' });
 
     expect(config.runName).toBe('Config Run');
+  });
+});
+
+describe('createLogger', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('warn level suppresses info but allows warn and error', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const logger = createLogger('warn');
+    logger.info('info msg');
+    logger.warn('warn msg');
+    logger.error('error msg');
+
+    expect(infoSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith('warn msg');
+    expect(errorSpy).toHaveBeenCalledWith('error msg');
+  });
+
+  it('error level suppresses info and warn', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const logger = createLogger('error');
+    logger.info('info msg');
+    logger.warn('warn msg');
+    logger.error('error msg');
+
+    expect(infoSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith('error msg');
+  });
+
+  it('silent level suppresses all output', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const logger = createLogger('silent');
+    logger.info('info msg');
+    logger.warn('warn msg');
+    logger.error('error msg');
+
+    expect(infoSpy).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('info level allows all output', () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const logger = createLogger('info');
+    logger.info('info msg');
+    logger.warn('warn msg');
+    logger.error('error msg');
+
+    expect(infoSpy).toHaveBeenCalledWith('info msg');
+    expect(warnSpy).toHaveBeenCalledWith('warn msg');
+    expect(errorSpy).toHaveBeenCalledWith('error msg');
   });
 });
