@@ -28,7 +28,6 @@ import {
   ERRORS_TOP_N_MAX,
   ERRORS_TOP_N_MIN,
   MS_PER_DAY,
-  UI_CATEGORY_OTHER,
 } from './errors.constants';
 
 type SqlFragment = ReturnType<typeof sql>;
@@ -50,7 +49,7 @@ interface ListErrorGroupsParams {
   dateTo?: Date;
   branch?: string;
   search?: string;
-  category?: string;
+  categories?: (string | null)[];
   sortBy: ErrorSortField;
   sortOrder: 'asc' | 'desc';
   page: number;
@@ -63,7 +62,7 @@ interface ErrorTimelineParams {
   dateTo?: Date;
   branch?: string;
   search?: string;
-  category?: string;
+  categories?: (string | null)[];
   metric: ErrorMetric;
   topN: number;
 }
@@ -76,7 +75,7 @@ interface ErrorGroupDetailParams {
 
 interface FilterParams {
   search?: string;
-  category?: string;
+  categories?: (string | null)[];
 }
 
 function clampTopN(n: number): number {
@@ -120,11 +119,23 @@ export class ErrorsService {
       ? sql`AND (eg.title ILIKE ${`%${escapeLikePattern(params.search)}%`} OR eg.normalized_message ILIKE ${`%${escapeLikePattern(params.search)}%`})`
       : sql``;
 
-    const categoryFilter = params.category
-      ? params.category === UI_CATEGORY_OTHER
-        ? sql`AND (eg.error_category IS NULL OR eg.error_category = 'runtime')`
-        : sql`AND eg.error_category = ${params.category}`
-      : sql``;
+    let categoryFilter: SqlFragment = sql``;
+    if (params.categories) {
+      const hasNull = params.categories.includes(null);
+      const values = params.categories.filter((c): c is string => c !== null);
+
+      const conditions: SqlFragment[] = [];
+      if (hasNull) conditions.push(sql`eg.error_category IS NULL`);
+      if (values.length === 1) conditions.push(sql`eg.error_category = ${values[0]}`);
+      else if (values.length > 1) {
+        const arr = sql.join(
+          values.map((v) => sql`${v}`),
+          sql`, `,
+        );
+        conditions.push(sql`eg.error_category = ANY(ARRAY[${arr}]::text[])`);
+      }
+      categoryFilter = sql`AND (${sql.join(conditions, sql` OR `)})`;
+    }
 
     return { searchFilter, categoryFilter };
   }

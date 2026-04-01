@@ -14,9 +14,11 @@ import {
   ERRORS_TOP_N_DEFAULT,
   ERRORS_TOP_N_MAX,
   ERRORS_TOP_N_MIN,
-  UI_CATEGORY_OTHER,
+  UNCATEGORIZED_DB_VALUES,
 } from './errors.constants';
 import { ErrorsService } from './errors.service';
+
+const UI_CATEGORY_OTHER = 'other' as const;
 
 const commonFilterSchema = z.object({
   projectId: z.string().uuid(),
@@ -28,13 +30,20 @@ const commonFilterSchema = z.object({
 });
 
 function buildCommonParams(query: z.infer<typeof commonFilterSchema>) {
+  let categories: (string | null)[] | undefined;
+  if (query.category === UI_CATEGORY_OTHER) {
+    categories = UNCATEGORIZED_DB_VALUES;
+  } else if (query.category) {
+    categories = [query.category];
+  }
+
   return {
     projectId: query.projectId as ProjectId,
     ...(query.dateFrom != null && { dateFrom: new Date(query.dateFrom) }),
     ...(query.dateTo != null && { dateTo: new Date(query.dateTo) }),
     ...(query.branch != null && { branch: query.branch }),
     ...(query.search != null && { search: query.search }),
-    ...(query.category != null && { category: query.category }),
+    ...(categories && { categories }),
   };
 }
 

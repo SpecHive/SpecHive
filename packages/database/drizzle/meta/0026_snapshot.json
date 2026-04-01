@@ -2163,27 +2163,6 @@
           "method": "btree",
           "with": {}
         },
-        "idx_error_groups_project_occurrences": {
-          "name": "idx_error_groups_project_occurrences",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "total_occurrences",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idx_error_groups_org": {
           "name": "idx_error_groups_org",
           "columns": [

@@ -9,7 +9,8 @@ export const ERRORS_TOP_N_DEFAULT = 5;
 export const DETAIL_AFFECTED_TESTS_LIMIT = 20;
 export const DETAIL_BRANCHES_LIMIT = 10;
 
-export const UI_CATEGORY_OTHER = 'other';
+/** DB categories grouped under the UI "Other" filter. */
+export const UNCATEGORIZED_DB_VALUES: (string | null)[] = [null, 'runtime'];
 
 export const ERROR_SORT_FIELDS = [
   'occurrences',

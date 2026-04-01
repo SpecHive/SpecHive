@@ -24,7 +24,7 @@ export const errorGroupSummarySchema = z.object({
   occurrences: z.number(),
   uniqueTests: z.number(),
   uniqueBranches: z.number(),
-  firstSeenAt: z.string().nullable(),
+  firstSeenAt: z.string(),
   lastSeenAt: z.string().nullable(),
 });
 
@@ -85,7 +85,7 @@ export const errorGroupDetailSchema = z.object({
   normalizedMessage: z.string(),
   errorName: z.string().nullable(),
   errorCategory: z.string().nullable(),
-  firstSeenAt: z.string().nullable(),
+  firstSeenAt: z.string(),
   /** Most recent occurrence within the requested date range. */
   lastSeenAt: z.string().nullable(),
   /** All-time most recent occurrence (not scoped to date range). */

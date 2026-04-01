@@ -53,7 +53,6 @@ export const errorGroups = pgTable(
   (table) => [
     uniqueIndex('uq_error_groups_fingerprint').on(table.projectId, table.fingerprint),
     index('idx_error_groups_project_last_seen').on(table.projectId, table.lastSeenAt),
-    index('idx_error_groups_project_occurrences').on(table.projectId, table.totalOccurrences),
     index('idx_error_groups_org').on(table.organizationId),
     check(
       'chk_error_groups_category',

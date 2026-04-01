@@ -40,7 +40,6 @@ ALTER TABLE "error_occurrences" ADD CONSTRAINT "error_occurrences_run_id_runs_id
 ALTER TABLE "error_occurrences" ADD CONSTRAINT "error_occurrences_project_id_projects_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_error_groups_fingerprint" ON "error_groups" USING btree ("project_id","fingerprint");--> statement-breakpoint
 CREATE INDEX "idx_error_groups_project_last_seen" ON "error_groups" USING btree ("project_id","last_seen_at");--> statement-breakpoint
-CREATE INDEX "idx_error_groups_project_occurrences" ON "error_groups" USING btree ("project_id","total_occurrences");--> statement-breakpoint
 CREATE INDEX "idx_error_groups_org" ON "error_groups" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "idx_error_occurrences_group" ON "error_occurrences" USING btree ("error_group_id","occurred_at");--> statement-breakpoint
 CREATE INDEX "idx_error_occurrences_run" ON "error_occurrences" USING btree ("run_id");--> statement-breakpoint

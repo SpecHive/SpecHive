@@ -103,33 +103,8 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
         END
     `);
 
-    // TODO(analytics): Aggregate columns (total_occurrences, unique_test_count, unique_branch_count)
-    // on error_groups are NOT maintained — values are stale after initial insert.
-    // The list endpoint computes period-scoped counts live from error_occurrences.
-    // When analytics needs all-time counts, implement as an async CQRS worker
-    // to avoid blocking run-end latency.
-    //
-    // Original implementation:
-    // await ctx.tx.execute(sql`
-    //   UPDATE ${errorGroups} eg SET
-    //     total_occurrences = sub.total,
-    //     unique_test_count = sub.tests,
-    //     unique_branch_count = sub.branches,
-    //     updated_at = NOW()
-    //   FROM (
-    //     SELECT
-    //       error_group_id,
-    //       COUNT(*)::int AS total,
-    //       COUNT(DISTINCT test_name)::int AS tests,
-    //       COUNT(DISTINCT branch) FILTER (WHERE branch IS NOT NULL)::int AS branches
-    //     FROM ${errorOccurrences}
-    //     WHERE error_group_id IN (
-    //       SELECT DISTINCT error_group_id FROM ${errorOccurrences} WHERE run_id = ${event.runId}
-    //     )
-    //     GROUP BY error_group_id
-    //   ) sub
-    //   WHERE eg.id = sub.error_group_id
-    // `);
+    // TODO(analytics): Implement async CQRS worker to maintain error_groups aggregate
+    // counters (total_occurrences, unique_test_count, unique_branch_count).
 
     this.logger.info({ runId: event.runId, status: event.payload.status }, 'Run finished');
   }
