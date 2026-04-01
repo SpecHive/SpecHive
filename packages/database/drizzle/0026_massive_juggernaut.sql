@@ -68,4 +68,14 @@ CREATE POLICY tenant_isolation_policy ON "error_occurrences"
   USING (organization_id = current_setting('app.current_organization_id')::uuid)
   WITH CHECK (organization_id = current_setting('app.current_organization_id')::uuid);--> statement-breakpoint
 
-ALTER TABLE "error_groups" ADD CONSTRAINT "chk_error_groups_category" CHECK (error_category IN ('assertion', 'timeout', 'action', 'runtime') OR error_category IS NULL);
+ALTER TABLE "error_groups" ADD CONSTRAINT "chk_error_groups_category" CHECK (error_category IN ('assertion', 'timeout', 'action', 'runtime') OR error_category IS NULL);--> statement-breakpoint
+ALTER TABLE "test_attempts" ADD COLUMN "error_name" text;--> statement-breakpoint
+ALTER TABLE "test_attempts" ADD COLUMN "error_category" text;--> statement-breakpoint
+ALTER TABLE "test_attempts" ADD COLUMN "error_expected" text;--> statement-breakpoint
+ALTER TABLE "test_attempts" ADD COLUMN "error_actual" text;--> statement-breakpoint
+ALTER TABLE "test_attempts" ADD COLUMN "error_location" jsonb;--> statement-breakpoint
+ALTER TABLE "tests" ADD COLUMN "error_name" text;--> statement-breakpoint
+ALTER TABLE "tests" ADD COLUMN "error_category" text;--> statement-breakpoint
+ALTER TABLE "tests" ADD COLUMN "error_expected" text;--> statement-breakpoint
+ALTER TABLE "tests" ADD COLUMN "error_actual" text;--> statement-breakpoint
+ALTER TABLE "tests" ADD COLUMN "error_location" jsonb;

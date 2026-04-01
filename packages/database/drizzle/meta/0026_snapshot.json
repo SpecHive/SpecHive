@@ -1,6 +1,6 @@
 {
-  "id": "6fef51f1-cbae-4c19-9f90-4a4e0e48b549",
-  "prevId": "4d2f7c3e-5e54-47dc-8e47-81f3cb96a1c5",
+  "id": "e66094f8-97b8-4657-aa72-9969a026b56e",
+  "prevId": "aed2a34d-46d6-4bb4-9bfd-2e26d089f743",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1168,6 +1168,36 @@
           "primaryKey": false,
           "notNull": false
         },
+        "error_name": {
+          "name": "error_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_category": {
+          "name": "error_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_expected": {
+          "name": "error_expected",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_actual": {
+          "name": "error_actual",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_location": {
+          "name": "error_location",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "started_at": {
           "name": "started_at",
           "type": "timestamp with time zone",
@@ -1342,6 +1372,36 @@
         "stack_trace": {
           "name": "stack_trace",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_name": {
+          "name": "error_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_category": {
+          "name": "error_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_expected": {
+          "name": "error_expected",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_actual": {
+          "name": "error_actual",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_location": {
+          "name": "error_location",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
