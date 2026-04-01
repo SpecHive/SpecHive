@@ -48,10 +48,10 @@
     "@spechive/reporter-core-protocol": "workspace:*",
     "@spechive/shared-types": "workspace:*",
     "@spechive/typescript-config": "workspace:*",
-    "@playwright/test": "^1.50.0",
+    "@playwright/test": "^1.59.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.2"
   }
 }
