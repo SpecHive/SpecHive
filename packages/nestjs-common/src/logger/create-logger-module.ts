@@ -1,4 +1,4 @@
-import type { DynamicModule } from '@nestjs/common';
+import { type DynamicModule, RequestMethod } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import type { Params } from 'nestjs-pino';
 
@@ -10,6 +10,10 @@ export function createLoggerModule(): DynamicModule {
       level: isProduction ? 'info' : 'debug',
       ...(isProduction ? {} : { transport: { target: 'pino-pretty' } }),
     },
+    exclude: [
+      { method: RequestMethod.GET, path: 'health' },
+      { method: RequestMethod.GET, path: 'health/ready' },
+    ],
   };
 
   return LoggerModule.forRoot(params);

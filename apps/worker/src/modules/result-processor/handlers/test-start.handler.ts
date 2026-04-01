@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { tests } from '@spechive/database';
+import { runs, tests } from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestStartEvent } from '@spechive/reporter-core-protocol';
-import { TestStatus } from '@spechive/shared-types';
+import { RunStatus, TestStatus } from '@spechive/shared-types';
+import { and, eq } from 'drizzle-orm';
 
 import { EventHandler } from './event-handler.decorator';
 import type { EventHandlerContext, IEventHandler } from './event-handler.interface';
@@ -36,6 +37,12 @@ export class TestStartHandler implements IEventHandler<TestStartEvent> {
       this.logger.debug({ testId: event.payload.testId }, 'Duplicate test.start skipped');
       return;
     }
+
+    // Transition run from pending to running on first test.start (idempotent via WHERE)
+    await ctx.tx
+      .update(runs)
+      .set({ status: RunStatus.Running })
+      .where(and(eq(runs.id, event.runId), eq(runs.status, RunStatus.Pending)));
 
     this.logger.info({ testId: event.payload.testId, runId: event.runId }, 'Test created');
   }

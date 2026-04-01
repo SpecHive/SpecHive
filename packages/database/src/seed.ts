@@ -721,6 +721,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
           passedTests: 0,
           failedTests: 0,
           skippedTests: 0,
+          expectedTests: 0,
           startedAt,
           finishedAt,
           branch: seedBranch,
@@ -796,6 +797,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
         failed: number;
         skipped: number;
         flaky: number;
+        expected: number;
       }[] = [];
 
       for (const meta of projectRunMetas) {
@@ -939,6 +941,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
           failed: testStatusCounts.failed,
           skipped: testStatusCounts.skipped,
           flaky: testStatusCounts.flaky,
+          expected: allTests.length - runTestStart,
         });
       }
 
@@ -963,7 +966,8 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
               passed_tests = v.passed,
               failed_tests = v.failed,
               skipped_tests = v.skipped,
-              flaky_tests = v.flaky
+              flaky_tests = v.flaky,
+              expected_tests = v.expected
             FROM (
               SELECT
                 unnest(${chunk.map((u) => u.runId)}::uuid[]) AS id,
@@ -971,7 +975,8 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
                 unnest(${chunk.map((u) => u.passed)}::int[]) AS passed,
                 unnest(${chunk.map((u) => u.failed)}::int[]) AS failed,
                 unnest(${chunk.map((u) => u.skipped)}::int[]) AS skipped,
-                unnest(${chunk.map((u) => u.flaky)}::int[]) AS flaky
+                unnest(${chunk.map((u) => u.flaky)}::int[]) AS flaky,
+                unnest(${chunk.map((u) => u.expected)}::int[]) AS expected
             ) AS v
             WHERE r.id = v.id
           `;

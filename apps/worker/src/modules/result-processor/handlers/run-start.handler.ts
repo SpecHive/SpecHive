@@ -25,6 +25,7 @@ export class RunStartHandler implements IEventHandler<RunStartEvent> {
         organizationId: ctx.organizationId,
         name: event.payload.runName ?? null,
         status: RunStatus.Pending,
+        expectedTests: event.payload.expectedTests ?? 0,
         startedAt: new Date(event.timestamp),
         metadata: (event.payload.metadata ?? {}) as Record<string, unknown>,
         branch: ci?.branch ?? null,

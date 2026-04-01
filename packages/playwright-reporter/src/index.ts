@@ -140,6 +140,8 @@ export default class SpecHiveReporter implements Reporter {
     const runName = this.config.runName ?? buildDefaultRunName(suite.suites);
     const ci = detectCi();
 
+    const expectedTests = suite.allTests().length;
+
     this.reporterQueue.enqueue({
       version: '1',
       timestamp: new Date().toISOString(),
@@ -147,6 +149,7 @@ export default class SpecHiveReporter implements Reporter {
       eventType: 'run.start',
       payload: {
         runName,
+        expectedTests,
         ...(ci ? { ci } : {}),
         ...(Object.keys(this.config.metadata).length > 0 ? { metadata: this.config.metadata } : {}),
       },
@@ -155,42 +158,58 @@ export default class SpecHiveReporter implements Reporter {
     this.walkSuites(suite);
   }
 
-  onTestBegin(_test: TestCase): void {
-    // test.start is sent together with test.end in onTestEnd
+  onTestBegin(test: TestCase, result: TestResult): void {
+    if (!this.isEnabled) return;
+    // Only send test.start on first attempt (retry 0)
+    if (result.retry > 0) return;
+
+    const testId = asTestId(crypto.randomUUID());
+    const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
+
+    const entry = {
+      testId,
+      suiteId,
+      testName: test.title,
+      testCase: test,
+      attempts: [] as TestResult[],
+    };
+    this.testTracker.set(test.id, entry);
+
+    this.reporterQueue.enqueue({
+      version: '1',
+      timestamp: new Date().toISOString(),
+      runId: this.runId,
+      eventType: 'test.start',
+      payload: { testId, suiteId, testName: test.title },
+    });
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
     if (!this.isEnabled) return;
 
-    const key = test.id;
-    let entry = this.testTracker.get(key);
-
+    const entry = this.testTracker.get(test.id);
     if (!entry) {
-      const testId = asTestId(crypto.randomUUID());
-      const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
-
-      entry = { testId, suiteId, testName: test.title, testCase: test, attempts: [] };
-      this.testTracker.set(key, entry);
-
-      this.reporterQueue.enqueue({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: this.runId,
-        eventType: 'test.start',
-        payload: { testId, suiteId, testName: test.title },
-      });
+      console.warn(
+        `[spechive] onTestEnd called for unknown test "${test.title}" (id=${test.id}) — was onTestBegin skipped?`,
+      );
+      return;
     }
 
     entry.attempts.push(result);
     this.artifactPromises.push(
       this.processArtifacts(entry.testId, result.attachments, result.retry),
     );
+
+    // Send test.end only when test is fully done (passed/skipped or all retries exhausted)
+    const isFinalAttempt =
+      result.status === 'passed' || result.status === 'skipped' || result.retry >= test.retries;
+    if (!isFinalAttempt) return;
+
+    this.sendTestEnd(entry);
   }
 
   async onEnd(result: FullResult): Promise<void> {
     if (!this.isEnabled) return;
-
-    this.flushTestResults();
 
     const status = mapRunStatus(result.status);
 
@@ -211,48 +230,46 @@ export default class SpecHiveReporter implements Reporter {
     );
   }
 
-  private flushTestResults(): void {
-    for (const entry of this.testTracker.values()) {
-      const finalAttempt = entry.attempts[entry.attempts.length - 1]!;
-      const status = this.resolveTestStatus(entry);
+  private sendTestEnd(entry: { testId: TestId; testCase: TestCase; attempts: TestResult[] }): void {
+    const finalAttempt = entry.attempts[entry.attempts.length - 1]!;
+    const status = this.resolveTestStatus(entry);
 
-      const errorAttempt =
-        status === TestStatus.Flaky
-          ? [...entry.attempts].reverse().find((a) => a.status !== 'passed')
-          : finalAttempt;
+    const errorAttempt =
+      status === TestStatus.Flaky
+        ? [...entry.attempts].reverse().find((a) => a.status !== 'passed')
+        : finalAttempt;
 
-      const errorMessage = errorAttempt?.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
-      const stackTrace = errorAttempt?.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
-      const topLevelErrorMeta = extractErrorMetadata(errorAttempt?.error);
+    const errorMessage = errorAttempt?.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
+    const stackTrace = errorAttempt?.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
+    const topLevelErrorMeta = extractErrorMetadata(errorAttempt?.error);
 
-      const attempts = entry.attempts.map((attempt) => ({
-        retryIndex: attempt.retry,
-        status: mapTestStatus(attempt.status),
-        durationMs: attempt.duration,
-        startedAt: attempt.startTime.toISOString(),
-        finishedAt: new Date(attempt.startTime.getTime() + attempt.duration).toISOString(),
-        errorMessage: attempt.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH),
-        stackTrace: attempt.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH),
-        ...extractErrorMetadata(attempt.error),
-      }));
+    const attempts = entry.attempts.map((attempt) => ({
+      retryIndex: attempt.retry,
+      status: mapTestStatus(attempt.status),
+      durationMs: attempt.duration,
+      startedAt: attempt.startTime.toISOString(),
+      finishedAt: new Date(attempt.startTime.getTime() + attempt.duration).toISOString(),
+      errorMessage: attempt.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH),
+      stackTrace: attempt.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH),
+      ...extractErrorMetadata(attempt.error),
+    }));
 
-      this.reporterQueue.enqueue({
-        version: '1',
-        timestamp: new Date().toISOString(),
-        runId: this.runId,
-        eventType: 'test.end',
-        payload: {
-          testId: entry.testId,
-          status,
-          durationMs: finalAttempt.duration,
-          errorMessage,
-          stackTrace,
-          ...topLevelErrorMeta,
-          retryCount: finalAttempt.retry,
-          attempts,
-        },
-      });
-    }
+    this.reporterQueue.enqueue({
+      version: '1',
+      timestamp: new Date().toISOString(),
+      runId: this.runId,
+      eventType: 'test.end',
+      payload: {
+        testId: entry.testId,
+        status,
+        durationMs: finalAttempt.duration,
+        errorMessage,
+        stackTrace,
+        ...topLevelErrorMeta,
+        retryCount: finalAttempt.retry,
+        attempts,
+      },
+    });
   }
 
   private resolveTestStatus(entry: { testCase: TestCase; attempts: TestResult[] }): TestStatus {

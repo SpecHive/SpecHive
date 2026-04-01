@@ -66,6 +66,7 @@ export const runs = pgTable(
     failedTests: integer('failed_tests').notNull().default(0),
     skippedTests: integer('skipped_tests').notNull().default(0),
     flakyTests: integer('flaky_tests').notNull().default(0),
+    expectedTests: integer('expected_tests').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     metadata: jsonb('metadata')

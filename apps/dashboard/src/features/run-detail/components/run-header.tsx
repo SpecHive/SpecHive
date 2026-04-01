@@ -10,6 +10,9 @@ interface RunHeaderProps {
 }
 
 export function RunHeader({ run }: RunHeaderProps) {
+  const pendingCount = Math.max(0, run.expectedTests - run.totalTests);
+  const isTerminal = ['passed', 'failed', 'cancelled'].includes(run.status);
+
   return (
     <>
       <nav className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -31,10 +34,15 @@ export function RunHeader({ run }: RunHeaderProps) {
           )}
           <div className="mt-2 flex gap-6 text-sm text-muted-foreground">
             <span>
-              {run.passedTests}/{run.totalTests} passed
+              {run.passedTests}/{run.expectedTests > 0 ? run.expectedTests : run.totalTests} passed
             </span>
             <span>{run.failedTests} failed</span>
             <span>{run.skippedTests} skipped</span>
+            {pendingCount > 0 && (
+              <span>
+                {pendingCount} {isTerminal ? "didn't run" : 'pending'}
+              </span>
+            )}
             <span>{run.suiteCount} suites</span>
           </div>
           {(run.branch || run.commitSha || run.ciUrl) && (
