@@ -20,5 +20,12 @@ export const statusColorsBadge: Record<string, string> = {
   [TestStatus.Flaky]: 'bg-orange-500 text-white',
 };
 
+export const categoryColorsBadge: Record<string, string> = {
+  assertion: 'bg-red-500 text-white',
+  timeout: 'bg-amber-500 text-white',
+  action: 'bg-purple-500 text-white',
+  runtime: 'bg-slate-500 text-white',
+};
+
 export const runStatusOptions = ['', ...Object.values(RunStatus)];
 export const testStatusOptions = ['', ...Object.values(TestStatus)];

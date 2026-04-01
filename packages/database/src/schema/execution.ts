@@ -1,5 +1,6 @@
 import {
   type ArtifactId,
+  type ErrorGroupId,
   type OrganizationId,
   type ProjectId,
   type RunId,
@@ -139,6 +140,17 @@ export const tests = pgTable(
     durationMs: integer('duration_ms'),
     errorMessage: text('error_message'),
     stackTrace: text('stack_trace'),
+    errorName: text('error_name'),
+    errorCategory: text('error_category'),
+    errorExpected: text('error_expected'),
+    errorActual: text('error_actual'),
+    errorLocation: jsonb('error_location').$type<{
+      file: string;
+      line: number;
+      column?: number | undefined;
+    }>(),
+    // No FK — avoids circular import with errors.ts (errors.ts imports runs from this file)
+    errorGroupId: uuid('error_group_id').$type<ErrorGroupId>(),
     retryCount: integer('retry_count').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
@@ -155,6 +167,7 @@ export const tests = pgTable(
     index('tests_flaky_run_idx')
       .on(table.runId)
       .where(sql`status = 'flaky'`),
+    index('tests_error_group_idx').on(table.errorGroupId),
   ],
 );
 
@@ -208,6 +221,15 @@ export const testAttempts = pgTable(
     durationMs: integer('duration_ms'),
     errorMessage: text('error_message'),
     stackTrace: text('stack_trace'),
+    errorName: text('error_name'),
+    errorCategory: text('error_category'),
+    errorExpected: text('error_expected'),
+    errorActual: text('error_actual'),
+    errorLocation: jsonb('error_location').$type<{
+      file: string;
+      line: number;
+      column?: number | undefined;
+    }>(),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     ...timestamps,

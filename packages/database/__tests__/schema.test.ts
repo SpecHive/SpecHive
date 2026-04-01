@@ -13,6 +13,8 @@ import {
   artifacts,
   dailyRunStats,
   dailyFlakyTestStats,
+  errorGroups,
+  errorOccurrences,
   membershipRoleEnum,
   runStatusEnum,
   testStatusEnum,
@@ -28,6 +30,8 @@ import {
   artifactsRelations,
   dailyRunStatsRelations,
   dailyFlakyTestStatsRelations,
+  errorGroupsRelations,
+  errorOccurrencesRelations,
   createDbConnection,
   setTenantContext,
 } from '../src/index.js';
@@ -45,6 +49,8 @@ describe('schema tables', () => {
     { table: artifacts, expectedName: 'artifacts' },
     { table: dailyRunStats, expectedName: 'daily_run_stats' },
     { table: dailyFlakyTestStats, expectedName: 'daily_flaky_test_stats' },
+    { table: errorGroups, expectedName: 'error_groups' },
+    { table: errorOccurrences, expectedName: 'error_occurrences' },
   ] as const;
 
   it.each(tableFixtures)('$expectedName is a Drizzle table object', ({ table }) => {
@@ -97,6 +103,8 @@ describe('schema relations', () => {
     { name: 'artifactsRelations', relation: artifactsRelations },
     { name: 'dailyRunStatsRelations', relation: dailyRunStatsRelations },
     { name: 'dailyFlakyTestStatsRelations', relation: dailyFlakyTestStatsRelations },
+    { name: 'errorGroupsRelations', relation: errorGroupsRelations },
+    { name: 'errorOccurrencesRelations', relation: errorOccurrencesRelations },
   ] as const;
 
   it.each(relationFixtures)('$name is exported and defined', ({ relation }) => {

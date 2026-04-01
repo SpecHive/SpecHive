@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { dailyFlakyTestStats, runs, tests, testAttempts } from '@spechive/database';
+import {
+  computeFingerprint,
+  dailyFlakyTestStats,
+  errorGroups,
+  errorOccurrences,
+  runs,
+  testAttempts,
+  tests,
+} from '@spechive/database';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
-import { TestStatus, stripAnsi } from '@spechive/shared-types';
+import { MAX_ERROR_MESSAGE_LENGTH, TestStatus, stripAnsi } from '@spechive/shared-types';
 import { and, eq, sql } from 'drizzle-orm';
 
 import { EventHandler } from './event-handler.decorator';
@@ -16,16 +24,40 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
   constructor(@InjectPinoLogger(TestEndHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: TestEndEvent, ctx: EventHandlerContext): Promise<void> {
-    const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
-      event.payload;
+    const {
+      testId,
+      status,
+      durationMs,
+      errorMessage,
+      stackTrace,
+      retryCount,
+      attempts,
+      errorName,
+      errorCategory,
+      errorExpected,
+      errorActual,
+      errorLocation,
+    } = event.payload;
+
+    const strippedErrorMessage = errorMessage ? stripAnsi(errorMessage) : null;
+    const strippedStackTrace = stackTrace ? stripAnsi(stackTrace) : null;
+    const strippedErrorName = errorName ? stripAnsi(errorName) : null;
+    const strippedErrorCategory = errorCategory ?? null;
+    const strippedErrorExpected = errorExpected ? stripAnsi(errorExpected) : null;
+    const strippedErrorActual = errorActual ? stripAnsi(errorActual) : null;
 
     const [updatedTest] = await ctx.tx
       .update(tests)
       .set({
         status,
         durationMs: durationMs ?? null,
-        errorMessage: errorMessage ? stripAnsi(errorMessage) : null,
-        stackTrace: stackTrace ? stripAnsi(stackTrace) : null,
+        errorMessage: strippedErrorMessage?.slice(0, MAX_ERROR_MESSAGE_LENGTH) ?? null,
+        stackTrace: strippedStackTrace,
+        errorName: strippedErrorName,
+        errorCategory: strippedErrorCategory,
+        errorExpected: strippedErrorExpected,
+        errorActual: strippedErrorActual,
+        errorLocation: errorLocation ?? null,
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
       })
@@ -45,6 +77,11 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             durationMs: a.durationMs ?? null,
             errorMessage: a.errorMessage ? stripAnsi(a.errorMessage) : null,
             stackTrace: a.stackTrace ? stripAnsi(a.stackTrace) : null,
+            errorName: a.errorName ?? null,
+            errorCategory: a.errorCategory ?? null,
+            errorExpected: a.errorExpected ? stripAnsi(a.errorExpected) : null,
+            errorActual: a.errorActual ? stripAnsi(a.errorActual) : null,
+            errorLocation: a.errorLocation ?? null,
             startedAt: a.startedAt ? new Date(a.startedAt) : null,
             finishedAt: a.finishedAt ? new Date(a.finishedAt) : null,
             // Deterministic createdAt for dedup with composite unique index (test_id, retry_index, created_at)
@@ -52,6 +89,105 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           })),
         )
         .onConflictDoNothing();
+    }
+
+    // --- Error fingerprinting & grouping ---
+    if (
+      updatedTest &&
+      strippedErrorMessage &&
+      (status === TestStatus.Failed || status === TestStatus.Flaky)
+    ) {
+      const strippedErrorMatcher = event.payload.errorMatcher
+        ? stripAnsi(event.payload.errorMatcher)
+        : undefined;
+      const strippedErrorTarget = event.payload.errorTarget
+        ? stripAnsi(event.payload.errorTarget)
+        : undefined;
+
+      const { fingerprint, normalizedMessage, title } = computeFingerprint(
+        strippedErrorMessage,
+        strippedErrorName ?? undefined,
+        {
+          errorCategory: strippedErrorCategory ?? undefined,
+          errorMatcher: strippedErrorMatcher,
+          errorTarget: strippedErrorTarget,
+          errorExpected: strippedErrorExpected ?? undefined,
+        },
+      );
+
+      const [runInfo] = await ctx.tx
+        .select({ branch: runs.branch, commitSha: runs.commitSha })
+        .from(runs)
+        .where(eq(runs.id, event.runId))
+        .limit(1);
+
+      const eventTime = new Date(event.timestamp);
+
+      const [group] = await ctx.tx
+        .insert(errorGroups)
+        .values({
+          organizationId: ctx.organizationId,
+          projectId: ctx.projectId,
+          fingerprint,
+          title,
+          normalizedMessage,
+          errorName: strippedErrorName,
+          errorCategory: strippedErrorCategory,
+          totalOccurrences: 1,
+          uniqueTestCount: 1,
+          uniqueBranchCount: runInfo?.branch ? 1 : 0,
+          firstSeenAt: eventTime,
+          lastSeenAt: eventTime,
+        })
+        // Only timestamps/name/category updated on conflict — aggregate columns are not maintained (reserved for future analytics).
+        // COALESCE prefers incoming value: safe because errorName is part of the fingerprint hash,
+        // so conflicting rows always share the same errorName (or both null).
+        // errorCategory is not in the unstructured fingerprint path, but fallback categories are stable.
+        .onConflictDoUpdate({
+          target: [errorGroups.projectId, errorGroups.fingerprint],
+          set: {
+            lastSeenAt: sql`GREATEST(${errorGroups.lastSeenAt}, EXCLUDED.last_seen_at)`,
+            errorName: sql`COALESCE(EXCLUDED.error_name, ${errorGroups.errorName})`,
+            // Prefer structured categories (assertion/timeout/action) over the generic 'runtime' fallback.
+            // This prevents a less-informed reporter from downgrading a previously well-categorized error.
+            errorCategory: sql`CASE
+              WHEN EXCLUDED.error_category IN ('assertion', 'timeout', 'action') THEN EXCLUDED.error_category
+              ELSE COALESCE(${errorGroups.errorCategory}, EXCLUDED.error_category)
+            END`,
+            updatedAt: sql`NOW()`,
+          },
+        })
+        .returning({ id: errorGroups.id });
+
+      if (group) {
+        await ctx.tx
+          .insert(errorOccurrences)
+          .values({
+            organizationId: ctx.organizationId,
+            errorGroupId: group.id,
+            testId,
+            runId: event.runId,
+            projectId: ctx.projectId,
+            branch: runInfo?.branch ?? null,
+            commitSha: runInfo?.commitSha ?? null,
+            testName: updatedTest.name,
+            errorMessage: strippedErrorMessage.slice(0, MAX_ERROR_MESSAGE_LENGTH),
+            occurredAt: eventTime,
+          })
+          .onConflictDoNothing({ target: [errorOccurrences.runId, errorOccurrences.testId] });
+
+        // Aggregate counters are authoritatively recounted by RunEndHandler.
+        // No per-test recount — avoids concurrency races and full-table scans.
+
+        await ctx.tx
+          .update(tests)
+          .set({ errorGroupId: group.id })
+          .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)));
+      } else {
+        throw new Error(
+          `Failed to upsert error group for fingerprint ${fingerprint} in run ${event.runId}`,
+        );
+      }
     }
 
     const counterUpdates =

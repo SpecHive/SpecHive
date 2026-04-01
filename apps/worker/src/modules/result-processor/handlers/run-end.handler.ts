@@ -67,7 +67,7 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
       FROM ${tests}
       WHERE ${tests.runId} = ${event.runId} AND ${tests.retryCount} > 0
     `);
-    const retriedTests = (retriedRow as { retriedTests: number }).retriedTests;
+    const retriedTests = (retriedRow as { retriedTests: number } | undefined)?.retriedTests ?? 0;
 
     await ctx.tx.execute(sql`
       INSERT INTO ${dailyRunStats} (
@@ -102,6 +102,9 @@ export class RunEndHandler implements IEventHandler<RunEndEvent> {
           ELSE COALESCE(GREATEST(${dailyRunStats.maxDurationMs}, EXCLUDED.max_duration_ms), EXCLUDED.max_duration_ms)
         END
     `);
+
+    // TODO(analytics): Implement async CQRS worker to maintain error_groups aggregate
+    // counters (total_occurrences, unique_test_count, unique_branch_count).
 
     this.logger.info({ runId: event.runId, status: event.payload.status }, 'Run finished');
   }

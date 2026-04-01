@@ -1,7 +1,9 @@
-import { Download, X } from 'lucide-react';
+import { Download, ExternalLink, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { toast } from 'sonner';
 
+import { CategoryBadge } from '@/shared/components/category-badge';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { Button } from '@/shared/components/ui/button';
 import { apiClient } from '@/shared/lib/api-client';
@@ -52,9 +54,14 @@ export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps)
     ? testDetail.artifacts.filter((a) => a.retryIndex === activeAttempt)
     : testDetail.artifacts;
 
-  // For single-attempt tests, use the test-level error/stackTrace
-  const errorMessage = hasMultipleAttempts ? currentAttempt?.errorMessage : testDetail.errorMessage;
-  const stackTrace = hasMultipleAttempts ? currentAttempt?.stackTrace : testDetail.stackTrace;
+  // For single-attempt tests, use the test-level fields; for multi-attempt, use per-attempt fields
+  const source = hasMultipleAttempts ? currentAttempt : testDetail;
+  const stackTrace = source?.stackTrace;
+  const errorName = source?.errorName;
+  const errorCategory = source?.errorCategory;
+  const errorExpected = source?.errorExpected;
+  const errorActual = source?.errorActual;
+  const errorLocation = source?.errorLocation;
 
   return (
     <>
@@ -104,25 +111,63 @@ export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps)
               </div>
             )}
 
-            {errorMessage && (
-              <div className="rounded-md border border-destructive/20 bg-destructive/5 p-3">
-                <p className="text-sm font-medium text-destructive">Error</p>
-                <p className="mt-1 text-sm">{errorMessage}</p>
-              </div>
-            )}
+            {(errorName || errorCategory || stackTrace) && (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  {errorName && (
+                    <span className="rounded bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                      {errorName}
+                    </span>
+                  )}
+                  {errorCategory && <CategoryBadge category={errorCategory} />}
+                  {errorLocation && (
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {errorLocation.file}:{errorLocation.line}
+                      {errorLocation.column != null ? `:${errorLocation.column}` : ''}
+                    </span>
+                  )}
+                  {testDetail.errorGroupId && (
+                    <Link
+                      to={`/errors?errorGroupId=${testDetail.errorGroupId}`}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      View error group
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  )}
+                </div>
 
-            {stackTrace && (
-              <div>
-                <button
-                  onClick={() => setStackTraceOpen(!stackTraceOpen)}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  {stackTraceOpen ? 'Hide' : 'Show'} stack trace
-                </button>
-                {stackTraceOpen && (
-                  <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
-                    {stackTrace}
-                  </pre>
+                {errorExpected != null && errorActual != null && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md border border-green-500/20 bg-green-500/5 p-2">
+                      <p className="mb-1 text-xs font-medium text-green-600">Expected</p>
+                      <pre className="whitespace-pre-wrap break-all font-mono text-xs">
+                        {errorExpected}
+                      </pre>
+                    </div>
+                    <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2">
+                      <p className="mb-1 text-xs font-medium text-destructive">Actual</p>
+                      <pre className="whitespace-pre-wrap break-all font-mono text-xs">
+                        {errorActual}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {stackTrace && (
+                  <div>
+                    <button
+                      onClick={() => setStackTraceOpen(!stackTraceOpen)}
+                      className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      {stackTraceOpen ? 'Hide' : 'Show'} stack trace
+                    </button>
+                    {stackTraceOpen && (
+                      <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">
+                        {stackTrace}
+                      </pre>
+                    )}
+                  </div>
                 )}
               </div>
             )}

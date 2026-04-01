@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 
 import { dailyRunStats, dailyFlakyTestStats } from './analytics.js';
 import { refreshTokens } from './auth.js';
+import { errorGroups, errorOccurrences } from './errors.js';
 import { runs, suites, tests, artifacts, testAttempts } from './execution.js';
 import { projects, projectTokens } from './project.js';
 import { organizations, users, memberships, invitations } from './tenant.js';
@@ -43,6 +44,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   projectTokens: many(projectTokens),
   runs: many(runs),
+  errorGroups: many(errorGroups),
 }));
 
 export const projectTokensRelations = relations(projectTokens, ({ one }) => ({
@@ -67,6 +69,7 @@ export const runsRelations = relations(runs, ({ one, many }) => ({
   }),
   suites: many(suites),
   tests: many(tests),
+  errorOccurrences: many(errorOccurrences),
 }));
 
 export const suitesRelations = relations(suites, ({ one, many }) => ({
@@ -91,6 +94,10 @@ export const testsRelations = relations(tests, ({ one, many }) => ({
   run: one(runs, {
     fields: [tests.runId],
     references: [runs.id],
+  }),
+  errorGroup: one(errorGroups, {
+    fields: [tests.errorGroupId],
+    references: [errorGroups.id],
   }),
   artifacts: many(artifacts),
   attempts: many(testAttempts),
@@ -136,6 +143,35 @@ export const dailyRunStatsRelations = relations(dailyRunStats, ({ one }) => ({
   }),
   organization: one(organizations, {
     fields: [dailyRunStats.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+export const errorGroupsRelations = relations(errorGroups, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [errorGroups.projectId],
+    references: [projects.id],
+  }),
+  organization: one(organizations, {
+    fields: [errorGroups.organizationId],
+    references: [organizations.id],
+  }),
+  occurrences: many(errorOccurrences),
+  // No tests back-relation — tests table uses composite PK (id, createdAt) which
+  // prevents a standard FK, and tests.errorGroupId has no FK constraint.
+}));
+
+export const errorOccurrencesRelations = relations(errorOccurrences, ({ one }) => ({
+  errorGroup: one(errorGroups, {
+    fields: [errorOccurrences.errorGroupId],
+    references: [errorGroups.id],
+  }),
+  run: one(runs, {
+    fields: [errorOccurrences.runId],
+    references: [runs.id],
+  }),
+  organization: one(organizations, {
+    fields: [errorOccurrences.organizationId],
     references: [organizations.id],
   }),
 }));

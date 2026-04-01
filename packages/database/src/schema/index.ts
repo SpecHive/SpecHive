@@ -4,4 +4,5 @@ export * from './project.js';
 export * from './execution.js';
 export * from './auth.js';
 export * from './analytics.js';
+export * from './errors.js';
 export * from './relations.js';

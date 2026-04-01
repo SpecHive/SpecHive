@@ -32,4 +32,13 @@ export type {
   InvitationValidation,
   MemberListItem,
   MemberListResponse,
+  ErrorGroupSummary,
+  ErrorTimelineResponse,
+  ErrorTimelineSeries,
+  ErrorTimelineDataPoint,
+  AffectedTest,
+  AffectedBranch,
+  ErrorGroupDetail,
+  RunErrorItem,
+  RunErrorsSummary,
 } from '@spechive/api-types';

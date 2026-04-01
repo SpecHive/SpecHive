@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 
+import { RunErrorsSummary } from '@/features/run-detail/components/run-errors-summary';
 import { RunHeader } from '@/features/run-detail/components/run-header';
 import { TestsTable } from '@/features/run-detail/components/tests-table';
 import { SuiteTree } from '@/shared/components/suite-tree';
@@ -8,6 +9,7 @@ import { TestDetailDrawer } from '@/shared/components/test-detail-drawer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import type { SortDirection } from '@/shared/components/ui/sortable-header';
 import { useApi } from '@/shared/hooks/use-api';
+import { useUpdateParam } from '@/shared/hooks/use-update-param';
 import type {
   PaginatedResponse,
   RunDetail,
@@ -18,10 +20,13 @@ import type {
 
 export function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const updateParam = useUpdateParam();
+  const selectedTestId = searchParams.get('testId') || null;
+
   const [testPage, setTestPage] = useState(1);
   const [testStatus, setTestStatus] = useState('');
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null);
-  const [selectedTestId, setSelectedTestId] = useState<string | null>(null);
   const [testSortBy, setTestSortBy] = useState<string | null>(null);
   const [testSortOrder, setTestSortOrder] = useState<SortDirection>(null);
 
@@ -92,6 +97,7 @@ export function RunDetailPage() {
   return (
     <div className="space-y-6">
       <RunHeader run={run} />
+      <RunErrorsSummary runId={id!} branch={run.branch} />
 
       <div className="flex gap-6">
         {suites && suites.length > 0 && (
@@ -121,12 +127,13 @@ export function RunDetailPage() {
           testSortOrder={testSortOrder}
           onTestSort={handleTestSort}
           onTestPageChange={setTestPage}
-          onTestSelect={setSelectedTestId}
+          selectedTestId={selectedTestId}
+          onTestSelect={(testId) => updateParam('testId', testId)}
         />
       </div>
 
       {selectedTestId && testDetail && (
-        <TestDetailDrawer testDetail={testDetail} onClose={() => setSelectedTestId(null)} />
+        <TestDetailDrawer testDetail={testDetail} onClose={() => updateParam('testId', '')} />
       )}
     </div>
   );

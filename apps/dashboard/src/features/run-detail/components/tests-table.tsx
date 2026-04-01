@@ -4,6 +4,7 @@ import { Pagination } from '@/shared/components/ui/pagination';
 import { SortableHeader } from '@/shared/components/ui/sortable-header';
 import type { SortDirection } from '@/shared/components/ui/sortable-header';
 import { testStatusOptions } from '@/shared/lib/constants';
+import { cn } from '@/shared/lib/utils';
 import type { PaginatedResponse, PaginationMeta, TestSummary } from '@/types/api';
 
 interface TestsTableProps {
@@ -17,6 +18,7 @@ interface TestsTableProps {
   testSortOrder: SortDirection;
   onTestSort: (column: string, direction: SortDirection) => void;
   onTestPageChange: (page: number) => void;
+  selectedTestId?: string | null;
   onTestSelect: (testId: string) => void;
 }
 
@@ -31,6 +33,7 @@ export function TestsTable({
   testSortOrder,
   onTestSort,
   onTestPageChange,
+  selectedTestId,
   onTestSelect,
 }: TestsTableProps) {
   return (
@@ -102,7 +105,10 @@ export function TestsTable({
                     }}
                     tabIndex={0}
                     role="button"
-                    className="cursor-pointer border-b transition-colors hover:bg-accent"
+                    className={cn(
+                      'cursor-pointer border-b transition-colors',
+                      selectedTestId === test.id ? 'bg-accent' : 'hover:bg-accent/50',
+                    )}
                   >
                     <td className="max-w-xs truncate py-3 pr-4 font-medium">{test.name}</td>
                     <td className="py-3 pr-4">

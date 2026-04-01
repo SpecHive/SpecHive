@@ -23,7 +23,11 @@ class ApiClient {
     this.onTokenRefresh = callback;
   }
 
-  async get<T>(path: string, params?: Record<string, string>): Promise<T> {
+  async get<T>(
+    path: string,
+    params?: Record<string, string>,
+    options?: { signal?: AbortSignal },
+  ): Promise<T> {
     this.assertConfigured();
     const url = new URL(`${this.baseUrl}${path}`);
     if (params) {
@@ -33,7 +37,10 @@ class ApiClient {
         }
       }
     }
-    return this.request<T>(url.toString(), { method: 'GET' });
+    return this.request<T>(url.toString(), {
+      method: 'GET',
+      ...(options?.signal ? { signal: options.signal } : {}),
+    });
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {

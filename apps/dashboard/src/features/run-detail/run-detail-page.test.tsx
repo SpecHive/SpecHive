@@ -93,6 +93,9 @@ describe('RunDetailPage', () => {
           refetch: vi.fn(),
         };
       }
+      if (path && path.includes('/errors/summary')) {
+        return { data: null, loading: false, error: null, refetch: vi.fn() };
+      }
       return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
     });
 
@@ -112,6 +115,9 @@ describe('RunDetailPage', () => {
           error: null,
           refetch: vi.fn(),
         };
+      }
+      if (path && path.includes('/errors/summary')) {
+        return { data: null, loading: false, error: null, refetch: vi.fn() };
       }
       return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
     });
@@ -154,6 +160,9 @@ describe('RunDetailPage', () => {
             refetch: vi.fn(),
           };
         }
+        if (path && path.includes('/errors/summary')) {
+          return { data: null, loading: false, error: null, refetch: vi.fn() };
+        }
         return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
       });
     }
@@ -167,37 +176,45 @@ describe('RunDetailPage', () => {
       expect(screen.getByText('Show stack trace')).toBeInTheDocument();
     });
 
-    it('hides stack trace section when stackTrace is null', async () => {
+    it('hides stack trace toggle when stackTrace is null', async () => {
       const user = userEvent.setup();
-      setupMocks({ ...mockTest, stackTrace: null, errorMessage: 'something broke' });
+      setupMocks({ ...mockTest, stackTrace: null, errorName: 'AssertionError' });
       renderRunDetail();
 
       await user.click(screen.getByText('should pass'));
       expect(screen.queryByText('Show stack trace')).not.toBeInTheDocument();
-      expect(screen.getByText('something broke')).toBeInTheDocument();
+      expect(screen.getByText('AssertionError')).toBeInTheDocument();
     });
 
-    it('shows error message section when errorMessage is present', async () => {
-      const user = userEvent.setup();
-      setupMocks({ ...mockTest, errorMessage: 'assertion failed', stackTrace: null });
-      renderRunDetail();
-
-      await user.click(screen.getByText('should pass'));
-      expect(screen.getByText('assertion failed')).toBeInTheDocument();
-      expect(screen.queryByText('Show stack trace')).not.toBeInTheDocument();
-    });
-
-    it('shows both error and stack trace independently', async () => {
+    it('shows error name and category badges when present', async () => {
       const user = userEvent.setup();
       setupMocks({
         ...mockTest,
-        errorMessage: 'assertion failed',
+        errorName: 'TimeoutError',
+        errorCategory: 'timeout',
+        stackTrace: null,
+      });
+      renderRunDetail();
+
+      await user.click(screen.getByText('should pass'));
+      expect(screen.getByText('TimeoutError')).toBeInTheDocument();
+      expect(screen.getByText('Timeout')).toBeInTheDocument();
+      expect(screen.queryByText('Show stack trace')).not.toBeInTheDocument();
+    });
+
+    it('shows stack trace toggle and structured fields together', async () => {
+      const user = userEvent.setup();
+      setupMocks({
+        ...mockTest,
+        errorName: 'AssertionError',
+        errorCategory: 'assertion',
         stackTrace: 'Error: boom\n  at bar.ts:2:3',
       });
       renderRunDetail();
 
       await user.click(screen.getByText('should pass'));
-      expect(screen.getByText('assertion failed')).toBeInTheDocument();
+      expect(screen.getByText('AssertionError')).toBeInTheDocument();
+      expect(screen.getByText('Assertion')).toBeInTheDocument();
       expect(screen.getByText('Show stack trace')).toBeInTheDocument();
     });
 
@@ -244,6 +261,9 @@ describe('RunDetailPage', () => {
             error: null,
             refetch: vi.fn(),
           };
+        }
+        if (path && path.includes('/errors/summary')) {
+          return { data: null, loading: false, error: null, refetch: vi.fn() };
         }
         return { data: mockRun, loading: false, error: null, refetch: vi.fn() };
       });

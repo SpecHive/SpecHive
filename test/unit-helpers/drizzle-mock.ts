@@ -5,6 +5,7 @@ export interface MockInsertChain {
   insert: Mock;
   values: Mock;
   onConflictDoNothing: Mock;
+  onConflictDoUpdate: Mock;
   returning: Mock;
 }
 
@@ -23,13 +24,14 @@ export interface MockUpdateChain {
   returning: Mock;
 }
 
-/** Create a chainable mock for Drizzle insert().values().onConflictDoNothing().returning() */
+/** Create a chainable mock for Drizzle insert().values().onConflict*().returning() */
 export function createMockInsertChain(): MockInsertChain {
   const returning = vi.fn().mockResolvedValue([]);
   const onConflictDoNothing = vi.fn().mockReturnValue({ returning });
-  const values = vi.fn().mockReturnValue({ onConflictDoNothing, returning });
+  const onConflictDoUpdate = vi.fn().mockReturnValue({ returning });
+  const values = vi.fn().mockReturnValue({ onConflictDoNothing, onConflictDoUpdate, returning });
   const insert = vi.fn().mockReturnValue({ values });
-  return { insert, values, onConflictDoNothing, returning };
+  return { insert, values, onConflictDoNothing, onConflictDoUpdate, returning };
 }
 
 /** Create a chainable mock for Drizzle select().from().where().orderBy().limit() */

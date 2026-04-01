@@ -27,6 +27,7 @@ describe('RunEndHandler', () => {
       },
     ]);
 
+    // Execute calls: retried tests COUNT, daily_run_stats UPSERT
     mocks.execute.mockResolvedValueOnce([{ retriedTests: 2 }]).mockResolvedValueOnce([]);
 
     const module = await Test.createTestingModule({
@@ -90,6 +91,7 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
+    // Two execute calls: retried count + daily_run_stats
     expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 
@@ -133,6 +135,7 @@ describe('RunEndHandler', () => {
 
     await handler.handle(event, ctx);
 
+    // Two execute calls: retried count + daily_run_stats
     expect(mocks.execute).toHaveBeenCalledTimes(2);
   });
 });

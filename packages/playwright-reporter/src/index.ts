@@ -14,26 +14,67 @@ import {
   detectCi,
   resolveBaseConfig,
   ReporterQueue,
-  MAX_ERROR_MESSAGE_LENGTH,
   MAX_STACK_TRACE_LENGTH,
 } from '@spechive/reporter-client';
 import type { BaseResolvedConfig } from '@spechive/reporter-client';
 import {
   ArtifactType,
+  MAX_ERROR_MESSAGE_LENGTH,
   RunStatus,
   TestStatus,
   asRunId,
   asSuiteId,
   asTestId,
   sanitizeArtifactName,
+  stripAnsi,
 } from '@spechive/shared-types';
 import type { ArtifactId } from '@spechive/shared-types';
 import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 
+import { parsePlaywrightError } from './error-parser.js';
 import type { SpecHiveReporterConfig } from './types.js';
 
 const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
 const ARTIFACT_SIZE_WARNING = 5 * 1024 * 1024;
+const MAX_ERROR_NAME_LENGTH = 200;
+const MAX_ERROR_SNIPPET_LENGTH = 5000;
+const MAX_ERROR_LOCATION_FILE_LENGTH = 1000;
+
+export function parseErrorName(message: string | undefined): string | undefined {
+  if (!message) return undefined;
+  const match = message.match(/^([A-Z][A-Za-z]*Error|Error)(?::|[\n\r])/);
+  return match?.[1]?.slice(0, MAX_ERROR_NAME_LENGTH);
+}
+
+function extractErrorMetadata(error: TestResult['error']) {
+  if (!error) return {};
+
+  // Strip ANSI codes before parsing — Playwright includes formatting in error.message
+  const cleanMessage = error.message ? stripAnsi(error.message) : undefined;
+  const errorName = parseErrorName(cleanMessage);
+
+  const errorLocation = error.location
+    ? {
+        file: error.location.file.slice(0, MAX_ERROR_LOCATION_FILE_LENGTH),
+        line: error.location.line,
+        column: error.location.column,
+      }
+    : undefined;
+
+  const errorSnippet = error.snippet ? error.snippet.slice(0, MAX_ERROR_SNIPPET_LENGTH) : undefined;
+
+  const parsed = parsePlaywrightError(cleanMessage);
+  // Fallback: errors with a recognized errorName but no structured pattern are 'runtime'
+  const errorCategory = parsed?.errorCategory ?? (errorName ? 'runtime' : undefined);
+
+  return {
+    ...(errorName ? { errorName } : {}),
+    ...(errorLocation ? { errorLocation } : {}),
+    ...(errorSnippet ? { errorSnippet } : {}),
+    ...(parsed ?? {}),
+    ...(errorCategory ? { errorCategory } : {}),
+  };
+}
 
 interface PlaywrightResolvedConfig extends BaseResolvedConfig {
   captureArtifacts: boolean;
@@ -182,6 +223,7 @@ export default class SpecHiveReporter implements Reporter {
 
       const errorMessage = errorAttempt?.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH);
       const stackTrace = errorAttempt?.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH);
+      const topLevelErrorMeta = extractErrorMetadata(errorAttempt?.error);
 
       const attempts = entry.attempts.map((attempt) => ({
         retryIndex: attempt.retry,
@@ -191,6 +233,7 @@ export default class SpecHiveReporter implements Reporter {
         finishedAt: new Date(attempt.startTime.getTime() + attempt.duration).toISOString(),
         errorMessage: attempt.error?.message?.slice(0, MAX_ERROR_MESSAGE_LENGTH),
         stackTrace: attempt.error?.stack?.slice(0, MAX_STACK_TRACE_LENGTH),
+        ...extractErrorMetadata(attempt.error),
       }));
 
       this.reporterQueue.enqueue({
@@ -204,6 +247,7 @@ export default class SpecHiveReporter implements Reporter {
           durationMs: finalAttempt.duration,
           errorMessage,
           stackTrace,
+          ...topLevelErrorMeta,
           retryCount: finalAttempt.retry,
           attempts,
         },

@@ -2,6 +2,9 @@ import {
   RunStatus,
   TestStatus,
   ArtifactType,
+  ERROR_CATEGORIES,
+  MAX_ERROR_FIELD_LENGTH,
+  MAX_ERROR_MESSAGE_LENGTH,
   asArtifactId,
   asRunId,
   asSuiteId,
@@ -86,6 +89,28 @@ export const TestStartSchema = z.object({
   }),
 });
 
+const errorLocationSchema = z.object({
+  file: z.string().max(1000),
+  line: z.number().int().nonnegative(),
+  column: z.number().int().nonnegative().optional(),
+});
+
+export const ErrorCategorySchema = z.enum(ERROR_CATEGORIES);
+
+const errorFieldsSchema = {
+  errorMessage: z.string().max(MAX_ERROR_MESSAGE_LENGTH).optional(),
+  stackTrace: z.string().max(50_000).optional(),
+  errorName: z.string().max(200).optional(),
+  errorLocation: errorLocationSchema.optional(),
+  errorSnippet: z.string().max(5000).optional(),
+  errorExpected: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
+  errorActual: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
+  errorDiff: z.string().max(50_000).optional(),
+  errorCategory: ErrorCategorySchema.optional(),
+  errorMatcher: z.string().max(200).optional(),
+  errorTarget: z.string().max(MAX_ERROR_FIELD_LENGTH).optional(),
+};
+
 export const TestEndSchema = z.object({
   ...baseEnvelopeFields,
   eventType: z.literal('test.end'),
@@ -93,8 +118,7 @@ export const TestEndSchema = z.object({
     testId: z.string().uuid().transform(asTestId),
     status: z.nativeEnum(TestStatus),
     durationMs: z.number().nonnegative().optional(),
-    errorMessage: z.string().max(10_000).optional(),
-    stackTrace: z.string().max(50_000).optional(),
+    ...errorFieldsSchema,
     retryCount: z.number().nonnegative().int().optional(),
     attempts: z
       .array(
@@ -104,8 +128,7 @@ export const TestEndSchema = z.object({
           durationMs: z.number().nonnegative().optional(),
           startedAt: z.string().datetime().optional(),
           finishedAt: z.string().datetime().optional(),
-          errorMessage: z.string().max(10_000).optional(),
-          stackTrace: z.string().max(50_000).optional(),
+          ...errorFieldsSchema,
         }),
       )
       .optional(),
