@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ProjectTokenGuard, Public } from '@spechive/nestjs-common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -6,6 +7,7 @@ import { ProxyService } from '../proxy.service';
 
 @Controller('v1')
 @Public()
+@SkipThrottle()
 export class IngestionProxyController {
   constructor(private readonly proxy: ProxyService) {}
 

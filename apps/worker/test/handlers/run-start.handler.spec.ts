@@ -40,6 +40,7 @@ describe('RunStartHandler', () => {
       organizationId: 'org-1',
       name: null,
       status: RunStatus.Pending,
+      expectedTests: 0,
       startedAt: new Date('2025-01-01T00:00:00.000Z'),
       metadata: { ci: true },
       branch: null,

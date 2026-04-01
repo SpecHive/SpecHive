@@ -50,6 +50,7 @@ export const RunStartSchema = z.object({
         },
         { message: 'metadata must be under 1MB when serialized' },
       ),
+    expectedTests: z.number().int().nonnegative().optional(),
   }),
 });
 

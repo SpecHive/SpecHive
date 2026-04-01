@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
-import { TestStatus } from '@spechive/shared-types';
+import { RunStatus, TestStatus } from '@spechive/shared-types';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { createHandlerContext } from '../../../../test/unit-helpers/handler-context';
@@ -68,5 +68,26 @@ describe('TestStartHandler', () => {
     await handler.handle(event, ctx);
 
     expect(mocks.insert.returning).toHaveBeenCalled();
+  });
+
+  it('transitions run from pending to running', async () => {
+    mocks.insert.returning.mockResolvedValueOnce([{ id: 'test-1' }]);
+
+    const event = {
+      version: '1' as const,
+      timestamp: '2025-01-01T00:00:00.000Z',
+      runId: 'run-1' as RunId,
+      eventType: 'test.start' as const,
+      payload: {
+        testId: 'test-1' as TestId,
+        suiteId: 'suite-1' as SuiteId,
+        testName: 'should login successfully',
+      },
+    };
+
+    await handler.handle(event, ctx);
+
+    expect(mocks.update.update).toHaveBeenCalled();
+    expect(mocks.update.set).toHaveBeenCalledWith({ status: RunStatus.Running });
   });
 });

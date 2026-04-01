@@ -106,7 +106,7 @@ describe('TestEndHandler', () => {
     expect(mocks.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('skips UPSERT when test update returns no rows', async () => {
+  it('throws RetryableError when test row not found', async () => {
     mocks.update.returning.mockResolvedValue([]);
 
     const event = {
@@ -122,9 +122,7 @@ describe('TestEndHandler', () => {
       },
     };
 
-    await handler.handle(event, ctx);
-
-    expect(mocks.execute).not.toHaveBeenCalled();
+    await expect(handler.handle(event, ctx)).rejects.toThrow('Test row not found');
   });
 
   it('strips ANSI escape codes from errorMessage and stackTrace', async () => {

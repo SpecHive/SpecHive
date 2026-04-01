@@ -1,0 +1,1 @@
+ALTER TABLE "runs" ADD COLUMN "expected_tests" integer DEFAULT 0 NOT NULL;

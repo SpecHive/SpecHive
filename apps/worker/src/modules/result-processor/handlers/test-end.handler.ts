@@ -8,7 +8,7 @@ import {
   testAttempts,
   tests,
 } from '@spechive/database';
-import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
+import { InjectPinoLogger, PinoLogger, RetryableError } from '@spechive/nestjs-common';
 import type { TestEndEvent } from '@spechive/reporter-core-protocol';
 import { MAX_ERROR_MESSAGE_LENGTH, TestStatus, stripAnsi } from '@spechive/shared-types';
 import { and, eq, sql } from 'drizzle-orm';
@@ -64,6 +64,13 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       .where(and(eq(tests.id, testId), eq(tests.runId, event.runId)))
       .returning({ name: tests.name });
 
+    // Test row must exist (created by test.start). If not yet processed, retry later.
+    if (!updatedTest) {
+      throw new RetryableError(
+        `Test row not found for test.end (testId=${testId}, runId=${event.runId})`,
+      );
+    }
+
     if (attempts?.length) {
       await ctx.tx
         .insert(testAttempts)
@@ -92,11 +99,7 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
     }
 
     // --- Error fingerprinting & grouping ---
-    if (
-      updatedTest &&
-      strippedErrorMessage &&
-      (status === TestStatus.Failed || status === TestStatus.Flaky)
-    ) {
+    if (strippedErrorMessage && (status === TestStatus.Failed || status === TestStatus.Flaky)) {
       const strippedErrorMatcher = event.payload.errorMatcher
         ? stripAnsi(event.payload.errorMatcher)
         : undefined;
@@ -209,25 +212,23 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       })
       .where(eq(runs.id, event.runId));
 
-    if (updatedTest) {
-      const isFlaky = status === TestStatus.Flaky;
-      const testDay = new Date(event.timestamp).toISOString();
-      await ctx.tx.execute(sql`
-        INSERT INTO ${dailyFlakyTestStats} (
-          project_id, organization_id, test_name, day,
-          flaky_count, total_count, total_retries
-        )
-        VALUES (
-          ${ctx.projectId}, ${ctx.organizationId}, ${updatedTest.name},
-          date_trunc('day', ${testDay}::timestamptz AT TIME ZONE 'UTC')::date,
-          ${isFlaky ? 1 : 0}, 1, ${isFlaky ? (retryCount ?? 0) : 0}
-        )
-        ON CONFLICT (project_id, test_name, day) DO UPDATE SET
-          flaky_count = ${dailyFlakyTestStats.flakyCount} + EXCLUDED.flaky_count,
-          total_count = ${dailyFlakyTestStats.totalCount} + EXCLUDED.total_count,
-          total_retries = ${dailyFlakyTestStats.totalRetries} + EXCLUDED.total_retries
-      `);
-    }
+    const isFlaky = status === TestStatus.Flaky;
+    const testDay = new Date(event.timestamp).toISOString();
+    await ctx.tx.execute(sql`
+      INSERT INTO ${dailyFlakyTestStats} (
+        project_id, organization_id, test_name, day,
+        flaky_count, total_count, total_retries
+      )
+      VALUES (
+        ${ctx.projectId}, ${ctx.organizationId}, ${updatedTest.name},
+        date_trunc('day', ${testDay}::timestamptz AT TIME ZONE 'UTC')::date,
+        ${isFlaky ? 1 : 0}, 1, ${isFlaky ? (retryCount ?? 0) : 0}
+      )
+      ON CONFLICT (project_id, test_name, day) DO UPDATE SET
+        flaky_count = ${dailyFlakyTestStats.flakyCount} + EXCLUDED.flaky_count,
+        total_count = ${dailyFlakyTestStats.totalCount} + EXCLUDED.total_count,
+        total_retries = ${dailyFlakyTestStats.totalRetries} + EXCLUDED.total_retries
+    `);
 
     this.logger.info({ testId, status, runId: event.runId }, 'Test ended');
   }

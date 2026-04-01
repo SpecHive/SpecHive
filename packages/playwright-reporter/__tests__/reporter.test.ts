@@ -50,12 +50,26 @@ function makeConfig(): SpecHiveReporterConfig {
   return { apiUrl: 'https://api.test', projectToken: 'tok-123' };
 }
 
+interface TestSuiteNode {
+  tests: TestCase[];
+  suites: TestSuiteNode[];
+}
+
+function collectAllTests(suite: TestSuiteNode): TestCase[] {
+  const result: TestCase[] = [...suite.tests];
+  for (const child of suite.suites) {
+    result.push(...collectAllTests(child));
+  }
+  return result;
+}
+
 function makeSuite(title: string, children: Suite[] = [], tests: TestCase[] = []): Suite {
   const suite: Suite = {
     title,
     suites: children,
     tests,
     type: title === '' ? 'root' : 'describe',
+    allTests: () => collectAllTests(suite),
   } as unknown as Suite;
   for (const child of children) {
     (child as { parent: Suite }).parent = suite;
@@ -66,12 +80,13 @@ function makeSuite(title: string, children: Suite[] = [], tests: TestCase[] = []
   return suite;
 }
 
-function makeTest(title: string, parent?: Suite): TestCase {
+function makeTest(title: string, parent?: Suite, retries = 0): TestCase {
   return {
     title,
     parent,
     id: `test-${title}`,
     outcome: () => 'expected',
+    retries,
   } as unknown as TestCase;
 }
 
@@ -241,7 +256,7 @@ describe('SpecHiveReporter', () => {
   });
 
   describe('onTestEnd', () => {
-    it('sends test.start on first attempt but defers test.end to onEnd', async () => {
+    it('sends test.start in onTestBegin and test.end in onTestEnd', async () => {
       const child = makeSuite('my-suite');
       const root = makeSuite('', [child]);
       await reporter.onBegin({} as FullConfig, root);
@@ -249,17 +264,19 @@ describe('SpecHiveReporter', () => {
       mockSendEvent.mockClear();
 
       const test = makeTest('should pass', child);
-      reporter.onTestEnd(test, makeTestResult({ status: 'passed', duration: 200 }));
+      reporter.onTestBegin(test, makeTestResult());
       await flushQueue();
 
-      const events = sentEvents();
-      expect(events).toHaveLength(1);
-      expect(events[0]!.eventType).toBe('test.start');
-      expect(events[0]!.payload.testName).toBe('should pass');
+      // test.start is sent during onTestBegin
+      const startEvents = sentEvents();
+      expect(startEvents).toHaveLength(1);
+      expect(startEvents[0]!.eventType).toBe('test.start');
+      expect(startEvents[0]!.payload.testName).toBe('should pass');
 
-      // test.end is sent during onEnd
+      // test.end is sent during onTestEnd (not deferred to onEnd)
       mockSendEvent.mockClear();
-      await reporter.onEnd({ status: 'passed' } as FullResult);
+      reporter.onTestEnd(test, makeTestResult({ status: 'passed', duration: 200 }));
+      await flushQueue();
 
       const endEvents = sentEvents();
       const testEnd = endEvents.find((e) => e.eventType === 'test.end');
@@ -282,6 +299,7 @@ describe('SpecHiveReporter', () => {
 
       const test = makeTest('test', child);
       mockOutcome(test, pwStatus === 'skipped' ? 'skipped' : 'unexpected');
+      reporter.onTestBegin(test, makeTestResult());
       reporter.onTestEnd(test, makeTestResult({ status: pwStatus }));
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
@@ -301,6 +319,7 @@ describe('SpecHiveReporter', () => {
       const longStack = 'y'.repeat(100_000);
       const test = makeTest('test', child);
       mockOutcome(test, 'unexpected');
+      reporter.onTestBegin(test, makeTestResult());
       reporter.onTestEnd(
         test,
         makeTestResult({
@@ -323,7 +342,8 @@ describe('SpecHiveReporter', () => {
       await flushQueue();
       mockSendEvent.mockClear();
 
-      const test = makeTest('test', child);
+      const test = makeTest('test', child, 2);
+      reporter.onTestBegin(test, makeTestResult());
       reporter.onTestEnd(test, makeTestResult({ retry: 2 }));
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
@@ -340,6 +360,7 @@ describe('SpecHiveReporter', () => {
       mockSendEvent.mockClear();
 
       const test = makeTest('test', child);
+      reporter.onTestBegin(test, makeTestResult());
       reporter.onTestEnd(test, makeTestResult({ status: 'passed', duration: 150, retry: 0 }));
       await reporter.onEnd({ status: 'passed' } as FullResult);
 
@@ -367,8 +388,9 @@ describe('SpecHiveReporter', () => {
       await flushQueue();
       mockSendEvent.mockClear();
 
-      const test = makeTest('test', child);
+      const test = makeTest('test', child, 1);
       mockOutcome(test, 'flaky');
+      reporter.onTestBegin(test, makeTestResult());
       reporter.onTestEnd(
         test,
         makeTestResult({
@@ -495,6 +517,7 @@ describe('SpecHiveReporter', () => {
     it('reports passed when test passes first try', async () => {
       const { reporter: r } = await beginReporter();
       const test = makeTest('passes-first', undefined);
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 0 }));
       await r.onEnd({ status: 'passed' } as FullResult);
 
@@ -506,9 +529,10 @@ describe('SpecHiveReporter', () => {
 
     it('reports failed when test fails all retries', async () => {
       const { reporter: r } = await beginReporter();
-      const test = makeTest('fails-all', undefined);
+      const test = makeTest('fails-all', undefined, 2);
       mockOutcome(test, 'unexpected');
 
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 1 }));
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 2 }));
@@ -522,10 +546,11 @@ describe('SpecHiveReporter', () => {
 
     it('reports flaky when test fails then passes', async () => {
       const { reporter: r } = await beginReporter();
-      const test = makeTest('flaky-test', undefined);
+      const test = makeTest('flaky-test', undefined, 2);
       mockOutcome(test, 'flaky');
 
       const failError = { message: 'assertion failed', stack: 'at test.ts:10' };
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -555,9 +580,10 @@ describe('SpecHiveReporter', () => {
 
     it('sends test.start only once regardless of retries', async () => {
       const { reporter: r } = await beginReporter();
-      const test = makeTest('retried-test', undefined);
+      const test = makeTest('retried-test', undefined, 1);
       mockOutcome(test, 'flaky');
 
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
       r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 1 }));
       await flushQueue();
@@ -567,27 +593,24 @@ describe('SpecHiveReporter', () => {
       expect(testStarts).toHaveLength(1);
     });
 
-    it('sends test.end only during onEnd, not during onTestEnd', async () => {
+    it('sends test.end during onTestEnd, not deferred to onEnd', async () => {
       const { reporter: r } = await beginReporter();
-      const test = makeTest('deferred-end', undefined);
+      const test = makeTest('immediate-end', undefined);
 
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(test, makeTestResult({ status: 'passed', retry: 0 }));
       await flushQueue();
 
-      const eventsBeforeOnEnd = sentEvents();
-      expect(eventsBeforeOnEnd.filter((e) => e.eventType === 'test.end')).toHaveLength(0);
-
-      await r.onEnd({ status: 'passed' } as FullResult);
-
-      const eventsAfterOnEnd = sentEvents();
-      expect(eventsAfterOnEnd.filter((e) => e.eventType === 'test.end')).toHaveLength(1);
+      const eventsAfterTestEnd = sentEvents();
+      expect(eventsAfterTestEnd.filter((e) => e.eventType === 'test.end')).toHaveLength(1);
     });
 
     it('preserves error from failed attempt in flaky test', async () => {
       const { reporter: r } = await beginReporter();
-      const test = makeTest('flaky-error', undefined);
+      const test = makeTest('flaky-error', undefined, 1);
       mockOutcome(test, 'flaky');
 
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -629,6 +652,7 @@ describe('SpecHiveReporter', () => {
       mockReadFile.mockResolvedValue(content);
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -659,10 +683,11 @@ describe('SpecHiveReporter', () => {
       const r = await setupReporter();
       mockReadFile.mockResolvedValue(Buffer.from('data'));
 
-      const test = makeTest('test');
+      const test = makeTest('test', undefined, 1);
       mockOutcome(test, 'flaky');
 
       // First attempt (retry 0) — no artifacts
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(test, makeTestResult({ status: 'failed', retry: 0 }));
 
       // Second attempt (retry 1) — with artifact
@@ -688,6 +713,7 @@ describe('SpecHiveReporter', () => {
       const body = Buffer.from('inline-body');
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -705,6 +731,7 @@ describe('SpecHiveReporter', () => {
       const r = await setupReporter();
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -727,6 +754,7 @@ describe('SpecHiveReporter', () => {
       const r = await setupReporter();
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -745,6 +773,7 @@ describe('SpecHiveReporter', () => {
       const oversized = Buffer.alloc(11 * 1024 * 1024);
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -763,6 +792,7 @@ describe('SpecHiveReporter', () => {
       const large = Buffer.alloc(6 * 1024 * 1024);
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -779,6 +809,7 @@ describe('SpecHiveReporter', () => {
       const r = await setupReporter({ captureArtifacts: false });
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({
@@ -796,6 +827,7 @@ describe('SpecHiveReporter', () => {
       const r = await setupReporter();
 
       const test = makeTest('test');
+      r.onTestBegin(test, makeTestResult());
       r.onTestEnd(
         test,
         makeTestResult({

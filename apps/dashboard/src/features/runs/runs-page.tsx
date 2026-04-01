@@ -179,7 +179,8 @@ export function RunsPage() {
                         )}
                       </td>
                       <td className="py-3 pr-4">
-                        {run.passedTests}/{run.totalTests}
+                        {run.passedTests}/
+                        {run.expectedTests > 0 ? run.expectedTests : run.totalTests}
                       </td>
                       <td className="py-3 pr-4">{formatDuration(run.startedAt, run.finishedAt)}</td>
                       <td className="py-3">{formatRelativeTime(run.startedAt)}</td>
