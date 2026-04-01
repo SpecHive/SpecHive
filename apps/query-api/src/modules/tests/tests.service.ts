@@ -128,6 +128,11 @@ export class TestsService {
             durationMs: testAttempts.durationMs,
             errorMessage: testAttempts.errorMessage,
             stackTrace: testAttempts.stackTrace,
+            errorName: testAttempts.errorName,
+            errorCategory: testAttempts.errorCategory,
+            errorExpected: testAttempts.errorExpected,
+            errorActual: testAttempts.errorActual,
+            errorLocation: testAttempts.errorLocation,
           })
           .from(testAttempts)
           .where(eq(testAttempts.testId, testId))

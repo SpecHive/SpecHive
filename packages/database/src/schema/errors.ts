@@ -97,7 +97,6 @@ export const errorOccurrences = pgTable(
     index('idx_error_occurrences_project_date').on(table.projectId, table.occurredAt),
     index('idx_error_occurrences_test').on(table.testId),
     index('idx_error_occurrences_branch').on(table.errorGroupId, table.branch),
-    index('idx_error_occurrences_org').on(table.organizationId),
     uniqueIndex('uq_error_occurrences_run_test').on(table.runId, table.testId),
   ],
 );

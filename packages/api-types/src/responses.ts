@@ -57,6 +57,12 @@ export interface SuiteSummary {
   createdAt: string | null;
 }
 
+export interface ErrorLocation {
+  file: string;
+  line: number;
+  column?: number;
+}
+
 export interface TestSummary {
   id: TestId;
   suiteId: SuiteId;
@@ -81,9 +87,19 @@ export interface TestAttemptSummary {
   finishedAt: string | null;
   errorMessage: string | null;
   stackTrace: string | null;
+  errorName: string | null;
+  errorCategory: string | null;
+  errorExpected: string | null;
+  errorActual: string | null;
+  errorLocation: ErrorLocation | null;
 }
 
 export interface TestDetail extends TestSummary {
+  errorName: string | null;
+  errorCategory: string | null;
+  errorExpected: string | null;
+  errorActual: string | null;
+  errorLocation: ErrorLocation | null;
   updatedAt: string | null;
   artifacts: ArtifactSummary[];
   attempts: TestAttemptSummary[];

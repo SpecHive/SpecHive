@@ -140,6 +140,15 @@ export const tests = pgTable(
     durationMs: integer('duration_ms'),
     errorMessage: text('error_message'),
     stackTrace: text('stack_trace'),
+    errorName: text('error_name'),
+    errorCategory: text('error_category'),
+    errorExpected: text('error_expected'),
+    errorActual: text('error_actual'),
+    errorLocation: jsonb('error_location').$type<{
+      file: string;
+      line: number;
+      column?: number | undefined;
+    }>(),
     // No FK — avoids circular import with errors.ts (errors.ts imports runs from this file)
     errorGroupId: uuid('error_group_id').$type<ErrorGroupId>(),
     retryCount: integer('retry_count').notNull().default(0),
@@ -212,6 +221,15 @@ export const testAttempts = pgTable(
     durationMs: integer('duration_ms'),
     errorMessage: text('error_message'),
     stackTrace: text('stack_trace'),
+    errorName: text('error_name'),
+    errorCategory: text('error_category'),
+    errorExpected: text('error_expected'),
+    errorActual: text('error_actual'),
+    errorLocation: jsonb('error_location').$type<{
+      file: string;
+      line: number;
+      column?: number | undefined;
+    }>(),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     ...timestamps,

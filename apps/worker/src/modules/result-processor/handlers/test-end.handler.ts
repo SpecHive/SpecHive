@@ -26,8 +26,20 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
   constructor(@InjectPinoLogger(TestEndHandler.name) private readonly logger: PinoLogger) {}
 
   async handle(event: TestEndEvent, ctx: EventHandlerContext): Promise<void> {
-    const { testId, status, durationMs, errorMessage, stackTrace, retryCount, attempts } =
-      event.payload;
+    const {
+      testId,
+      status,
+      durationMs,
+      errorMessage,
+      stackTrace,
+      retryCount,
+      attempts,
+      errorName,
+      errorCategory,
+      errorExpected,
+      errorActual,
+      errorLocation,
+    } = event.payload;
 
     const strippedErrorMessage = errorMessage ? stripAnsi(errorMessage) : null;
     const strippedStackTrace = stackTrace ? stripAnsi(stackTrace) : null;
@@ -39,6 +51,11 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
         durationMs: durationMs ?? null,
         errorMessage: strippedErrorMessage,
         stackTrace: strippedStackTrace,
+        errorName: errorName ?? null,
+        errorCategory: errorCategory ?? null,
+        errorExpected: errorExpected ? stripAnsi(errorExpected) : null,
+        errorActual: errorActual ? stripAnsi(errorActual) : null,
+        errorLocation: errorLocation ?? null,
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
       })
@@ -58,6 +75,11 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
             durationMs: a.durationMs ?? null,
             errorMessage: a.errorMessage ? stripAnsi(a.errorMessage) : null,
             stackTrace: a.stackTrace ? stripAnsi(a.stackTrace) : null,
+            errorName: a.errorName ?? null,
+            errorCategory: a.errorCategory ?? null,
+            errorExpected: a.errorExpected ? stripAnsi(a.errorExpected) : null,
+            errorActual: a.errorActual ? stripAnsi(a.errorActual) : null,
+            errorLocation: a.errorLocation ?? null,
             startedAt: a.startedAt ? new Date(a.startedAt) : null,
             finishedAt: a.finishedAt ? new Date(a.finishedAt) : null,
             // Deterministic createdAt for dedup with composite unique index (test_id, retry_index, created_at)
