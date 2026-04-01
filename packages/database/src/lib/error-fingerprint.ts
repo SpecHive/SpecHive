@@ -110,6 +110,8 @@ function buildSignature(
   errorName: string | undefined,
   fields: ErrorFields | undefined,
 ): string {
+  // Normalize errorName for cross-framework resilience (e.g. "TypeError" vs "typeerror")
+  const normalizedName = errorName?.trim().toLowerCase() || undefined;
   const hasStructured = fields?.errorCategory && fields?.errorMatcher;
 
   if (hasStructured) {
@@ -120,12 +122,12 @@ function buildSignature(
       fields.errorExpected ?? '',
     ];
     const signature = parts.join('::');
-    return errorName ? `${errorName}::${signature}` : signature;
+    return normalizedName ? `${normalizedName}::${signature}` : signature;
   }
 
   // Fallback: normalize the first line of the raw message
   const normalizedFirstLine = normalizeErrorMessage(firstLine(message));
-  return errorName ? `${errorName}::${normalizedFirstLine}` : normalizedFirstLine;
+  return normalizedName ? `${normalizedName}::${normalizedFirstLine}` : normalizedFirstLine;
 }
 
 /**

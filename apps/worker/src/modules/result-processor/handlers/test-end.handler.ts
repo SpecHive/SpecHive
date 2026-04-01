@@ -41,18 +41,22 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
 
     const strippedErrorMessage = errorMessage ? stripAnsi(errorMessage) : null;
     const strippedStackTrace = stackTrace ? stripAnsi(stackTrace) : null;
+    const strippedErrorName = errorName ? stripAnsi(errorName) : null;
+    const strippedErrorCategory = errorCategory ?? null;
+    const strippedErrorExpected = errorExpected ? stripAnsi(errorExpected) : null;
+    const strippedErrorActual = errorActual ? stripAnsi(errorActual) : null;
 
     const [updatedTest] = await ctx.tx
       .update(tests)
       .set({
         status,
         durationMs: durationMs ?? null,
-        errorMessage: strippedErrorMessage,
+        errorMessage: strippedErrorMessage?.slice(0, MAX_ERROR_MESSAGE_LENGTH) ?? null,
         stackTrace: strippedStackTrace,
-        errorName: errorName ?? null,
-        errorCategory: errorCategory ?? null,
-        errorExpected: errorExpected ? stripAnsi(errorExpected) : null,
-        errorActual: errorActual ? stripAnsi(errorActual) : null,
+        errorName: strippedErrorName,
+        errorCategory: strippedErrorCategory,
+        errorExpected: strippedErrorExpected,
+        errorActual: strippedErrorActual,
         errorLocation: errorLocation ?? null,
         retryCount: retryCount ?? 0,
         finishedAt: new Date(event.timestamp),
@@ -93,14 +97,21 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
       strippedErrorMessage &&
       (status === TestStatus.Failed || status === TestStatus.Flaky)
     ) {
+      const strippedErrorMatcher = event.payload.errorMatcher
+        ? stripAnsi(event.payload.errorMatcher)
+        : undefined;
+      const strippedErrorTarget = event.payload.errorTarget
+        ? stripAnsi(event.payload.errorTarget)
+        : undefined;
+
       const { fingerprint, normalizedMessage, title } = computeFingerprint(
         strippedErrorMessage,
-        event.payload.errorName,
+        strippedErrorName ?? undefined,
         {
-          errorCategory: event.payload.errorCategory,
-          errorMatcher: event.payload.errorMatcher,
-          errorTarget: event.payload.errorTarget,
-          errorExpected: event.payload.errorExpected,
+          errorCategory: strippedErrorCategory ?? undefined,
+          errorMatcher: strippedErrorMatcher,
+          errorTarget: strippedErrorTarget,
+          errorExpected: strippedErrorExpected ?? undefined,
         },
       );
 
@@ -120,8 +131,8 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           fingerprint,
           title,
           normalizedMessage,
-          errorName: event.payload.errorName ?? null,
-          errorCategory: event.payload.errorCategory ?? null,
+          errorName: strippedErrorName,
+          errorCategory: strippedErrorCategory,
           totalOccurrences: 1,
           uniqueTestCount: 1,
           uniqueBranchCount: runInfo?.branch ? 1 : 0,
@@ -137,7 +148,12 @@ export class TestEndHandler implements IEventHandler<TestEndEvent> {
           set: {
             lastSeenAt: sql`GREATEST(${errorGroups.lastSeenAt}, EXCLUDED.last_seen_at)`,
             errorName: sql`COALESCE(EXCLUDED.error_name, ${errorGroups.errorName})`,
-            errorCategory: sql`COALESCE(EXCLUDED.error_category, ${errorGroups.errorCategory})`,
+            // Prefer structured categories (assertion/timeout/action) over the generic 'runtime' fallback.
+            // This prevents a less-informed reporter from downgrading a previously well-categorized error.
+            errorCategory: sql`CASE
+              WHEN EXCLUDED.error_category IN ('assertion', 'timeout', 'action') THEN EXCLUDED.error_category
+              ELSE COALESCE(${errorGroups.errorCategory}, EXCLUDED.error_category)
+            END`,
             updatedAt: sql`NOW()`,
           },
         })

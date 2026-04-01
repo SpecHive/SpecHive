@@ -22,6 +22,8 @@ interface ErrorGroupsTableProps {
   renderDetail?: (groupId: string) => React.ReactNode;
 }
 
+const COLUMN_COUNT = 5;
+
 export function ErrorGroupsTable({
   data,
   loading,
@@ -131,7 +133,7 @@ export function ErrorGroupsTable({
                       </tr>
                       {isExpanded && renderDetail && (
                         <tr key={`${group.id}-detail`}>
-                          <td colSpan={5} className="bg-muted/30 px-4 py-4">
+                          <td colSpan={COLUMN_COUNT} className="bg-muted/30 px-4 py-4">
                             {renderDetail(group.id)}
                           </td>
                         </tr>

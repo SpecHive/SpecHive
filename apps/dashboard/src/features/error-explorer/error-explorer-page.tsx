@@ -110,6 +110,21 @@ export function ErrorExplorerPage() {
 
   const updateParam = useUpdateParam();
 
+  const renderDetail = useCallback(
+    (groupId: string) => (
+      <ErrorBoundary
+        fallback={
+          <p className="py-4 text-center text-sm text-destructive">
+            Failed to render error details
+          </p>
+        }
+      >
+        <ErrorGroupDetailPanel errorGroupId={groupId} dateFrom={dateFrom} dateTo={dateTo} />
+      </ErrorBoundary>
+    ),
+    [dateFrom, dateTo],
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Error Explorer" description="Track and analyze test errors." />
@@ -126,60 +141,46 @@ export function ErrorExplorerPage() {
         <>
           <PeriodSelector options={periodOptions} value={days} onChange={setDays} />
 
-          {timelineError || groupsError ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Error Timeline</CardTitle>
+              <ErrorMetricToggle />
+            </CardHeader>
+            <CardContent>
+              {timelineError ? (
+                <p className="py-8 text-center text-destructive">
+                  Failed to load timeline data. Please try again.
+                </p>
+              ) : (
+                <ErrorTimelineChart data={timelineData} loading={timelineLoading} metric={metric} />
+              )}
+            </CardContent>
+          </Card>
+
+          <ErrorTableFilters />
+
+          {groupsError ? (
             <Card>
               <CardContent className="py-8">
                 <p className="text-center text-destructive">
-                  Failed to load error data. Please try again.
+                  Failed to load error groups. Please try again.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            <>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Error Timeline</CardTitle>
-                  <ErrorMetricToggle />
-                </CardHeader>
-                <CardContent>
-                  <ErrorTimelineChart
-                    data={timelineData}
-                    loading={timelineLoading}
-                    metric={metric}
-                  />
-                </CardContent>
-              </Card>
-
-              <ErrorTableFilters />
-
-              <ErrorGroupsTable
-                data={groupsData}
-                loading={groupsLoading}
-                expandedId={expandedGroupId}
-                onExpand={setExpandedGroupId}
-                sortBy={sortBy}
-                sortDirection={sortOrder}
-                onSort={handleSort}
-                pageSize={pageSize}
-                onPageChange={(p) => updateParam('page', String(p))}
-                onPageSizeChange={(s) => updateParam('pageSize', String(s))}
-                renderDetail={(groupId) => (
-                  <ErrorBoundary
-                    fallback={
-                      <p className="py-4 text-center text-sm text-destructive">
-                        Failed to render error details
-                      </p>
-                    }
-                  >
-                    <ErrorGroupDetailPanel
-                      errorGroupId={groupId}
-                      dateFrom={dateFrom}
-                      dateTo={dateTo}
-                    />
-                  </ErrorBoundary>
-                )}
-              />
-            </>
+            <ErrorGroupsTable
+              data={groupsData}
+              loading={groupsLoading}
+              expandedId={expandedGroupId}
+              onExpand={setExpandedGroupId}
+              sortBy={sortBy}
+              sortDirection={sortOrder}
+              onSort={handleSort}
+              pageSize={pageSize}
+              onPageChange={(p) => updateParam('page', String(p))}
+              onPageSizeChange={(s) => updateParam('pageSize', String(s))}
+              renderDetail={renderDetail}
+            />
           )}
         </>
       )}

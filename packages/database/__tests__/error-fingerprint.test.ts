@@ -99,6 +99,20 @@ describe('computeFingerprint', () => {
     expect(a.fingerprint).not.toBe(b.fingerprint);
   });
 
+  it('same errorName with different casing produces same fingerprint', () => {
+    const a = computeFingerprint('something failed', 'TypeError');
+    const b = computeFingerprint('something failed', 'typeerror');
+    const c = computeFingerprint('something failed', 'TYPEERROR');
+    expect(a.fingerprint).toBe(b.fingerprint);
+    expect(a.fingerprint).toBe(c.fingerprint);
+  });
+
+  it('trims whitespace from errorName before fingerprinting', () => {
+    const a = computeFingerprint('something failed', 'TypeError');
+    const b = computeFingerprint('something failed', '  TypeError  ');
+    expect(a.fingerprint).toBe(b.fingerprint);
+  });
+
   it('returns the normalized message alongside the fingerprint', () => {
     const { normalizedMessage } = computeFingerprint('Error at 2024-01-15T10:30:45Z');
     expect(normalizedMessage).toBe('Error at <TIMESTAMP>');

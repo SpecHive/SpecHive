@@ -106,7 +106,7 @@ export function ErrorGroupDetailPanel({
               </tr>
             ) : (
               detail.affectedTests.map((t) => (
-                <tr key={t.testName} className="border-b">
+                <tr key={t.lastTestId ?? t.testName} className="border-b">
                   <td className="py-2 pr-4">
                     {t.lastRunId && t.lastTestId ? (
                       <Link
