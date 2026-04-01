@@ -337,7 +337,8 @@ export class ErrorsService {
     params: ErrorGroupDetailParams,
   ): Promise<ErrorGroupDetail> {
     const { dateFrom, dateTo } = resolveDateRange(params);
-    const dateFilter = sql`AND eo.occurred_at >= ${dateFrom.toISOString()} AND eo.occurred_at < ${dateTo.toISOString()}`;
+    const dateFilter = (alias: string) =>
+      sql`AND ${sql.raw(alias)}.occurred_at >= ${dateFrom.toISOString()} AND ${sql.raw(alias)}.occurred_at < ${dateTo.toISOString()}`;
 
     return this.db.transaction(async (tx) => {
       await setTenantContext(tx, organizationId);
@@ -362,7 +363,7 @@ export class ErrorsService {
               FROM ${errorOccurrences} eo2
               WHERE eo2.error_group_id = eg.id
                 AND eo2.organization_id = ${organizationId}
-                ${dateFilter}
+                ${dateFilter('eo2')}
             ) AS "lastSeenAt",
             eg.created_at::text AS "createdAt",
             eg.updated_at::text AS "updatedAt"
@@ -381,7 +382,7 @@ export class ErrorsService {
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
             AND eo.organization_id = ${organizationId}
-            ${dateFilter}
+            ${dateFilter('eo')}
           GROUP BY eo.test_name
           ORDER BY "occurrenceCount" DESC
           LIMIT ${DETAIL_AFFECTED_TESTS_LIMIT}
@@ -394,7 +395,7 @@ export class ErrorsService {
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
             AND eo.organization_id = ${organizationId}
-            ${dateFilter}
+            ${dateFilter('eo')}
           GROUP BY eo.branch
           ORDER BY "occurrenceCount" DESC
           LIMIT ${DETAIL_BRANCHES_LIMIT}
@@ -404,7 +405,7 @@ export class ErrorsService {
           FROM ${errorOccurrences} eo
           WHERE eo.error_group_id = ${params.errorGroupId}
             AND eo.organization_id = ${organizationId}
-            ${dateFilter}
+            ${dateFilter('eo')}
           ORDER BY eo.occurred_at DESC
           LIMIT 1
         `),
