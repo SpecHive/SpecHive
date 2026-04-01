@@ -751,7 +751,7 @@ export async function seed(dbUrl: string, password?: string, scale: SeedScale = 
 
     const totalRuns = allRunRows.length;
     console.log(`\nPhase 1: Inserting ${totalRuns.toLocaleString()} runs...`);
-    await insertBatched(db, runs, allRunRows, 16);
+    await insertBatched(db, runs, allRunRows, 17);
     logProgress('Runs', totalRuns, totalRuns);
 
     // Phase 2: Generate & Insert All Suites

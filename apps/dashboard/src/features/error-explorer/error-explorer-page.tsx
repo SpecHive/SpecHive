@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { ErrorGroupDetailPanel } from './components/error-group-detail-panel';
@@ -21,7 +21,7 @@ import { useUpdateParam } from '@/shared/hooks/use-update-param';
 
 export function ErrorExplorerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { selectedProjectIds, isAllSelected } = useProject();
+  const { selectedProjectIds, isAllSelected, projects, setSelectedProjectIds } = useProject();
   const { sortBy, sortDirection: sortOrder, handleSort } = useSortable({ syncWithUrl: true });
   const {
     days,
@@ -40,6 +40,26 @@ export function ErrorExplorerPage() {
   const category = searchParams.get('category') || '';
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 20;
+
+  // Auto-select project when navigated with projectId param (e.g. from run detail page)
+  const projectIdParam = searchParams.get('projectId');
+  useEffect(() => {
+    if (!projectIdParam) return;
+    if (projects.length === 0) return;
+
+    if (projects.some((p) => p.id === projectIdParam)) {
+      setSelectedProjectIds([projectIdParam]);
+    }
+    // Always clean up the param, even if the project was not found
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('projectId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [projectIdParam, projects, setSelectedProjectIds, setSearchParams]);
 
   // Memoize to prevent infinite re-render loop; round to minute boundary for stability
   const { dateFrom, dateTo } = useMemo(() => {
