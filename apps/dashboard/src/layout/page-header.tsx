@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 import { useProject } from '@/contexts/project-context';
 
@@ -51,18 +52,18 @@ export function PageHeader({
   }
 
   function handleSelectAll() {
-    // Context treats empty array as "all selected"
     setSelectedProjectIds([]);
   }
 
   function handleToggleProject(id: string) {
     if (selectedProjectIds.includes(id)) {
-      // Prevent deselecting last project — fall back to all
       const next = selectedProjectIds.filter((pid) => pid !== id);
-      setSelectedProjectIds(next.length === 0 ? [] : next);
+      if (next.length === 0) {
+        toast.info('Showing all projects');
+      }
+      setSelectedProjectIds(next);
     } else {
       const next = [...selectedProjectIds, id];
-      // If all are now checked, normalise to empty (= all)
       setSelectedProjectIds(next.length === projects.length ? [] : next);
     }
   }
