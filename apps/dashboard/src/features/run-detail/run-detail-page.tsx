@@ -97,7 +97,7 @@ export function RunDetailPage() {
   return (
     <div className="space-y-6">
       <RunHeader run={run} />
-      <RunErrorsSummary runId={id!} branch={run.branch} />
+      <RunErrorsSummary runId={id!} branch={run.branch} projectId={run.projectId} />
 
       <div className="flex gap-6">
         {suites && suites.length > 0 && (
@@ -133,7 +133,11 @@ export function RunDetailPage() {
       </div>
 
       {selectedTestId && testDetail && (
-        <TestDetailDrawer testDetail={testDetail} onClose={() => updateParam('testId', '')} />
+        <TestDetailDrawer
+          testDetail={testDetail}
+          onClose={() => updateParam('testId', '')}
+          projectId={run.projectId}
+        />
       )}
     </div>
   );

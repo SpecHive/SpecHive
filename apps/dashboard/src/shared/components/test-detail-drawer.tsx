@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 
+import { buildErrorsUrl } from '@/features/error-explorer/build-errors-url';
 import { CategoryBadge } from '@/shared/components/category-badge';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { Button } from '@/shared/components/ui/button';
@@ -12,9 +13,11 @@ import type { ArtifactDownloadResponse, TestDetail } from '@/types/api';
 interface TestDetailDrawerProps {
   testDetail: TestDetail;
   onClose: () => void;
+  /** Optional — omitted when the drawer is used outside a project-scoped context */
+  projectId?: string;
 }
 
-export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps) {
+export function TestDetailDrawer({ testDetail, onClose, projectId }: TestDetailDrawerProps) {
   const [stackTraceOpen, setStackTraceOpen] = useState(false);
   const [activeAttempt, setActiveAttempt] = useState<number>(
     testDetail.attempts.length > 0
@@ -128,7 +131,7 @@ export function TestDetailDrawer({ testDetail, onClose }: TestDetailDrawerProps)
                   )}
                   {testDetail.errorGroupId && (
                     <Link
-                      to={`/errors?errorGroupId=${testDetail.errorGroupId}`}
+                      to={buildErrorsUrl({ errorGroupId: testDetail.errorGroupId, projectId })}
                       className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
                       View error group

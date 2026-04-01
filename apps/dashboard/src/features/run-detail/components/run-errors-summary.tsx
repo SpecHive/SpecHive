@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 
+import { buildErrorsUrl } from '@/features/error-explorer/build-errors-url';
 import { CategoryBadge } from '@/shared/components/category-badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useApi } from '@/shared/hooks/use-api';
@@ -8,9 +9,10 @@ import type { RunErrorsSummary } from '@/types/api';
 interface RunErrorsSummaryProps {
   runId: string;
   branch?: string | null;
+  projectId: string;
 }
 
-export function RunErrorsSummary({ runId, branch }: RunErrorsSummaryProps) {
+export function RunErrorsSummary({ runId, branch, projectId }: RunErrorsSummaryProps) {
   const { data, loading } = useApi<RunErrorsSummary>(`/v1/runs/${runId}/errors/summary`);
 
   if (!loading && (!data || data.totalFailedTests === 0 || data.topErrors.length === 0)) {
@@ -41,7 +43,7 @@ export function RunErrorsSummary({ runId, branch }: RunErrorsSummaryProps) {
             {data!.topErrors.slice(0, 5).map((error) => (
               <Link
                 key={error.errorGroupId}
-                to={`/errors?errorGroupId=${error.errorGroupId}`}
+                to={buildErrorsUrl({ errorGroupId: error.errorGroupId, projectId })}
                 className="flex items-center justify-between rounded-md border p-3 text-sm transition-colors hover:bg-accent"
               >
                 <div className="min-w-0 flex-1">
@@ -59,7 +61,7 @@ export function RunErrorsSummary({ runId, branch }: RunErrorsSummaryProps) {
       {!loading && data && (
         <CardFooter>
           <Link
-            to={branch ? `/errors?branch=${encodeURIComponent(branch)}` : '/errors'}
+            to={buildErrorsUrl({ branch: branch || undefined, projectId })}
             className="text-sm text-primary hover:underline"
           >
             View all errors &rarr;
