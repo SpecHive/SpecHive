@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.13...query-api-v0.0.14) (2026-04-02)
+
+
+### Bug Fixes
+
+* **query-api:** export ErrorsModule from modules barrel ([ca376a0](https://github.com/SpecHive/SpecHive/commit/ca376a09a6f04df71f5dc4cf9ed78cf6b4a90ebd))
+
 ## [0.0.13](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.12...query-api-v0.0.13) (2026-04-02)
 
 
