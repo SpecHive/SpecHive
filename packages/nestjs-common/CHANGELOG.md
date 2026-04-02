@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.13](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.12...nestjs-common-v0.0.13) (2026-04-02)
+
+
+### Features
+
+* add expectedTests, immediate test events, reliability fixes ([e2fed12](https://github.com/SpecHive/SpecHive/commit/e2fed12a0387fa5b6505ca5825e6863132385e8d))
+* add expectedTests, immediate test events, reliability fixes ([15b45f8](https://github.com/SpecHive/SpecHive/commit/15b45f8dee58d425a8f03f18a74737269f052365))
+* **logging:** add Grafana Loki log shipping via pino-loki ([1885d17](https://github.com/SpecHive/SpecHive/commit/1885d175d442f8437c4c141653ff7323be4214ac))
+* **logging:** add Grafana Loki log shipping via pino-loki ([851678e](https://github.com/SpecHive/SpecHive/commit/851678eb02250687c8c37a57915182ed4613a161))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.12
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.12](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.11...nestjs-common-v0.0.12) (2026-03-29)
 
 

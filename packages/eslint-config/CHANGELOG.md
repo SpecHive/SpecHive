@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.5](https://github.com/SpecHive/SpecHive/compare/eslint-config-v0.0.4...eslint-config-v0.0.5) (2026-04-02)
+
+
+### Features
+
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+
+
+### Refactoring
+
+* fold error_category CHECK constraint into migration 0026 ([cadc377](https://github.com/SpecHive/SpecHive/commit/cadc377c30e40232411a18b67489ca4036714daa))
+
 ## [0.0.4](https://github.com/SpecHive/SpecHive/compare/eslint-config-v0.0.3...eslint-config-v0.0.4) (2026-03-29)
 
 

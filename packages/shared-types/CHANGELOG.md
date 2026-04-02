@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.4](https://github.com/SpecHive/SpecHive/compare/shared-types-v0.0.3...shared-types-v0.0.4) (2026-04-02)
+
+
+### Features
+
+* add error fingerprinting and grouping for test failures ([45b6f81](https://github.com/SpecHive/SpecHive/commit/45b6f81eab9c45ac9a66a7e0a511875751f60f64))
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+* error fingerprinting with date-scoped lastSeenAt ([2e89efd](https://github.com/SpecHive/SpecHive/commit/2e89efdf7a9a4b49dd080b9ca904a5bb498a8939))
+
+
+### Refactoring
+
+* address error explorer code review findings ([8a45292](https://github.com/SpecHive/SpecHive/commit/8a4529212ba20b5e962469299b725a0cd020a4d3))
+
 ## [0.0.3](https://github.com/SpecHive/SpecHive/compare/shared-types-v0.0.2...shared-types-v0.0.3) (2026-03-24)
 
 

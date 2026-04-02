@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.3](https://github.com/SpecHive/SpecHive/compare/reporter-client-v0.0.2...reporter-client-v0.0.3) (2026-04-02)
+
+
+### Features
+
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+* error fingerprinting with date-scoped lastSeenAt ([2e89efd](https://github.com/SpecHive/SpecHive/commit/2e89efdf7a9a4b49dd080b9ca904a5bb498a8939))
+* **reporter:** add configurable log-level system ([080df7c](https://github.com/SpecHive/SpecHive/commit/080df7c2f8b5a2b0e6589f10b292fe95d09b1432))
+* **reporter:** add configurable log-level system ([2be8322](https://github.com/SpecHive/SpecHive/commit/2be83220277755e5eaa38a1636b69086fc07012d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/reporter-core-protocol bumped to 0.0.4
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.2](https://github.com/SpecHive/SpecHive/compare/reporter-client-v0.0.1...reporter-client-v0.0.2) (2026-03-27)
 
 

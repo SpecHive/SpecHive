@@ -1,6 +1,6 @@
 {
   "name": "@spechive/eslint-config",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "type": "module",
   "description": "Shared ESLint configuration for SpecHive",

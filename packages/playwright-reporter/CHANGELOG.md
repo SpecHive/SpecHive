@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.0.8](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.7...playwright-reporter-v0.0.8) (2026-04-02)
+
+
+### Features
+
+* add error fingerprinting and grouping for test failures ([45b6f81](https://github.com/SpecHive/SpecHive/commit/45b6f81eab9c45ac9a66a7e0a511875751f60f64))
+* add expectedTests, immediate test events, reliability fixes ([e2fed12](https://github.com/SpecHive/SpecHive/commit/e2fed12a0387fa5b6505ca5825e6863132385e8d))
+* add expectedTests, immediate test events, reliability fixes ([15b45f8](https://github.com/SpecHive/SpecHive/commit/15b45f8dee58d425a8f03f18a74737269f052365))
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+* error fingerprinting with date-scoped lastSeenAt ([2e89efd](https://github.com/SpecHive/SpecHive/commit/2e89efdf7a9a4b49dd080b9ca904a5bb498a8939))
+* improve error fingerprinting with reporter-first architecture and UX enhancements ([733e2be](https://github.com/SpecHive/SpecHive/commit/733e2bea925894931b4c3e95105d0fbb2409eb39))
+* **reporter:** add configurable log-level system ([080df7c](https://github.com/SpecHive/SpecHive/commit/080df7c2f8b5a2b0e6589f10b292fe95d09b1432))
+* **reporter:** add configurable log-level system ([2be8322](https://github.com/SpecHive/SpecHive/commit/2be83220277755e5eaa38a1636b69086fc07012d))
+* show color-coded category badges, fix ANSI parsing bug in reporter ([10565fb](https://github.com/SpecHive/SpecHive/commit/10565fb230328925e42f79ecfa10b29d1354c557))
+
+
+### Bug Fixes
+
+* address error explorer code review findings ([3e2df9a](https://github.com/SpecHive/SpecHive/commit/3e2df9a7408e0e31da5784845d76914793deb2af))
+* address error explorer review — correctness, perf, and UX issues ([e3e052a](https://github.com/SpecHive/SpecHive/commit/e3e052a0533cbc9ab05546a3d2ea658fcda850d1))
+* harden error fingerprinting, explorer queries, and reporter parsing ([7edba06](https://github.com/SpecHive/SpecHive/commit/7edba0626751877551f48a84f0f881aa976d4d26))
+* resolve error explorer bugs and add integration tests ([8cf1185](https://github.com/SpecHive/SpecHive/commit/8cf1185c233e4a60af69c8017a77057551e5a6f0))
+
+
+### Refactoring
+
+* address error explorer code review findings ([8a45292](https://github.com/SpecHive/SpecHive/commit/8a4529212ba20b5e962469299b725a0cd020a4d3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @spechive/reporter-client bumped to 0.0.3
+    * @spechive/reporter-core-protocol bumped to 0.0.4
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.7](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.6...playwright-reporter-v0.0.7) (2026-03-27)
 
 

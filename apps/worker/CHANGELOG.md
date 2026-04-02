@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.0.12](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.11...worker-v0.0.12) (2026-04-02)
+
+
+### Features
+
+* add expectedTests, immediate test events, reliability fixes ([e2fed12](https://github.com/SpecHive/SpecHive/commit/e2fed12a0387fa5b6505ca5825e6863132385e8d))
+* add expectedTests, immediate test events, reliability fixes ([15b45f8](https://github.com/SpecHive/SpecHive/commit/15b45f8dee58d425a8f03f18a74737269f052365))
+* add structured error fields to test detail and persist from worker ([79597b1](https://github.com/SpecHive/SpecHive/commit/79597b128a93d2ea501b9efde0a389f2087ac44f))
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+* error fingerprinting with date-scoped lastSeenAt ([2e89efd](https://github.com/SpecHive/SpecHive/commit/2e89efdf7a9a4b49dd080b9ca904a5bb498a8939))
+* improve error fingerprinting with reporter-first architecture and UX enhancements ([733e2be](https://github.com/SpecHive/SpecHive/commit/733e2bea925894931b4c3e95105d0fbb2409eb39))
+
+
+### Bug Fixes
+
+* address error explorer code review — correctness, quality, and test coverage ([f40fb1b](https://github.com/SpecHive/SpecHive/commit/f40fb1bd959cee7dfb9c38f789d3450156383d2e))
+* address error explorer code review findings ([3e2df9a](https://github.com/SpecHive/SpecHive/commit/3e2df9a7408e0e31da5784845d76914793deb2af))
+* address error explorer review — correctness, perf, and UX issues ([e3e052a](https://github.com/SpecHive/SpecHive/commit/e3e052a0533cbc9ab05546a3d2ea658fcda850d1))
+* address error explorer review — correctness, UX, and documentation ([661aad1](https://github.com/SpecHive/SpecHive/commit/661aad147d90ba56b8b0b429b0ab31ee67e9f59a))
+* address error explorer review — fingerprint normalization, ANSI safety, and UX ([6a8b7d1](https://github.com/SpecHive/SpecHive/commit/6a8b7d1137996151aac63c942cf3d908a19445a3))
+* address error explorer review — security, correctness, and shared hooks ([2e7019f](https://github.com/SpecHive/SpecHive/commit/2e7019f11944de2c261b1ca7c5ac4f52d968c75c))
+* harden error fingerprinting, explorer queries, and reporter parsing ([7edba06](https://github.com/SpecHive/SpecHive/commit/7edba0626751877551f48a84f0f881aa976d4d26))
+
+
+### Refactoring
+
+* address error explorer review — dead index, stale code, type safety ([8156398](https://github.com/SpecHive/SpecHive/commit/8156398c2799e0ea572a0f25a7146c0814598464))
+* simplify error explorer — remove dual-path queries and fix review findings ([5220572](https://github.com/SpecHive/SpecHive/commit/5220572fa851434158f9bea23181d9156f562ec1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.12
+    * @spechive/nestjs-common bumped to 0.0.13
+    * @spechive/reporter-core-protocol bumped to 0.0.4
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.11](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.10...worker-v0.0.11) (2026-03-29)
 
 
