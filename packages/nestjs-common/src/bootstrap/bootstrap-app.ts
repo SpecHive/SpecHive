@@ -37,6 +37,16 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
     if (isShuttingDown) return;
     isShuttingDown = true;
     await app.close();
+
+    // Flush pino transport worker thread (drains batched logs to Loki)
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, 5_000); // 5s max flush
+      PinoLogger.root.flush(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+
     process.exit(0);
   };
   process.on('SIGTERM', () => void shutdown());
