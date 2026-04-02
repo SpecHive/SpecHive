@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.0.6](https://github.com/SpecHive/SpecHive/compare/api-types-v0.0.5...api-types-v0.0.6) (2026-04-02)
+
+
+### Features
+
+* add expectedTests, immediate test events, reliability fixes ([e2fed12](https://github.com/SpecHive/SpecHive/commit/e2fed12a0387fa5b6505ca5825e6863132385e8d))
+* add expectedTests, immediate test events, reliability fixes ([15b45f8](https://github.com/SpecHive/SpecHive/commit/15b45f8dee58d425a8f03f18a74737269f052365))
+* add structured error fields to test detail and persist from worker ([79597b1](https://github.com/SpecHive/SpecHive/commit/79597b128a93d2ea501b9efde0a389f2087ac44f))
+* error fingerprinting ([d100c59](https://github.com/SpecHive/SpecHive/commit/d100c597a3c68ab25a79b7aa9f9736458b289e43))
+* error fingerprinting with date-scoped lastSeenAt ([2e89efd](https://github.com/SpecHive/SpecHive/commit/2e89efdf7a9a4b49dd080b9ca904a5bb498a8939))
+* improve error explorer UX — fix overflow, simplify tabs, relocate filters ([6399ae5](https://github.com/SpecHive/SpecHive/commit/6399ae58403d093630bbd7fe1f8386f1ec30c548))
+* improve error fingerprinting with reporter-first architecture and UX enhancements ([733e2be](https://github.com/SpecHive/SpecHive/commit/733e2bea925894931b4c3e95105d0fbb2409eb39))
+* **query-api:** add error explorer endpoints and API types ([7863fc3](https://github.com/SpecHive/SpecHive/commit/7863fc31d910c3f2dacbdf29ae1bb8dbccba738a))
+* show color-coded category badges, fix ANSI parsing bug in reporter ([10565fb](https://github.com/SpecHive/SpecHive/commit/10565fb230328925e42f79ecfa10b29d1354c557))
+
+
+### Bug Fixes
+
+* address error explorer review — security, correctness, and shared hooks ([2e7019f](https://github.com/SpecHive/SpecHive/commit/2e7019f11944de2c261b1ca7c5ac4f52d968c75c))
+
+
+### Refactoring
+
+* address error explorer code review findings ([8a45292](https://github.com/SpecHive/SpecHive/commit/8a4529212ba20b5e962469299b725a0cd020a4d3))
+* address error explorer review — dead index, stale code, type safety ([8156398](https://github.com/SpecHive/SpecHive/commit/8156398c2799e0ea572a0f25a7146c0814598464))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.5](https://github.com/SpecHive/SpecHive/compare/api-types-v0.0.4...api-types-v0.0.5) (2026-03-24)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.13](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.12...ingestion-api-v0.0.13) (2026-04-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.12
+    * @spechive/nestjs-common bumped to 0.0.13
+    * @spechive/reporter-core-protocol bumped to 0.0.4
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.12](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.11...ingestion-api-v0.0.12) (2026-03-29)
 
 

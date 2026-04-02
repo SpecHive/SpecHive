@@ -1,6 +1,6 @@
 {
   "name": "@spechive/api-types",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "AGPL-3.0-only",
   "description": "Typed API response interfaces for SpecHive",
   "type": "module",

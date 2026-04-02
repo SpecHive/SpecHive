@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.12](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.11...gateway-v0.0.12) (2026-04-02)
+
+
+### Features
+
+* add expectedTests, immediate test events, reliability fixes ([e2fed12](https://github.com/SpecHive/SpecHive/commit/e2fed12a0387fa5b6505ca5825e6863132385e8d))
+* add expectedTests, immediate test events, reliability fixes ([15b45f8](https://github.com/SpecHive/SpecHive/commit/15b45f8dee58d425a8f03f18a74737269f052365))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.12
+    * @spechive/nestjs-common bumped to 0.0.13
+    * @spechive/shared-types bumped to 0.0.4
+
 ## [0.0.11](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.10...gateway-v0.0.11) (2026-03-29)
 
 

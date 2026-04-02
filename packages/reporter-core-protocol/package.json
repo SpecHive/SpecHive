@@ -1,6 +1,6 @@
 {
   "name": "@spechive/reporter-core-protocol",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "description": "Core event protocol definitions for SpecHive reporters",
   "type": "module",

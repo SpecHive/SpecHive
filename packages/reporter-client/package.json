@@ -1,6 +1,6 @@
 {
   "name": "@spechive/reporter-client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Shared HTTP client, queue, config, and CI detection for SpecHive reporters",
   "license": "MIT",
   "type": "module",
