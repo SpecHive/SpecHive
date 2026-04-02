@@ -1,6 +1,7 @@
 export { AnalyticsModule } from './analytics/analytics.module';
 export { ArtifactsModule } from './artifacts/artifacts.module';
 export { AuthModule } from './auth/auth.module';
+export { ErrorsModule } from './errors/errors.module';
 export { InvitationsModule } from './invitations/invitations.module';
 export { MembersModule } from './members/members.module';
 export { ProjectsModule } from './projects/projects.module';
