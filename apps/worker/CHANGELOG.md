@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.13](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.12...worker-v0.0.13) (2026-04-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.14
+
 ## [0.0.12](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.11...worker-v0.0.12) (2026-04-02)
 
 

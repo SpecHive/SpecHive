@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.15](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.14...query-api-v0.0.15) (2026-04-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.14
+
 ## [0.0.14](https://github.com/SpecHive/SpecHive/compare/query-api-v0.0.13...query-api-v0.0.14) (2026-04-02)
 
 
