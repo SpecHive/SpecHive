@@ -2,13 +2,15 @@ import { type DynamicModule, RequestMethod } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import type { Params } from 'nestjs-pino';
 
+import { isPinoPrettyAvailable } from './pino-pretty-available';
+
 type PinoTransport = NonNullable<Extract<Params['pinoHttp'], { transport?: unknown }>['transport']>;
 
 function buildTransport(): PinoTransport | undefined {
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!isProduction) {
-    return { target: 'pino-pretty' };
+    return isPinoPrettyAvailable() ? { target: 'pino-pretty' } : undefined;
   }
 
   const lokiHost = process.env.LOKI_HOST;
