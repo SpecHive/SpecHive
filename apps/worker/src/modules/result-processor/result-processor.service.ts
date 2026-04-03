@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { INBOXY_CLIENT, type InboxyClient } from '@outboxy/sdk-nestjs';
 import { type Database, setTenantContext } from '@spechive/database';
@@ -10,6 +10,7 @@ import {
   extractPgError,
 } from '@spechive/nestjs-common';
 import { InjectPinoLogger, PinoLogger } from '@spechive/nestjs-common';
+import { RedisPubSubService } from '@spechive/nestjs-common/redis';
 import { EnrichedEventEnvelopeSchema, type V1Event } from '@spechive/reporter-core-protocol';
 import { type OrganizationId, type ProjectId } from '@spechive/shared-types';
 
@@ -29,9 +30,12 @@ const EVENT_PRIORITY: Record<string, number> = {
   'run.end': 7,
 };
 
+const SSE_DEBOUNCE_MS = 2000;
+
 @Injectable()
-export class ResultProcessorService implements OnModuleInit {
+export class ResultProcessorService implements OnModuleInit, OnModuleDestroy {
   private handlerMap!: Map<V1Event['eventType'], IEventHandler>;
+  private readonly testEndTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     @InjectPinoLogger(ResultProcessorService.name) private readonly logger: PinoLogger,
@@ -39,7 +43,15 @@ export class ResultProcessorService implements OnModuleInit {
     @Inject(INBOXY_CLIENT) private readonly inbox: InboxyClient<Transaction>,
     private readonly discovery: DiscoveryService,
     private readonly reflector: Reflector,
+    private readonly pubsub: RedisPubSubService,
   ) {}
+
+  onModuleDestroy(): void {
+    for (const timer of this.testEndTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.testEndTimers.clear();
+  }
 
   onModuleInit(): void {
     const handlers = this.discovery
@@ -110,6 +122,13 @@ export class ResultProcessorService implements OnModuleInit {
       // Permanent failure — propagate for ERROR logging in the controller.
       throw error;
     }
+
+    // SSE notifications — fire-and-forget after transaction commits
+    this.publishSseNotification(
+      organizationId as OrganizationId,
+      event.eventType,
+      'runId' in event ? (event.runId as string) : undefined,
+    );
   }
 
   sortEventsByPriority(events: OutboxyEvent[]): OutboxyEvent[] {
@@ -128,5 +147,44 @@ export class ResultProcessorService implements OnModuleInit {
     }
 
     this.logger.warn({ eventType: event.eventType }, 'Unknown event type');
+  }
+
+  private publishSseNotification(
+    organizationId: OrganizationId,
+    eventType: string,
+    runId?: string,
+  ): void {
+    const channel = `sse:${organizationId}`;
+
+    if (eventType === 'run.start' && runId) {
+      void this.pubsub.publish(channel, { type: 'run.updated', runId });
+    } else if (eventType === 'test.end' && runId) {
+      this.scheduleRunUpdate(channel, organizationId, runId);
+    } else if (eventType === 'run.end' && runId) {
+      const timerKey = `${organizationId}:${runId}`;
+      const existing = this.testEndTimers.get(timerKey);
+      if (existing) {
+        clearTimeout(existing);
+        this.testEndTimers.delete(timerKey);
+      }
+
+      void this.pubsub.publish(channel, { type: 'run.updated', runId });
+    }
+    // suite.start, suite.end, test.start, artifact.upload — no SSE needed;
+    // dashboard only tracks run-level status changes.
+  }
+
+  /** Debounce test.end notifications — at most one per run per SSE_DEBOUNCE_MS. */
+  private scheduleRunUpdate(channel: string, organizationId: OrganizationId, runId: string): void {
+    const timerKey = `${organizationId}:${runId}`;
+    const existing = this.testEndTimers.get(timerKey);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      this.testEndTimers.delete(timerKey);
+      void this.pubsub.publish(channel, { type: 'run.updated', runId });
+    }, SSE_DEBOUNCE_MS);
+
+    this.testEndTimers.set(timerKey, timer);
   }
 }

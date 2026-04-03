@@ -3,7 +3,8 @@ import { DiscoveryService } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { INBOXY_CLIENT } from '@outboxy/sdk-nestjs';
 import { DATABASE_CONNECTION, RetryableError } from '@spechive/nestjs-common';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { RedisPubSubService } from '@spechive/nestjs-common/redis';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { createMockPinoLogger } from '../../../test/unit-helpers/mock-logger';
 import { EVENT_HANDLER_KEY, type IEventHandler } from '../src/modules/result-processor/handlers';
@@ -72,6 +73,7 @@ describe('ResultProcessorService', () => {
   let mockTx: Record<string, unknown>;
   let mockDb: { transaction: ReturnType<typeof vi.fn> };
   let mockInbox: { receive: ReturnType<typeof vi.fn> };
+  let mockPubSub: { publish: ReturnType<typeof vi.fn> };
   let handlers: IEventHandler[];
 
   beforeEach(async () => {
@@ -82,6 +84,7 @@ describe('ResultProcessorService', () => {
     mockInbox = {
       receive: vi.fn().mockResolvedValue({ eventId: 'inbox-1', status: 'processed' }),
     };
+    mockPubSub = { publish: vi.fn() };
 
     handlers = [
       createMockHandler('run.start'),
@@ -119,6 +122,7 @@ describe('ResultProcessorService', () => {
         { provide: INBOXY_CLIENT, useValue: mockInbox },
         { provide: DiscoveryService, useValue: mockDiscovery },
         { provide: Reflector, useValue: mockReflector },
+        { provide: RedisPubSubService, useValue: mockPubSub },
         createMockPinoLogger('ResultProcessorService'),
       ],
     }).compile();
@@ -219,6 +223,106 @@ describe('ResultProcessorService', () => {
     expect(ctx.tx).toBe(mockTx);
     expect(ctx.organizationId).toBe(ORG_ID);
     expect(ctx.projectId).toBe(PROJECT_ID);
+  });
+
+  describe('SSE notifications', () => {
+    const SSE_CHANNEL = `sse:${ORG_ID}`;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('publishes run.updated immediately on run.start', async () => {
+      const envelope = makeEnvelope('run.start', {});
+
+      await service.processEvent(envelope);
+
+      expect(mockPubSub.publish).toHaveBeenCalledOnce();
+      expect(mockPubSub.publish).toHaveBeenCalledWith(SSE_CHANNEL, {
+        type: 'run.updated',
+        runId: RUN_ID,
+      });
+    });
+
+    it('debounces test.end — publishes once after SSE_DEBOUNCE_MS', async () => {
+      const envelope = makeEnvelope('test.end', { testId: TEST_ID, status: 'passed' });
+
+      await service.processEvent(envelope);
+      await service.processEvent(envelope);
+
+      expect(mockPubSub.publish).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(2000);
+
+      expect(mockPubSub.publish).toHaveBeenCalledOnce();
+      expect(mockPubSub.publish).toHaveBeenCalledWith(SSE_CHANNEL, {
+        type: 'run.updated',
+        runId: RUN_ID,
+      });
+    });
+
+    it('publishes immediately on run.end and cancels pending test.end timer', async () => {
+      const testEndEnvelope = makeEnvelope('test.end', { testId: TEST_ID, status: 'passed' });
+      const runEndEnvelope = makeEnvelope('run.end', { status: 'passed' });
+
+      await service.processEvent(testEndEnvelope);
+      // Timer is pending — do not advance timers yet
+      await service.processEvent(runEndEnvelope);
+
+      expect(mockPubSub.publish).toHaveBeenCalledOnce();
+      expect(mockPubSub.publish).toHaveBeenCalledWith(SSE_CHANNEL, {
+        type: 'run.updated',
+        runId: RUN_ID,
+      });
+
+      // Advancing past the debounce window must NOT trigger the cancelled test.end timer
+      vi.advanceTimersByTime(2000);
+
+      expect(mockPubSub.publish).toHaveBeenCalledOnce();
+    });
+
+    it('does not publish for suite.start, suite.end, test.start, artifact.upload', async () => {
+      await service.processEvent(
+        makeEnvelope('suite.start', { suiteId: SUITE_ID, suiteName: 'Auth Tests' }),
+      );
+      await service.processEvent(makeEnvelope('suite.end', { suiteId: SUITE_ID }));
+      await service.processEvent(
+        makeEnvelope('test.start', {
+          testId: TEST_ID,
+          suiteId: SUITE_ID,
+          testName: 'should login',
+        }),
+      );
+      await service.processEvent(
+        makeEnvelope('artifact.upload', {
+          artifactId: '00000000-0000-4000-a000-000000000040',
+          testId: TEST_ID,
+          artifactType: 'screenshot',
+          name: 'failure.png',
+          storagePath: 'org/proj/run/test/artifact_failure.png',
+        }),
+      );
+
+      vi.advanceTimersByTime(2000);
+
+      expect(mockPubSub.publish).not.toHaveBeenCalled();
+    });
+
+    it('onModuleDestroy clears all pending timers', async () => {
+      const envelope = makeEnvelope('test.end', { testId: TEST_ID, status: 'passed' });
+
+      await service.processEvent(envelope);
+
+      service.onModuleDestroy();
+
+      vi.advanceTimersByTime(2000);
+
+      expect(mockPubSub.publish).not.toHaveBeenCalled();
+    });
   });
 
   describe('error classification', () => {

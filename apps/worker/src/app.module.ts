@@ -11,6 +11,7 @@ import {
   IsProductionModule,
   S3Module,
 } from '@spechive/nestjs-common';
+import { RedisModule } from '@spechive/nestjs-common/redis';
 
 import { ArtifactCleanupModule } from './modules/artifact-cleanup/artifact-cleanup.module';
 import { ConfigModule } from './modules/config/config.module';
@@ -27,6 +28,7 @@ import { WebhookReceiverModule } from './modules/webhook-receiver/webhook-receiv
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),
+    RedisModule.forRootFromEnv(),
     OutboxyModule.forRootAsync({
       useFactory: () => createOutboxyModuleConfig(),
       isGlobal: true,

@@ -6,6 +6,7 @@ export { InvitationsModule } from './invitations/invitations.module';
 export { MembersModule } from './members/members.module';
 export { ProjectsModule } from './projects/projects.module';
 export { RunsModule } from './runs/runs.module';
+export { SseModule } from './sse/sse.module';
 export { SuitesModule } from './suites/suites.module';
 export { TestsModule } from './tests/tests.module';
 export { TokensModule } from './tokens/tokens.module';

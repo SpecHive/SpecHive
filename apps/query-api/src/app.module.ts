@@ -23,6 +23,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 import { MembersModule } from './modules/members/members.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RunsModule } from './modules/runs/runs.module';
+import { SseModule } from './modules/sse/sse.module';
 import { SuitesModule } from './modules/suites/suites.module';
 import { TestsModule } from './modules/tests/tests.module';
 import { TokensModule } from './modules/tokens/tokens.module';
@@ -47,6 +48,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     MembersModule,
     ProjectsModule,
     RunsModule,
+    SseModule,
     SuitesModule,
     TestsModule,
     TokensModule,

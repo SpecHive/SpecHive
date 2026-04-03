@@ -99,6 +99,12 @@ class ApiClient {
     }
   }
 
+  async stream(path: string, init?: RequestInit): Promise<Response> {
+    this.assertConfigured();
+    const url = `${this.baseUrl}${path}`;
+    return this.streamRequest(url, init ?? {});
+  }
+
   private assertConfigured(): void {
     if (!this.baseUrl) {
       throw new Error(
@@ -107,7 +113,21 @@ class ApiClient {
     }
   }
 
-  private async request<T>(url: string, init: RequestInit, isRetry = false): Promise<T> {
+  private handleUnauthorized(): never {
+    this.token = null;
+    if (this.onUnauthorized) {
+      this.onUnauthorized();
+    } else {
+      window.location.href = '/login';
+    }
+    throw new Error('Unauthorized');
+  }
+
+  private async authenticatedFetch(
+    url: string,
+    init: RequestInit,
+    isRetry = false,
+  ): Promise<Response> {
     const headers = new Headers(init.headers);
     if (this.token) {
       headers.set('Authorization', `Bearer ${this.token}`);
@@ -117,28 +137,27 @@ class ApiClient {
 
     if (response.status === 401 && !isRetry) {
       const refreshed = await this.tryRefresh();
-      if (refreshed) {
-        return this.request<T>(url, init, true);
-      }
-
-      this.token = null;
-      if (this.onUnauthorized) {
-        this.onUnauthorized();
-      } else {
-        window.location.href = '/login';
-      }
-      throw new Error('Unauthorized');
+      if (refreshed) return this.authenticatedFetch(url, init, true);
+      this.handleUnauthorized();
     }
 
-    if (response.status === 401) {
-      this.token = null;
-      if (this.onUnauthorized) {
-        this.onUnauthorized();
-      } else {
-        window.location.href = '/login';
-      }
-      throw new Error('Unauthorized');
+    if (response.status === 401) this.handleUnauthorized();
+
+    return response;
+  }
+
+  private async streamRequest(url: string, init: RequestInit): Promise<Response> {
+    const response = await this.authenticatedFetch(url, init);
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Stream failed: ${response.status}`);
     }
+
+    return response;
+  }
+
+  private async request<T>(url: string, init: RequestInit): Promise<T> {
+    const response = await this.authenticatedFetch(url, init);
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));

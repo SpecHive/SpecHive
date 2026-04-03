@@ -19,6 +19,11 @@ export class QueryProxyController {
     return this.proxy.forwardToQuery(req, reply, `/v1/invitations/validate/${token}`);
   }
 
+  @Get('sse/events')
+  streamEvents(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
+    return this.proxy.streamToQuery(req, reply, '/v1/sse/events');
+  }
+
   @All('*')
   catchAll(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
     return this.proxy.forwardToQuery(req, reply, req.url);

@@ -19,9 +19,14 @@ export function useApi<T>(
   const [loading, setLoading] = useState(path !== null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasDataRef = useRef(false);
 
   const serializedParams = params ? JSON.stringify(params) : '';
   const toastId = options?.toastId;
+
+  useEffect(() => {
+    hasDataRef.current = false;
+  }, [path, serializedParams]);
 
   const fetchData = useCallback(async () => {
     if (!path) {
@@ -34,7 +39,9 @@ export function useApi<T>(
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setLoading(true);
+    if (!hasDataRef.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -45,6 +52,7 @@ export function useApi<T>(
       );
       if (!controller.signal.aborted) {
         setData(result);
+        hasDataRef.current = true;
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;

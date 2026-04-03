@@ -14,7 +14,7 @@ const listTestsSchema = paginationSchema.extend({
   status: z.nativeEnum(TestStatus).optional(),
   suiteId: z.string().uuid().optional(),
   sortBy: z.enum(['name', 'status', 'durationMs', 'createdAt']).default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
 @Controller('v1/runs/:runId/tests')

@@ -10,6 +10,7 @@ import Redis from 'ioredis';
 
 import { REDIS_CLIENT } from '../constants';
 
+import { RedisPubSubService } from './redis-pubsub.service';
 import { RedisShutdownService } from './redis-shutdown.service';
 
 @Global()
@@ -28,8 +29,9 @@ export class RedisModule {
           useFactory: options.useFactory,
         },
         RedisShutdownService,
+        RedisPubSubService,
       ],
-      exports: [REDIS_CLIENT],
+      exports: [REDIS_CLIENT, RedisPubSubService],
     };
   }
 

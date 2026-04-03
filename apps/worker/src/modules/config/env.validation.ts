@@ -5,6 +5,7 @@ export const workerEnvShape = baseEnvSchema.extend({
   PORT: z.coerce.number().default(3002),
   WEBHOOK_SECRET: z.string().min(32),
   DATABASE_URL: z.string().url(),
+  REDIS_URL: z.string().url(),
   ...minioEnvSchema.shape,
   ARTIFACT_RETENTION_DAYS: z.coerce.number().int().min(1).default(90),
 });

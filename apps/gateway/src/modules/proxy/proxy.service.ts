@@ -1,4 +1,6 @@
+import http from 'node:http';
 import type { IncomingHttpHeaders } from 'node:http';
+import https from 'node:https';
 
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,10 +19,12 @@ interface AuthenticatedGatewayRequest extends FastifyRequest {
 export class ProxyService {
   private readonly ingestionApiUrl: string;
   private readonly queryApiUrl: string;
+  private readonly corsOrigin: string;
 
   constructor(config: ConfigService<EnvConfig>) {
     this.ingestionApiUrl = config.getOrThrow<string>('INGESTION_API_URL');
     this.queryApiUrl = config.getOrThrow<string>('QUERY_API_URL');
+    this.corsOrigin = config.getOrThrow<string>('CORS_ORIGIN');
   }
 
   forwardToIngestion(req: FastifyRequest, reply: FastifyReply, path: string) {
@@ -37,6 +41,63 @@ export class ProxyService {
       rewriteRequestHeaders: (_origReq, headers) => this.injectHeaders(req, headers),
       rewriteHeaders: (headers) => this.stripUpstreamCorsHeaders(headers),
     });
+  }
+
+  /**
+   * Stream an SSE response from query-api directly to the client,
+   * bypassing @fastify/reply-from which buffers responses.
+   */
+  streamToQuery(req: FastifyRequest, reply: FastifyReply, path: string): void {
+    reply.hijack();
+    const upstream = new URL(`${this.queryApiUrl}${path}`);
+    const headers: Record<string, string> = {};
+    this.injectHeaders(req, headers);
+
+    const transport = upstream.protocol === 'https:' ? https : http;
+
+    const proxyReq = transport.request(
+      {
+        hostname: upstream.hostname,
+        port: upstream.port,
+        path: upstream.pathname + upstream.search,
+        method: 'GET',
+        headers,
+      },
+      (proxyRes) => {
+        const status = proxyRes.statusCode ?? 502;
+
+        const corsHeaders = {
+          'access-control-allow-origin': this.corsOrigin,
+          'access-control-allow-credentials': 'true',
+        };
+
+        if (status === 200) {
+          reply.raw.writeHead(200, {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+            'x-accel-buffering': 'no',
+            ...corsHeaders,
+          });
+        } else {
+          reply.raw.writeHead(status, {
+            'content-type': proxyRes.headers['content-type'] ?? 'application/json',
+            ...corsHeaders,
+          });
+        }
+        proxyRes.pipe(reply.raw);
+      },
+    );
+
+    proxyReq.on('error', () => {
+      if (!reply.raw.headersSent) {
+        reply.raw.writeHead(502);
+      }
+      reply.raw.end();
+    });
+
+    req.raw.on('close', () => proxyReq.destroy());
+    proxyReq.end();
   }
 
   /** Prevent upstream CORS headers from leaking through the proxy — the gateway owns CORS. */

@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { SseProvider } from '@/contexts/sse-context';
 import { RunsPage } from '@/features/runs/runs-page';
 
 const mockUseApi = vi.fn();
@@ -44,7 +45,9 @@ function renderRuns() {
   return render(
     <MemoryRouter initialEntries={['/runs']}>
       <AuthProvider>
-        <RunsPage />
+        <SseProvider>
+          <RunsPage />
+        </SseProvider>
       </AuthProvider>
     </MemoryRouter>,
   );

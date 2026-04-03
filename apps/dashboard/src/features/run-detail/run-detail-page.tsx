@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 
+import { type SseEvent, useSseSubscribe } from '@/contexts/sse-context';
 import { RunErrorsSummary } from '@/features/run-detail/components/run-errors-summary';
 import { RunHeader } from '@/features/run-detail/components/run-header';
 import { TestsTable } from '@/features/run-detail/components/tests-table';
@@ -9,6 +10,7 @@ import { TestDetailDrawer } from '@/shared/components/test-detail-drawer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import type { SortDirection } from '@/shared/components/ui/sortable-header';
 import { useApi } from '@/shared/hooks/use-api';
+import { useDebouncedCallback } from '@/shared/hooks/use-debounced-callback';
 import { useUpdateParam } from '@/shared/hooks/use-update-param';
 import type {
   PaginatedResponse,
@@ -30,7 +32,14 @@ export function RunDetailPage() {
   const [testSortBy, setTestSortBy] = useState<string | null>(null);
   const [testSortOrder, setTestSortOrder] = useState<SortDirection>(null);
 
-  const { data: run, loading: runLoading, error: runError } = useApi<RunDetail>(`/v1/runs/${id}`);
+  const [errorsRefreshKey, setErrorsRefreshKey] = useState(0);
+
+  const {
+    data: run,
+    loading: runLoading,
+    error: runError,
+    refetch: refetchRun,
+  } = useApi<RunDetail>(`/v1/runs/${id}`);
 
   const { data: suites } = useApi<SuiteSummary[]>(id ? `/v1/runs/${id}/suites` : null);
 
@@ -42,10 +51,11 @@ export function RunDetailPage() {
     testParams.sortOrder = testSortOrder;
   }
 
-  const { data: testsData, loading: testsLoading } = useApi<PaginatedResponse<TestSummary>>(
-    id ? `/v1/runs/${id}/tests` : null,
-    testParams,
-  );
+  const {
+    data: testsData,
+    loading: testsLoading,
+    refetch: refetchTests,
+  } = useApi<PaginatedResponse<TestSummary>>(id ? `/v1/runs/${id}/tests` : null, testParams);
 
   const { data: testDetail } = useApi<TestDetail>(
     selectedTestId && id ? `/v1/runs/${id}/tests/${selectedTestId}` : null,
@@ -66,6 +76,30 @@ export function RunDetailPage() {
     setTestStatus(status);
     setTestPage(1);
   }, []);
+
+  const isRunActiveRef = useRef(false);
+  isRunActiveRef.current = run != null && !['passed', 'failed', 'cancelled'].includes(run.status);
+
+  const debouncedRefetch = useDebouncedCallback(() => {
+    refetchRun();
+    refetchTests();
+    setErrorsRefreshKey((k) => k + 1);
+  }, 500);
+
+  const handleSseEvent = useCallback(
+    (event: SseEvent) => {
+      if (!isRunActiveRef.current) return;
+      if (
+        (event.type === 'run.updated' && event.runId === id) ||
+        event.type === 'sse.reconnected'
+      ) {
+        debouncedRefetch();
+      }
+    },
+    [id, debouncedRefetch],
+  );
+
+  useSseSubscribe(handleSseEvent);
 
   const tests = testsData?.data || [];
   const testsMeta = testsData?.meta;
@@ -97,7 +131,12 @@ export function RunDetailPage() {
   return (
     <div className="space-y-6">
       <RunHeader run={run} />
-      <RunErrorsSummary runId={id!} branch={run.branch} projectId={run.projectId} />
+      <RunErrorsSummary
+        runId={id!}
+        branch={run.branch}
+        projectId={run.projectId}
+        refetchSignal={errorsRefreshKey}
+      />
 
       <div className="flex gap-6">
         {suites && suites.length > 0 && (
