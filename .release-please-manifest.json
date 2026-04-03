@@ -6,11 +6,11 @@
   "packages/reporter-core-protocol": "0.0.4",
   "packages/playwright-reporter": "0.0.8",
   "packages/database": "0.0.12",
-  "packages/nestjs-common": "0.0.13",
+  "packages/nestjs-common": "0.0.14",
   "packages/api-types": "0.0.6",
-  "apps/query-api": "0.0.14",
-  "apps/ingestion-api": "0.0.13",
-  "apps/worker": "0.0.12",
+  "apps/query-api": "0.0.15",
+  "apps/ingestion-api": "0.0.14",
+  "apps/worker": "0.0.13",
   "apps/dashboard": "0.0.12",
-  "apps/gateway": "0.0.12"
+  "apps/gateway": "0.0.13"
 }

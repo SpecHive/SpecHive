@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.14](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.13...nestjs-common-v0.0.14) (2026-04-02)
+
+
+### Bug Fixes
+
+* **logging:** gracefully handle missing pino-pretty in non-production Docker images ([42f9825](https://github.com/SpecHive/SpecHive/commit/42f9825519a8b20229ade3fd5c7648170435c142))
+
 ## [0.0.13](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.12...nestjs-common-v0.0.13) (2026-04-02)
 
 
