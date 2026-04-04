@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.16](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.15...ingestion-api-v0.0.16) (2026-04-04)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.16
+
 ## [0.0.15](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.14...ingestion-api-v0.0.15) (2026-04-04)
 
 
