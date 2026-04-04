@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.14](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.13...gateway-v0.0.14) (2026-04-04)
+
+
+### Features
+
+* **dashboard:** add real-time updates via Server-Sent Events ([9a5b43b](https://github.com/SpecHive/SpecHive/commit/9a5b43b7c7fbc252ef52e4e8c1cea0bc00e3a396))
+* **dashboard:** add real-time updates via Server-Sent Events ([4e53a5f](https://github.com/SpecHive/SpecHive/commit/4e53a5fcc87f9d4700787e8853fdfe692414597c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/nestjs-common bumped to 0.0.15
+
 ## [0.0.13](https://github.com/SpecHive/SpecHive/compare/gateway-v0.0.12...gateway-v0.0.13) (2026-04-02)
 
 
