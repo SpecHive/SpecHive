@@ -219,6 +219,7 @@ services:
       PORT: '3002'
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       ARTIFACT_RETENTION_DAYS: ${ARTIFACT_RETENTION_DAYS:?ARTIFACT_RETENTION_DAYS is required}
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
@@ -230,6 +231,8 @@ services:
       spechive-migrate:
         condition: service_completed_successfully
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully

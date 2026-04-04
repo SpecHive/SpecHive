@@ -1,14 +1,16 @@
 import { Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { useProject } from '@/contexts/project-context';
+import { type SseEvent, useSseSubscribe } from '@/contexts/sse-context';
 import { PageHeader } from '@/layout/page-header';
 import { StatusBadge } from '@/shared/components/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Pagination } from '@/shared/components/ui/pagination';
 import { SortableHeader } from '@/shared/components/ui/sortable-header';
 import { useApi } from '@/shared/hooks/use-api';
+import { useDebouncedCallback } from '@/shared/hooks/use-debounced-callback';
 import { useSortable } from '@/shared/hooks/use-sortable';
 import { runStatusOptions } from '@/shared/lib/constants';
 import { formatDuration, formatRelativeTime, truncateId } from '@/shared/lib/formatters';
@@ -54,7 +56,24 @@ export function RunsPage() {
   if (sortBy) params.sortBy = sortBy;
   if (sortOrder) params.sortOrder = sortOrder;
 
-  const { data: runsData, loading } = useApi<PaginatedResponse<RunSummary>>('/v1/runs', params);
+  const {
+    data: runsData,
+    loading,
+    refetch,
+  } = useApi<PaginatedResponse<RunSummary>>('/v1/runs', params);
+
+  const debouncedRefetch = useDebouncedCallback(() => refetch(), 500);
+
+  const handleSseEvent = useCallback(
+    (event: SseEvent) => {
+      if (event.type === 'run.updated' || event.type === 'sse.reconnected') {
+        debouncedRefetch();
+      }
+    },
+    [debouncedRefetch],
+  );
+
+  useSseSubscribe(handleSseEvent);
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);

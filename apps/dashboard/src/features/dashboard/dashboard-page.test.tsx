@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { SseProvider } from '@/contexts/sse-context';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
 
 const mockUseApi = vi.fn();
@@ -115,7 +116,9 @@ function renderDashboard() {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <DashboardPage />
+        <SseProvider>
+          <DashboardPage />
+        </SseProvider>
       </AuthProvider>
     </MemoryRouter>,
   );

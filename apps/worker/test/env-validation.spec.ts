@@ -5,9 +5,12 @@ import { envSchema } from '../src/modules/config/env.validation';
 const VALID_SECRET = 'a]pI0$h8?GxR5^Tf2Lw@m9Nz&kJ7dYqX'; // 33 chars, satisfies min(32)
 const VALID_DATABASE_URL = 'postgres://user:pass@localhost:5432/spechive';
 
+const VALID_REDIS_URL = 'redis://localhost:6379';
+
 const VALID_WORKER_ENV = {
   WEBHOOK_SECRET: VALID_SECRET,
   DATABASE_URL: VALID_DATABASE_URL,
+  REDIS_URL: VALID_REDIS_URL,
 };
 
 describe('worker envSchema', () => {

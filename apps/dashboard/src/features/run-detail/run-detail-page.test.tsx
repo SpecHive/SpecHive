@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { SseProvider } from '@/contexts/sse-context';
 import { RunDetailPage } from '@/features/run-detail/run-detail-page';
 import { apiClient } from '@/shared/lib/api-client';
 
@@ -36,9 +37,11 @@ function renderRunDetail(id = 'abcdefgh-1234-5678-9abc-def012345678') {
   return render(
     <MemoryRouter initialEntries={[`/runs/${id}`]}>
       <AuthProvider>
-        <Routes>
-          <Route path="/runs/:id" element={<RunDetailPage />} />
-        </Routes>
+        <SseProvider>
+          <Routes>
+            <Route path="/runs/:id" element={<RunDetailPage />} />
+          </Routes>
+        </SseProvider>
       </AuthProvider>
     </MemoryRouter>,
   );

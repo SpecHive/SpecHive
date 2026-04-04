@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 
 import { buildErrorsUrl } from '@/features/error-explorer/build-errors-url';
@@ -10,10 +11,26 @@ interface RunErrorsSummaryProps {
   runId: string;
   branch?: string | null;
   projectId: string;
+  refetchSignal?: number;
 }
 
-export function RunErrorsSummary({ runId, branch, projectId }: RunErrorsSummaryProps) {
-  const { data, loading } = useApi<RunErrorsSummary>(`/v1/runs/${runId}/errors/summary`);
+export function RunErrorsSummary({
+  runId,
+  branch,
+  projectId,
+  refetchSignal,
+}: RunErrorsSummaryProps) {
+  const { data, loading, refetch } = useApi<RunErrorsSummary>(`/v1/runs/${runId}/errors/summary`);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    refetch();
+    // refetch identity changes on each render — only trigger on signal value changes
+  }, [refetchSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!loading && (!data || data.totalFailedTests === 0 || data.topErrors.length === 0)) {
     return null;

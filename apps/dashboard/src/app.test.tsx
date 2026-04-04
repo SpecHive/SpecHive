@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '@/contexts/auth-context';
+import { SseProvider } from '@/contexts/sse-context';
 import { DashboardPage } from '@/features/dashboard/dashboard-page';
 
 vi.mock('@/shared/hooks/use-api', () => ({
@@ -47,7 +48,9 @@ function renderDashboard() {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <DashboardPage />
+        <SseProvider>
+          <DashboardPage />
+        </SseProvider>
       </AuthProvider>
     </MemoryRouter>,
   );
