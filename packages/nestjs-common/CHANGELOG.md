@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.16](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.15...nestjs-common-v0.0.16) (2026-04-04)
+
+
+### Bug Fixes
+
+* **nestjs-common:** move @fastify/cookie to production dependencies ([3bfbcca](https://github.com/SpecHive/SpecHive/commit/3bfbcca3febcd32d36a8eac289968c4dfc620c1d))
+
 ## [0.0.15](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.14...nestjs-common-v0.0.15) (2026-04-04)
 
 
