@@ -35,26 +35,26 @@
     "@spechive/reporter-core-protocol": "workspace:*",
     "@spechive/shared-types": "workspace:*",
     "@fastify/helmet": "^13.0.0",
-    "@nestjs/common": "^11.0.0",
+    "@nestjs/common": "^11.1.18",
     "@nestjs/config": "^4.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-fastify": "^11.0.0",
+    "@nestjs/core": "^11.1.18",
+    "@nestjs/platform-fastify": "^11.1.18",
     "@outboxy/dialect-postgres": "^1.1.4",
     "@outboxy/sdk-nestjs": "^2.1.5",
     "argon2": "^0.44.0",
-    "drizzle-orm": "^0.45.0",
+    "drizzle-orm": "^0.45.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "uuidv7": "^1.0.2",
+    "uuidv7": "^1.2.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@spechive/typescript-config": "workspace:*",
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
+    "@nestjs/cli": "^11.0.17",
+    "@nestjs/testing": "^11.1.18",
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.2",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.2"
   }
 }
