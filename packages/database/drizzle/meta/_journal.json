@@ -197,6 +197,13 @@
       "when": 1775048042133,
       "tag": "0027_chemical_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1776172281404,
+      "tag": "0028_retryable_trigger_errcode",
+      "breakpoints": true
     }
   ]
 }
