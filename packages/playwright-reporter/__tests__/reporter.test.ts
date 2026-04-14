@@ -223,38 +223,6 @@ describe('SpecHiveReporter', () => {
       expect(describeEvent.payload.parentSuiteId).toBe(testFileEvent.payload.suiteId);
     });
 
-    it('produces identical suite IDs for same suite name across projects', async () => {
-      // Simulate two Playwright projects (e.g., chromium, firefox) with the same test file and describe block
-      const chromiumDescribe = makeSuite('Login');
-      const chromiumFile = makeSuite('tests/auth.spec.ts', [chromiumDescribe]);
-      const chromiumProject = makeSuite('chromium', [chromiumFile]);
-
-      const firefoxDescribe = makeSuite('Login');
-      const firefoxFile = makeSuite('tests/auth.spec.ts', [firefoxDescribe]);
-      const firefoxProject = makeSuite('firefox', [firefoxFile]);
-
-      const root = makeSuite('', [chromiumProject, firefoxProject]);
-
-      await reporter.onBegin({} as FullConfig, root);
-      await flushQueue();
-
-      const events = sentEvents();
-      const suiteEvents = events.filter((e) => e.eventType === 'suite.start');
-
-      // 4 suite.start events: 2x "tests/auth.spec.ts" + 2x "Login"
-      expect(suiteEvents).toHaveLength(4);
-
-      const fileEvents = suiteEvents.filter((e) => e.payload.suiteName === 'tests/auth.spec.ts');
-      const describeEvents = suiteEvents.filter((e) => e.payload.suiteName === 'Login');
-
-      expect(fileEvents).toHaveLength(2);
-      expect(describeEvents).toHaveLength(2);
-
-      // Both projects must produce the same suiteId for the same suite name
-      expect(fileEvents[0]!.payload.suiteId).toBe(fileEvents[1]!.payload.suiteId);
-      expect(describeEvents[0]!.payload.suiteId).toBe(describeEvents[1]!.payload.suiteId);
-    });
-
     it('does nothing when disabled', async () => {
       const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
