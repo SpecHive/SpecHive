@@ -223,6 +223,58 @@ describe('SpecHiveReporter', () => {
       expect(describeEvent.payload.parentSuiteId).toBe(testFileEvent.payload.suiteId);
     });
 
+    it('produces identical suite IDs for same suite name across projects', async () => {
+      const chromiumFile = makeSuite('tests/auth.spec.ts', [makeSuite('Login')]);
+      const chromiumProject = makeSuite('chromium', [chromiumFile]);
+
+      const firefoxFile = makeSuite('tests/auth.spec.ts', [makeSuite('Login')]);
+      const firefoxProject = makeSuite('firefox', [firefoxFile]);
+
+      const root = makeSuite('', [chromiumProject, firefoxProject]);
+
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const suiteEvents = events.filter((e) => e.eventType === 'suite.start');
+
+      // 4 suite.start events: 2x file + 2x describe (project suites skipped)
+      expect(suiteEvents).toHaveLength(4);
+
+      const fileEvents = suiteEvents.filter((e) => e.payload.suiteName === 'tests/auth.spec.ts');
+      const describeEvents = suiteEvents.filter((e) => e.payload.suiteName === 'Login');
+
+      expect(fileEvents).toHaveLength(2);
+      expect(describeEvents).toHaveLength(2);
+
+      // Both projects produce the same suiteId for the same logical suite
+      expect(fileEvents[0]!.payload.suiteId).toBe(fileEvents[1]!.payload.suiteId);
+      expect(describeEvents[0]!.payload.suiteId).toBe(describeEvents[1]!.payload.suiteId);
+    });
+
+    it('produces different suite IDs for same-name describes under different files', async () => {
+      const authDescribe = makeSuite('Login');
+      const authFile = makeSuite('auth/login.spec.ts', [authDescribe]);
+
+      const adminDescribe = makeSuite('Login');
+      const adminFile = makeSuite('admin/settings.spec.ts', [adminDescribe]);
+
+      const project = makeSuite('chromium', [authFile, adminFile]);
+      const root = makeSuite('', [project]);
+
+      await reporter.onBegin({} as FullConfig, root);
+      await flushQueue();
+
+      const events = sentEvents();
+      const loginEvents = events.filter(
+        (e) => e.eventType === 'suite.start' && e.payload.suiteName === 'Login',
+      );
+
+      expect(loginEvents).toHaveLength(2);
+      // Different parent files → different suiteIds
+      expect(loginEvents[0]!.payload.suiteId).not.toBe(loginEvents[1]!.payload.suiteId);
+    });
+
     it('does nothing when disabled', async () => {
       const r = new SpecHiveReporter({ ...makeConfig(), enabled: false });
       mockSendEvent.mockClear();
