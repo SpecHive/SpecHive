@@ -52,7 +52,9 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   process.on('SIGTERM', () => void shutdown());
   process.on('SIGINT', () => void shutdown());
 
-  await app.register(helmet);
+  // Fastify plugin types lag behind @nestjs/platform-fastify — safe cast
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await app.register(helmet as any);
 
   if (options.fastifyPlugins) {
     await options.fastifyPlugins(app);
@@ -60,7 +62,8 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
 
   if (options.cookies) {
     const cookie = await import('@fastify/cookie');
-    await app.register(cookie.default);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await app.register(cookie.default as any);
   }
 
   const config = app.get(ConfigService);
