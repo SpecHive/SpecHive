@@ -37,7 +37,8 @@
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
     "perf:baseline": "tsx src/perf-baseline.ts",
-    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts"
+    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts",
+    "db:check-migrations": "tsx scripts/check-migrations.ts"
   },
   "files": [
     "dist",
