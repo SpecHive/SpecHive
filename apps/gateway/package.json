@@ -1,6 +1,6 @@
 {
   "name": "@spechive/gateway",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "license": "AGPL-3.0-only",
   "description": "SpecHive API gateway — single external entry point with auth and rate limiting",
   "exports": {

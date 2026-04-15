@@ -1,6 +1,6 @@
 {
   "name": "@spechive/nestjs-common",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "license": "AGPL-3.0-only",
   "description": "Shared NestJS utilities for SpecHive services",
   "main": "./dist/index.js",

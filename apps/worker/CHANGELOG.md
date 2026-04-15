@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.16](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.15...worker-v0.0.16) (2026-04-15)
+
+
+### Bug Fixes
+
+* resolve all pnpm audit vulnerabilities ([0b771d0](https://github.com/SpecHive/SpecHive/commit/0b771d07d9352dc670bea746a4ff614365491872))
+* resolve DLQ'd events from phantom suite IDs ([01fd632](https://github.com/SpecHive/SpecHive/commit/01fd63249749a1bf8e0a29059feccc81d3997d85))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.13
+    * @spechive/nestjs-common bumped to 0.0.17
+
 ## [0.0.15](https://github.com/SpecHive/SpecHive/compare/worker-v0.0.14...worker-v0.0.15) (2026-04-04)
 
 
