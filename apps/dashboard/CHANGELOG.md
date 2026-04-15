@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.14](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.13...dashboard-v0.0.14) (2026-04-15)
+
+
+### Bug Fixes
+
+* resolve all pnpm audit vulnerabilities ([0b771d0](https://github.com/SpecHive/SpecHive/commit/0b771d07d9352dc670bea746a4ff614365491872))
+* resolve DLQ'd events from phantom suite IDs ([01fd632](https://github.com/SpecHive/SpecHive/commit/01fd63249749a1bf8e0a29059feccc81d3997d85))
+
 ## [0.0.13](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.12...dashboard-v0.0.13) (2026-04-04)
 
 

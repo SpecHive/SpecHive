@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.9](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.8...playwright-reporter-v0.0.9) (2026-04-15)
+
+
+### Bug Fixes
+
+* **playwright-reporter:** use deterministic suite IDs across projects ([f36f8b7](https://github.com/SpecHive/SpecHive/commit/f36f8b757bc2ba6bdf03e69cf7c6ac83937433cf))
+* **playwright-reporter:** use deterministic suite IDs with path context ([398698a](https://github.com/SpecHive/SpecHive/commit/398698a241b9b6bc9bcc89f0f0fd39de3b322fda))
+* resolve DLQ'd events from phantom suite IDs ([01fd632](https://github.com/SpecHive/SpecHive/commit/01fd63249749a1bf8e0a29059feccc81d3997d85))
+
 ## [0.0.8](https://github.com/SpecHive/SpecHive/compare/playwright-reporter-v0.0.7...playwright-reporter-v0.0.8) (2026-04-02)
 
 

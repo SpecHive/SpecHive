@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.13](https://github.com/SpecHive/SpecHive/compare/database-v0.0.12...database-v0.0.13) (2026-04-15)
+
+
+### Features
+
+* **database:** add CI migration integrity check ([260d4b7](https://github.com/SpecHive/SpecHive/commit/260d4b759705c60c9f587c375e5734feb56eab9f))
+
+
+### Bug Fixes
+
+* **database:** apply orphaned trigger migration as 0028 ([9fcccc6](https://github.com/SpecHive/SpecHive/commit/9fcccc649dea35edbb9960b3adff088370e06c58))
+* **database:** include parent_suite_id in suites unique constraint ([b61a0fd](https://github.com/SpecHive/SpecHive/commit/b61a0fd2365f044de1405debf0c7cc576f683ea0))
+* resolve all pnpm audit vulnerabilities ([0b771d0](https://github.com/SpecHive/SpecHive/commit/0b771d07d9352dc670bea746a4ff614365491872))
+* resolve DLQ'd events from phantom suite IDs ([01fd632](https://github.com/SpecHive/SpecHive/commit/01fd63249749a1bf8e0a29059feccc81d3997d85))
+
 ## [0.0.12](https://github.com/SpecHive/SpecHive/compare/database-v0.0.11...database-v0.0.12) (2026-04-02)
 
 
