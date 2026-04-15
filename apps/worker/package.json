@@ -46,7 +46,7 @@
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
     "@nestjs/common": "^11.1.19",
-    "@nestjs/config": "^4.0.0",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.19",
     "@nestjs/platform-fastify": "^11.1.19",
     "@nestjs/schedule": "^6.1.1",
@@ -59,16 +59,16 @@
     "drizzle-orm": "^0.45.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "uuidv7": "^1.0.2",
+    "uuidv7": "^1.2.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
+    "@nestjs/cli": "^11.0.19",
+    "@nestjs/testing": "^11.1.19",
     "@spechive/typescript-config": "workspace:*",
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "^4.1.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.4"
   }
 }
