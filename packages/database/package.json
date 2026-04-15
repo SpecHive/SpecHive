@@ -37,7 +37,8 @@
     "db:migrate": "tsx src/migrate.ts",
     "db:seed": "tsx src/seed.ts",
     "perf:baseline": "tsx src/perf-baseline.ts",
-    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts"
+    "backfill:daily-stats": "tsx scripts/backfill-daily-stats.ts",
+    "db:check-migrations": "tsx scripts/check-migrations.ts"
   },
   "files": [
     "dist",
@@ -66,7 +67,7 @@
     "@spechive/shared-types": "workspace:*",
     "argon2": "^0.44.0",
     "dotenv": "^17.3.1",
-    "drizzle-orm": "^0.45.0",
+    "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.5",
     "uuidv7": "^1.0.2"
   },

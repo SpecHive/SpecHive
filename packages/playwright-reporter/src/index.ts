@@ -34,6 +34,23 @@ import type { RunId, SuiteId, TestId } from '@spechive/shared-types';
 import { parsePlaywrightError } from './error-parser.js';
 import type { SpecHiveReporterConfig } from './types.js';
 
+/**
+ * Derive a stable UUID so parallel Playwright projects produce the same
+ * suite ID for the same logical suite. File suites use runId as namespace,
+ * nested describe suites use their parentSuiteId — so same-name describes
+ * under different files get different IDs.
+ */
+function deterministicUuid(namespace: string, name: string): string {
+  const hash = crypto.createHash('sha256').update(`${namespace}:${name}`).digest('hex');
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    '5' + hash.slice(13, 16),
+    ((parseInt(hash[16]!, 16) & 0x3) | 0x8).toString(16) + hash.slice(17, 20),
+    hash.slice(20, 32),
+  ].join('-');
+}
+
 const ARTIFACT_SIZE_LIMIT = 10 * 1024 * 1024;
 const ARTIFACT_SIZE_WARNING = 5 * 1024 * 1024;
 const MAX_ERROR_NAME_LENGTH = 200;
@@ -168,7 +185,11 @@ export default class SpecHiveReporter implements Reporter {
     if (result.retry > 0) return;
 
     const testId = asTestId(crypto.randomUUID());
-    const suiteId = this.suiteMap.get(test.parent) ?? asSuiteId(crypto.randomUUID());
+    const suiteId =
+      this.suiteMap.get(test.parent) ??
+      asSuiteId(
+        test.parent ? deterministicUuid(this.runId, test.parent.title) : crypto.randomUUID(),
+      );
 
     const entry = {
       testId,
@@ -305,7 +326,7 @@ export default class SpecHiveReporter implements Reporter {
         this.walkSuites(child, depth + 1, undefined); // Test files become roots
       } else {
         // Depth 1+ = test files and describe blocks - send normally
-        const suiteId = asSuiteId(crypto.randomUUID());
+        const suiteId = asSuiteId(deterministicUuid(parentSuiteId ?? this.runId, child.title));
         this.suiteMap.set(child, suiteId);
 
         this.reporterQueue.enqueue({

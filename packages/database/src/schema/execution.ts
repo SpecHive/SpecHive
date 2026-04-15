@@ -22,6 +22,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
@@ -106,7 +107,9 @@ export const suites = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex('suites_run_name_idx').on(table.runId, table.name),
+    unique('suites_run_name_parent_unique')
+      .on(table.runId, table.name, table.parentSuiteId)
+      .nullsNotDistinct(),
     index('suites_run_id_idx').on(table.runId),
     index('suites_organization_id_idx').on(table.organizationId),
     index('suites_parent_suite_id_idx').on(table.parentSuiteId),
