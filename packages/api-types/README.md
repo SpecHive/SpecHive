@@ -1,6 +1,6 @@
 # @spechive/api-types
 
-Typed API response interfaces for the [SpecHive](https://github.com/spechive-dev/spechive) query API.
+Typed API response interfaces for the [SpecHive](https://github.com/SpecHive/SpecHive) query API.
 
 ## What's included
 

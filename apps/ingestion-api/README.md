@@ -1,6 +1,6 @@
 # @spechive/ingestion-api
 
-NestJS API for receiving test reporter events for [SpecHive](https://github.com/spechive-dev/spechive).
+NestJS API for receiving test reporter events for [SpecHive](https://github.com/SpecHive/SpecHive).
 
 ## Available modules
 

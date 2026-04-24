@@ -9,7 +9,7 @@
 ## Getting Started
 
 ```bash
-git clone https://github.com/spechive-dev/spechive.git
+git clone https://github.com/SpecHive/SpecHive.git
 cd spechive
 cp .env.example .env
 pnpm install

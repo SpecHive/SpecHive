@@ -1,6 +1,6 @@
 # @spechive/shared-types
 
-Shared TypeScript types for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform.
+Shared TypeScript types for the [SpecHive](https://github.com/SpecHive/SpecHive) test reporting platform.
 
 ## What's included
 

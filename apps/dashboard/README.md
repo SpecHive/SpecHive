@@ -1,6 +1,6 @@
 # @spechive/dashboard
 
-React dashboard UI for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform.
+React dashboard UI for the [SpecHive](https://github.com/SpecHive/SpecHive) test reporting platform.
 
 ## Standalone app
 
