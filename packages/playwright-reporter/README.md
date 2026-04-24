@@ -1,6 +1,6 @@
 # @spechive/playwright-reporter
 
-Playwright reporter for the [SpecHive](https://github.com/spechive-dev/spechive) test reporting platform. Sends test results, retries, and artifacts (screenshots, traces, videos) to your SpecHive instance in real time.
+Playwright reporter for the [SpecHive](https://github.com/SpecHive/SpecHive) test reporting platform. Sends test results, retries, and artifacts (screenshots, traces, videos) to your SpecHive instance in real time.
 
 ## Installation
 

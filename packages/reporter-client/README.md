@@ -1,6 +1,6 @@
 # @spechive/reporter-client
 
-Shared HTTP client, event queue, configuration resolution, and CI detection for [SpecHive](https://github.com/spechive-dev/spechive) test reporters.
+Shared HTTP client, event queue, configuration resolution, and CI detection for [SpecHive](https://github.com/SpecHive/SpecHive) test reporters.
 
 This package is not meant to be used directly by end users. It provides the building blocks that framework-specific reporters (like `@spechive/playwright-reporter`) depend on.
 

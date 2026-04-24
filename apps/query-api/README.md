@@ -1,6 +1,6 @@
 # @spechive/query-api
 
-NestJS API serving dashboard read endpoints with JWT authentication for [SpecHive](https://github.com/spechive-dev/spechive).
+NestJS API serving dashboard read endpoints with JWT authentication for [SpecHive](https://github.com/SpecHive/SpecHive).
 
 ## Available modules
 

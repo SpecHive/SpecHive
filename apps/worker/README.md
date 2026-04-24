@@ -1,6 +1,6 @@
 # @spechive/worker
 
-NestJS worker for processing outbox events for [SpecHive](https://github.com/spechive-dev/spechive).
+NestJS worker for processing outbox events for [SpecHive](https://github.com/SpecHive/SpecHive).
 
 ## Available modules
 
