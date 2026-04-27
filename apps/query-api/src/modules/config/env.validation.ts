@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 export const queryApiEnvShape = baseEnvSchema.extend({
   PORT: z.coerce.number().default(3003),
+  SERVICE_NAME: z.string().min(1).default('query-api'),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),

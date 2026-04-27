@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import {
   createLoggerModule,
   createS3ModuleOptions,
@@ -8,6 +8,8 @@ import {
   GatewayTrustGuard,
   HealthModule,
   IsProductionModule,
+  MetricsInterceptor,
+  MetricsModule,
   RolesGuard,
   S3Module,
 } from '@spechive/nestjs-common';
@@ -35,6 +37,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),
+    MetricsModule.forRootFromEnv(),
     RedisModule.forRootFromEnv(),
     S3Module.forRootAsync({
       inject: [ConfigService],
@@ -55,6 +58,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     ArtifactsModule,
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: GatewayTrustGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

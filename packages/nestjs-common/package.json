@@ -39,7 +39,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/spechive-dev/spechive",
+    "url": "https://github.com/SpecHive/SpecHive",
     "directory": "packages/nestjs-common"
   },
   "keywords": [
@@ -75,7 +75,9 @@
     "ioredis": "^5.10.0",
     "jose": "^6.0.0",
     "nestjs-pino": "^4.6.1",
+    "prom-client": "^14.2.0",
     "pino-loki": "^3.0.0",
+    "rxjs": "^7.8.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

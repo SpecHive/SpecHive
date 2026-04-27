@@ -1,6 +1,6 @@
 # @spechive/nestjs-common
 
-Shared NestJS modules and utilities for [SpecHive](https://github.com/spechive-dev/spechive) backend services.
+Shared NestJS modules and utilities for [SpecHive](https://github.com/SpecHive/SpecHive) backend services.
 
 ## Exported modules
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/orgs/SpecHive/discussions
+    about: Ask questions, share ideas, or discuss SpecHive usage.
+  - name: Security vulnerability
+    url: https://github.com/SpecHive/SpecHive/security/policy
+    about: Please report security issues privately (see SECURITY.md).

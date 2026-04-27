@@ -1,8 +1,9 @@
+import { ConfigModule } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { HealthModule } from '@spechive/nestjs-common';
+import { createLoggerModule, HealthModule } from '@spechive/nestjs-common';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('HealthController (e2e)', () => {
@@ -10,7 +11,7 @@ describe('HealthController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [HealthModule],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), createLoggerModule(), HealthModule],
     }).compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(new FastifyAdapter());

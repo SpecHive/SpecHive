@@ -26,7 +26,7 @@ describe('getRawClient', () => {
       );
     }
 
-    db = createDbConnection(DATABASE_URL, 1);
+    db = createDbConnection(DATABASE_URL, { poolMax: 1 });
   });
 
   afterAll(async () => {
@@ -78,7 +78,7 @@ describe('setTenantContext', () => {
       );
     }
 
-    db = createDbConnection(DATABASE_URL, 1);
+    db = createDbConnection(DATABASE_URL, { poolMax: 1 });
   });
 
   afterAll(async () => {

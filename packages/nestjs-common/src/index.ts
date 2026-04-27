@@ -9,6 +9,7 @@ export { bootstrapNestApp } from './bootstrap/bootstrap-app';
 export type { BootstrapOptions } from './bootstrap/bootstrap-app';
 export { isProductionEnv } from './utils/env-helpers';
 export { escapeLikePattern } from './utils/like-escape';
+export { sanitizeServiceName } from './utils/sanitize-service-name';
 export { extractPgError, DEFAULT_RETRYABLE_PG_CODES } from './utils/pg-error';
 export type { PgErrorInfo } from './utils/pg-error';
 export { RetryableError } from './errors/retryable.error';
@@ -20,7 +21,12 @@ export { ZodValidationPipe } from './pipes/zod-validation.pipe';
 export { GLOBAL_RATE_LIMIT_TTL_MS } from './utils/rate-limit';
 export { ThrottlerBehindProxyGuard } from './guards/throttler-behind-proxy.guard';
 
-export { DATABASE_CONNECTION, IS_PUBLIC_KEY } from './constants';
+export {
+  DATABASE_CONNECTION,
+  INTERNAL_ROUTE_PATHS,
+  IS_PUBLIC_KEY,
+  REDIS_CLIENT,
+} from './constants';
 
 export { DatabaseModule } from './database/database.module';
 export { DatabaseShutdownService } from './database/database-shutdown.service';
@@ -43,3 +49,14 @@ export type { JwtPayload, UserContext } from './auth/index';
 export { ProjectTokenGuard } from './auth/index';
 export type { ProjectContext } from './auth/index';
 export { GatewayTrustGuard } from './auth/index';
+
+export {
+  METRICS_PORT,
+  METRICS_SERVICE,
+  DEFAULT_HISTOGRAM_BUCKETS,
+  MetricsModule,
+  MetricsService,
+  MetricsInterceptor,
+  DbMetricsService,
+} from './metrics';
+export type { MetricsModuleOptions } from './metrics';

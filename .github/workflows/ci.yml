@@ -290,6 +290,7 @@ jobs:
           WORKER_URL: http://host.docker.internal:3002
           JWT_SECRET: 'ci-test-jwt-secret-minimum-64-characters-long-for-testing-only!!'
           REDIS_URL: redis://localhost:6379
+          METRICS_ENABLED: 'false'
 
       - name: Wait for application services
         run: |

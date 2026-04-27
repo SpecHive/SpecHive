@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a bug or unexpected behavior in SpecHive
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the fields below so we can reproduce and fix the issue quickly.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including what you expected to happen.
+      placeholder: When I run `pnpm test:integration`, the worker fails with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the issue.
+      placeholder: |
+        1. Start the stack with `docker compose up -d`
+        2. Run `pnpm test:integration`
+        3. Observe error in the worker logs
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: SpecHive version
+      description: Version or commit SHA (e.g., `1.2.0` or `abc1234`).
+      placeholder: '1.2.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment mode
+      options:
+        - Self-hosted (Docker Compose)
+        - Self-hosted (other)
+        - SpecHive Cloud
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ci-provider
+    attributes:
+      label: CI provider (if reporter-related)
+      options:
+        - Not applicable
+        - GitHub Actions
+        - GitLab CI
+        - Jenkins
+        - CircleCI
+        - Azure DevOps
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs or attach screenshots. Please redact secrets.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node.js version, Docker version, browser (for dashboard bugs).
+      placeholder: macOS 14.5, Node 22.11, Docker 27.3, Chrome 130
+    validations:
+      required: false

@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { HealthController } from '../src/health/health.controller';
 import type { DbHealthIndicator } from '../src/health/indicators/db-health.indicator';
+import type { RedisHealthIndicator } from '../src/health/indicators/redis-health.indicator';
 import type { S3HealthIndicator } from '../src/health/indicators/s3-health.indicator';
 
 describe('HealthController', () => {
   let controller: HealthController;
   let mockHealthCheckService: HealthCheckService;
   let mockDbHealth: DbHealthIndicator;
+  let mockRedisHealth: RedisHealthIndicator;
   let mockS3Health: S3HealthIndicator;
 
   beforeEach(() => {
@@ -24,12 +26,22 @@ describe('HealthController', () => {
       isHealthy: vi.fn().mockResolvedValue({ database: { status: 'up', responseTimeMs: 1 } }),
     } as unknown as DbHealthIndicator;
 
+    mockRedisHealth = {
+      isAvailable: vi.fn().mockReturnValue(true),
+      isHealthy: vi.fn().mockResolvedValue({ redis: { status: 'up', responseTimeMs: 1 } }),
+    } as unknown as RedisHealthIndicator;
+
     mockS3Health = {
       isAvailable: vi.fn().mockReturnValue(true),
       isHealthy: vi.fn().mockResolvedValue({ storage: { status: 'up', responseTimeMs: 2 } }),
     } as unknown as S3HealthIndicator;
 
-    controller = new HealthController(mockHealthCheckService, mockDbHealth, mockS3Health);
+    controller = new HealthController(
+      mockHealthCheckService,
+      mockDbHealth,
+      mockRedisHealth,
+      mockS3Health,
+    );
   });
 
   describe('GET /health (liveness)', () => {
@@ -48,6 +60,17 @@ describe('HealthController', () => {
 
       expect(result.status).toBe('ok');
       expect(mockDbHealth.isHealthy).toHaveBeenCalledWith('database');
+      expect(mockRedisHealth.isHealthy).toHaveBeenCalledWith('redis');
+      expect(mockS3Health.isHealthy).toHaveBeenCalledWith('storage');
+    });
+
+    it('includes Redis check only when available', async () => {
+      (mockRedisHealth.isAvailable as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      await controller.ready();
+
+      expect(mockDbHealth.isHealthy).toHaveBeenCalledWith('database');
+      expect(mockRedisHealth.isHealthy).not.toHaveBeenCalled();
       expect(mockS3Health.isHealthy).toHaveBeenCalledWith('storage');
     });
 
@@ -57,6 +80,7 @@ describe('HealthController', () => {
       await controller.ready();
 
       expect(mockDbHealth.isHealthy).toHaveBeenCalledWith('database');
+      expect(mockRedisHealth.isHealthy).toHaveBeenCalledWith('redis');
       expect(mockS3Health.isHealthy).not.toHaveBeenCalled();
     });
 

@@ -18,6 +18,8 @@ import type { OutboxyEvent } from '../../types/outboxy-envelope';
 
 import { EVENT_HANDLER_KEY, type EventHandlerContext, type IEventHandler } from './handlers';
 
+export type ProcessOutcome = 'processed' | 'duplicate' | 'invalid';
+
 const DEFAULT_EVENT_PRIORITY = 99;
 
 const EVENT_PRIORITY: Record<string, number> = {
@@ -66,16 +68,17 @@ export class ResultProcessorService implements OnModuleInit, OnModuleDestroy {
     this.logger.info({ count: this.handlerMap.size }, 'Event handlers discovered');
   }
 
-  async processEvent(envelope: OutboxyEvent): Promise<void> {
+  async processEvent(envelope: OutboxyEvent): Promise<ProcessOutcome> {
     const parsed = EnrichedEventEnvelopeSchema.safeParse(envelope.payload);
 
     if (!parsed.success) {
       this.logger.error({ err: parsed.error, eventId: envelope.eventId }, 'Invalid event envelope');
-      return;
+      return 'invalid';
     }
 
     const { event, organizationId, projectId } = parsed.data;
 
+    let isDuplicate = false;
     try {
       await this.db.transaction(async (tx) => {
         const result = await this.inbox.receive(
@@ -91,6 +94,7 @@ export class ResultProcessorService implements OnModuleInit, OnModuleDestroy {
 
         if (result.status === 'duplicate') {
           this.logger.warn({ eventId: envelope.eventId }, 'Duplicate event skipped');
+          isDuplicate = true;
           return;
         }
 
@@ -123,12 +127,18 @@ export class ResultProcessorService implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
 
+    if (isDuplicate) {
+      return 'duplicate';
+    }
+
     // SSE notifications — fire-and-forget after transaction commits
     this.publishSseNotification(
       organizationId as OrganizationId,
       event.eventType,
       'runId' in event ? (event.runId as string) : undefined,
     );
+
+    return 'processed';
   }
 
   sortEventsByPriority(events: OutboxyEvent[]): OutboxyEvent[] {

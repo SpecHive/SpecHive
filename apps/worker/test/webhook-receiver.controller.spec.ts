@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { IS_PRODUCTION, RetryableError } from '@spechive/nestjs-common';
+import { IS_PRODUCTION, METRICS_SERVICE, RetryableError } from '@spechive/nestjs-common';
 import type { Mock } from 'vitest';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
@@ -20,6 +20,7 @@ const mockLogger = mockLoggerProvider.useValue;
 describe('WebhookReceiverController', () => {
   let app: NestFastifyApplication;
   const mockProcessEvent = vi.fn();
+  const mockCounterInc = vi.fn();
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -33,6 +34,13 @@ describe('WebhookReceiverController', () => {
           },
         },
         { provide: IS_PRODUCTION, useValue: false },
+        {
+          provide: METRICS_SERVICE,
+          useValue: {
+            enabled: true,
+            createCounter: vi.fn().mockReturnValue({ inc: mockCounterInc }),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -55,7 +63,7 @@ describe('WebhookReceiverController', () => {
   });
 
   it('returns 200 for a valid payload with correct secret', async () => {
-    mockProcessEvent.mockResolvedValue(undefined);
+    mockProcessEvent.mockResolvedValue('processed');
 
     const response = await app.inject({
       method: 'POST',
@@ -69,6 +77,39 @@ describe('WebhookReceiverController', () => {
     expect(body.received).toBe(true);
     expect(body.processed).toBe(1);
     expect(mockProcessEvent).toHaveBeenCalled();
+    expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'success' });
+  });
+
+  it('increments counter with status=duplicate when inbox dedups the event', async () => {
+    mockProcessEvent.mockResolvedValue('duplicate');
+    mockCounterInc.mockClear();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/webhooks/outboxy',
+      headers: { 'x-webhook-secret': WEBHOOK_SECRET },
+      payload: JSON.parse(createWebhookPayload()),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'duplicate' });
+    expect(mockCounterInc).not.toHaveBeenCalledWith({ event_type: 'run.start', status: 'success' });
+  });
+
+  it('increments counter with status=invalid when envelope fails inner schema parse', async () => {
+    mockProcessEvent.mockResolvedValue('invalid');
+    mockCounterInc.mockClear();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/webhooks/outboxy',
+      headers: { 'x-webhook-secret': WEBHOOK_SECRET },
+      payload: JSON.parse(createWebhookPayload()),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'invalid' });
+    expect(mockCounterInc).not.toHaveBeenCalledWith({ event_type: 'run.start', status: 'success' });
   });
 
   it('returns 400 for an invalid payload shape', async () => {
@@ -106,6 +147,7 @@ describe('WebhookReceiverController', () => {
   describe('error handling', () => {
     beforeEach(() => {
       mockProcessEvent.mockReset();
+      mockCounterInc.mockClear();
       (mockLogger.warn as Mock).mockClear();
       (mockLogger.error as Mock).mockClear();
     });
@@ -129,6 +171,7 @@ describe('WebhookReceiverController', () => {
         expect.anything(),
         expect.stringContaining('Failed to process event'),
       );
+      expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'retryable' });
     });
 
     it('logs permanent failure at error level, not warn', async () => {
@@ -150,11 +193,12 @@ describe('WebhookReceiverController', () => {
         expect.anything(),
         expect.stringContaining('Retryable'),
       );
+      expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'failed' });
     });
 
     it('logs summary at error level for mixed batch with non-retryable failures', async () => {
       mockProcessEvent
-        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce('processed')
         .mockRejectedValueOnce(new Error('permanent'));
 
       const payload = {
@@ -190,6 +234,8 @@ describe('WebhookReceiverController', () => {
         expect.objectContaining({ retryableCount: 0 }),
         expect.stringContaining('Batch failures'),
       );
+      expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.start', status: 'success' });
+      expect(mockCounterInc).toHaveBeenCalledWith({ event_type: 'run.end', status: 'failed' });
     });
   });
 });

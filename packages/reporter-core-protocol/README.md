@@ -1,6 +1,6 @@
 # @spechive/reporter-core-protocol
 
-Core event protocol definitions for [SpecHive](https://github.com/spechive-dev/spechive) test reporters.
+Core event protocol definitions for [SpecHive](https://github.com/SpecHive/SpecHive) test reporters.
 
 ## What's included
 

@@ -38,7 +38,10 @@ export class DatabaseModule {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const databaseUrl = config.getOrThrow<string>('DATABASE_URL');
-        return createDbConnection(databaseUrl);
+        // Sets application_name on the Postgres connection so pg_stat_activity can
+        // attribute connections per-service (see DbMetricsService).
+        const applicationName = config.getOrThrow<string>('SERVICE_NAME');
+        return createDbConnection(databaseUrl, { applicationName });
       },
     });
   }

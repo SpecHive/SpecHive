@@ -1,3 +1,5 @@
+import type { Server } from 'node:http';
+
 import helmet from '@fastify/helmet';
 import type { Type } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -8,6 +10,9 @@ import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 
 import type { BaseEnvConfig } from '../config/base-env.schema';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
+import { startMetricsServer } from '../metrics/metrics-server';
+import { METRICS_PORT, METRICS_SERVICE } from '../metrics/metrics.constants';
+import type { MetricsService } from '../metrics/metrics.service';
 
 export interface BootstrapOptions {
   module: Type;
@@ -29,6 +34,8 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   app.useLogger(app.get(Logger));
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
 
+  let metricsServer: Server | null = null;
+
   // enableShutdownHooks() uses process.kill(process.pid, signal) which prevents
   // pino from flushing logs. Custom handler uses process.exit(0) instead.
   // Ref: https://github.com/nestjs/nest/issues/15978
@@ -36,6 +43,11 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   const shutdown = async () => {
     if (isShuttingDown) return;
     isShuttingDown = true;
+
+    if (metricsServer) {
+      await new Promise<void>((resolve) => metricsServer!.close(() => resolve()));
+    }
+
     await app.close();
 
     // Flush pino transport worker thread (drains batched logs to Loki)
@@ -83,6 +95,14 @@ export async function bootstrapNestApp(options: BootstrapOptions): Promise<void>
   app.useGlobalFilters(
     new AllExceptionsFilter(config as ConfigService<BaseEnvConfig>, filterLogger),
   );
+
+  const metrics = app.get<MetricsService>(METRICS_SERVICE);
+  if (metrics.enabled) {
+    const metricsLogger = await app.resolve(PinoLogger);
+    metricsLogger.setContext('MetricsServer');
+    const bindAddress = config.get<string>('METRICS_BIND_ADDR') ?? '0.0.0.0';
+    metricsServer = await startMetricsServer(metrics, METRICS_PORT, metricsLogger, bindAddress);
+  }
 
   await app.listen(port, '0.0.0.0');
 }

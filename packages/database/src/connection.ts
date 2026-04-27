@@ -5,16 +5,30 @@ import postgres from 'postgres';
 
 import * as schema from './schema/index.js';
 
-export function createPostgresClient(url: string, poolMax = 10) {
+/**
+ * Default Postgres pool size. Also referenced by the `DbConnectionsHigh` alert
+ * in `docker/grafana/provisioning/alerting/rules.yml` — keep the alert threshold
+ * (currently 80% of this) in lockstep if the default changes.
+ */
+export const DEFAULT_POOL_MAX = 10;
+
+export interface PostgresClientOptions {
+  poolMax?: number;
+  applicationName?: string;
+}
+
+export function createPostgresClient(url: string, options: PostgresClientOptions = {}) {
+  const { poolMax = DEFAULT_POOL_MAX, applicationName } = options;
   return postgres(url, {
     max: poolMax,
     idle_timeout: 20,
     connect_timeout: 10,
+    ...(applicationName ? { connection: { application_name: applicationName } } : {}),
   });
 }
 
-export function createDbConnection(url: string, poolMax = 10) {
-  const client = createPostgresClient(url, poolMax);
+export function createDbConnection(url: string, options: PostgresClientOptions = {}) {
+  const client = createPostgresClient(url, options);
   return drizzle(client, { schema });
 }
 

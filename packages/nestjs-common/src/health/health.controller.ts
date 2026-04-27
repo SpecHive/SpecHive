@@ -5,6 +5,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { IS_PUBLIC_KEY } from '../constants';
 
 import { DbHealthIndicator } from './indicators/db-health.indicator';
+import { RedisHealthIndicator } from './indicators/redis-health.indicator';
 import { S3HealthIndicator } from './indicators/s3-health.indicator';
 
 @Controller('health')
@@ -14,6 +15,7 @@ export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     private readonly dbHealth: DbHealthIndicator,
+    private readonly redisHealth: RedisHealthIndicator,
     private readonly s3Health: S3HealthIndicator,
   ) {}
 
@@ -32,6 +34,10 @@ export class HealthController {
 
     if (this.dbHealth.isAvailable()) {
       checks.push(() => this.dbHealth.isHealthy('database'));
+    }
+
+    if (this.redisHealth.isAvailable()) {
+      checks.push(() => this.redisHealth.isHealthy('redis'));
     }
 
     if (this.s3Health.isAvailable()) {

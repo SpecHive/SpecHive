@@ -1,6 +1,6 @@
 # @spechive/database
 
-Database schema, connection helpers, and migrations for [SpecHive](https://github.com/spechive-dev/spechive).
+Database schema, connection helpers, and migrations for [SpecHive](https://github.com/SpecHive/SpecHive).
 
 ## What's included
 

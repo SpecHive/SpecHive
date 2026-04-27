@@ -189,7 +189,7 @@ describe('ResultProcessorService', () => {
     expect(handlers[6]!.handle).toHaveBeenCalledOnce();
   });
 
-  it('logs error and returns on invalid payload', async () => {
+  it('logs error and returns "invalid" on invalid payload', async () => {
     const envelope: OutboxyEvent = {
       eventId: 'evt-bad',
       aggregateType: 'TestRun',
@@ -197,15 +197,21 @@ describe('ResultProcessorService', () => {
       eventType: 'run.start',
       payload: { invalid: true },
     };
-    await expect(service.processEvent(envelope)).resolves.toBeUndefined();
+    await expect(service.processEvent(envelope)).resolves.toBe('invalid');
     expect(mockDb.transaction).not.toHaveBeenCalled();
   });
 
-  it('skips handler on duplicate event', async () => {
+  it('skips handler and returns "duplicate" on duplicate event', async () => {
     mockInbox.receive.mockResolvedValue({ eventId: null, status: 'duplicate' });
     const envelope = makeEnvelope('run.start', {});
-    await service.processEvent(envelope);
+    await expect(service.processEvent(envelope)).resolves.toBe('duplicate');
     expect(handlers[0]!.handle).not.toHaveBeenCalled();
+    expect(mockPubSub.publish).not.toHaveBeenCalled();
+  });
+
+  it('returns "processed" after routing to the handler', async () => {
+    const envelope = makeEnvelope('run.start', {});
+    await expect(service.processEvent(envelope)).resolves.toBe('processed');
   });
 
   it('sets RLS context before routing to handler', async () => {
