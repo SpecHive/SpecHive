@@ -253,7 +253,25 @@ jobs:
           pnpm --filter @spechive/gateway build
 
       - name: Start Docker Compose stack
-        run: docker compose -f .github/docker-compose.ci.yml up -d --wait --wait-timeout 180
+        run: docker compose -f .github/docker-compose.ci.yml up -d
+
+      - name: Wait for services
+        run: |
+          set -e
+          echo "Waiting for postgres healthy..."
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T postgres pg_isready -U spechive -d spechive; do sleep 2; done'
+          echo "Waiting for minio healthy..."
+          timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
+          echo "Waiting for redis healthy..."
+          timeout 30 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T redis redis-cli ping; do sleep 2; done'
+          for svc in minio-init spechive-migrate; do
+            echo "Waiting for $svc to finish..."
+            cid=$(docker compose -f .github/docker-compose.ci.yml ps -aq "$svc")
+            [ -n "$cid" ] || { echo "$svc container not found"; exit 1; }
+            code=$(timeout 60 docker wait "$cid")
+            [ "$code" = "0" ] || { echo "$svc exited with code $code"; exit 1; }
+          done
+          echo "All services ready."
 
       - name: Run database migrations
         run: pnpm db:migrate
