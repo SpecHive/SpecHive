@@ -263,6 +263,8 @@ jobs:
           timeout 60 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T minio curl -f http://127.0.0.1:9000/minio/health/live; do sleep 2; done'
           echo "Waiting for redis to be healthy..."
           timeout 30 bash -c 'until docker compose -f .github/docker-compose.ci.yml exec -T redis redis-cli ping; do sleep 2; done'
+          echo "Waiting for minio-init to finish..."
+          docker compose -f .github/docker-compose.ci.yml wait minio-init
           echo "All services are healthy!"
 
       - name: Run database migrations
@@ -321,6 +323,14 @@ jobs:
           POSTGRES_CONTAINER: spechive-ci-postgres-1
           GATEWAY_URL: http://localhost:3000
           REDIS_URL: redis://localhost:6379
+
+      - name: Dump Docker logs on failure
+        if: failure()
+        run: |
+          docker compose -f .github/docker-compose.ci.yml logs --no-color --timestamps minio-init || true
+          docker compose -f .github/docker-compose.ci.yml logs --no-color --timestamps minio || true
+          docker compose -f .github/docker-compose.ci.yml logs --no-color --timestamps postgres || true
+          docker compose -f .github/docker-compose.ci.yml ps -a || true
 
       - name: Cleanup Docker Compose stack
         if: always()
