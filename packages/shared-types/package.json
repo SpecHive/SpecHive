@@ -1,6 +1,6 @@
 {
   "name": "@spechive/shared-types",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "description": "Shared TypeScript types for SpecHive",
   "type": "module",

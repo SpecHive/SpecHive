@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.0.18](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.17...nestjs-common-v0.0.18) (2026-04-28)
+
+
+### Features
+
+* **observability:** metrics and dashboards ([5a4cbc3](https://github.com/SpecHive/SpecHive/commit/5a4cbc3307e13f2a035611dbdb176ae436d65958))
+* **observability:** metrics and dashboards ([b6a11e1](https://github.com/SpecHive/SpecHive/commit/b6a11e1823e7d1a85e8a34d0614653a896fc0232))
+
+
+### Bug Fixes
+
+* correct broken spechive-dev/spechive URL references across repo ([6e89f17](https://github.com/SpecHive/SpecHive/commit/6e89f171e9fa41a8cc3119a2ceab26d3bd83fc9e))
+* **deps:** bump @aws-sdk/client-s3 to ^3.1036.0 to fix XML deserialization ([a7d5121](https://github.com/SpecHive/SpecHive/commit/a7d512123be779c5d48adb35a3873f13e6416318))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.14
+    * @spechive/shared-types bumped to 0.0.5
+  * devDependencies
+    * @spechive/typescript-config bumped to 0.0.5
+
 ## [0.0.17](https://github.com/SpecHive/SpecHive/compare/nestjs-common-v0.0.16...nestjs-common-v0.0.17) (2026-04-15)
 
 

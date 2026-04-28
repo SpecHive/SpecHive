@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.0.15](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.14...dashboard-v0.0.15) (2026-04-28)
+
+
+### Features
+
+* **observability:** metrics and dashboards ([b6a11e1](https://github.com/SpecHive/SpecHive/commit/b6a11e1823e7d1a85e8a34d0614653a896fc0232))
+
+
+### Bug Fixes
+
+* correct broken spechive-dev/spechive URL references across repo ([6e89f17](https://github.com/SpecHive/SpecHive/commit/6e89f171e9fa41a8cc3119a2ceab26d3bd83fc9e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/api-types bumped to 0.0.7
+  * devDependencies
+    * @spechive/typescript-config bumped to 0.0.5
+
 ## [0.0.14](https://github.com/SpecHive/SpecHive/compare/dashboard-v0.0.13...dashboard-v0.0.14) (2026-04-15)
 
 

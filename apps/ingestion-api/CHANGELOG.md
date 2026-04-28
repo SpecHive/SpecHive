@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.0.18](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.17...ingestion-api-v0.0.18) (2026-04-28)
+
+
+### Features
+
+* **observability:** metrics and dashboards ([5a4cbc3](https://github.com/SpecHive/SpecHive/commit/5a4cbc3307e13f2a035611dbdb176ae436d65958))
+* **observability:** metrics and dashboards ([b6a11e1](https://github.com/SpecHive/SpecHive/commit/b6a11e1823e7d1a85e8a34d0614653a896fc0232))
+
+
+### Bug Fixes
+
+* correct broken spechive-dev/spechive URL references across repo ([6e89f17](https://github.com/SpecHive/SpecHive/commit/6e89f171e9fa41a8cc3119a2ceab26d3bd83fc9e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spechive/database bumped to 0.0.14
+    * @spechive/nestjs-common bumped to 0.0.18
+    * @spechive/reporter-core-protocol bumped to 0.0.5
+    * @spechive/shared-types bumped to 0.0.5
+  * devDependencies
+    * @spechive/typescript-config bumped to 0.0.5
+
 ## [0.0.17](https://github.com/SpecHive/SpecHive/compare/ingestion-api-v0.0.16...ingestion-api-v0.0.17) (2026-04-15)
 
 
