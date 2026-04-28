@@ -4,6 +4,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { Throttle, ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
 
 import { ThrottlerBehindProxyGuard } from '../guards/throttler-behind-proxy.guard';
 import { HealthModule } from '../health/health.module';
@@ -23,7 +24,13 @@ class TestThrottledController {
 }
 
 @Module({
-  imports: [ThrottlerModule.forRoot([{ ttl: TEST_THROTTLE_TTL_MS, limit: 10 }]), HealthModule],
+  imports: [
+    // HealthModule's RedisHealthIndicator depends on PinoLogger — provide a silent logger
+    // so the test module compiles without needing the full createLoggerModule() config.
+    LoggerModule.forRoot({ pinoHttp: { level: 'silent' } }),
+    ThrottlerModule.forRoot([{ ttl: TEST_THROTTLE_TTL_MS, limit: 10 }]),
+    HealthModule,
+  ],
   controllers: [TestThrottledController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard }],
 })

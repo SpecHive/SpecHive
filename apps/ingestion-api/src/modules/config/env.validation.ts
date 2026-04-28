@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const envSchema = baseEnvSchema
   .extend({
     PORT: z.coerce.number().default(3001),
+    SERVICE_NAME: z.string().min(1).default('ingestion-api'),
     DATABASE_URL: z.string().url(),
     WORKER_URL: z.string().url(),
     CORS_ORIGIN: z.string().url().default('http://localhost:5173'),

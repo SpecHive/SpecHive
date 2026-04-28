@@ -38,10 +38,15 @@ describe('MinIO/S3 integration tests', () => {
           MaxKeys: 1,
         }),
       );
-    } catch {
+    } catch (err) {
+      const awsName = (err as { name?: string })?.name ?? 'UnknownError';
+      const statusCode = (err as { $metadata?: { httpStatusCode?: number } })?.$metadata
+        ?.httpStatusCode;
+      const detail = statusCode ? `${awsName} (HTTP ${statusCode})` : awsName;
       throw new Error(
-        `MinIO is not accessible at ${protocol}://${MINIO_ENDPOINT}. ` +
+        `MinIO precheck failed at ${protocol}://${MINIO_ENDPOINT} bucket="${MINIO_BUCKET}": ${detail}. ` +
           `Start Docker services: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d minio minio-init`,
+        { cause: err },
       );
     }
   }, 15_000);

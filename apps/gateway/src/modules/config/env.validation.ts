@@ -2,7 +2,7 @@ import { baseEnvSchema } from '@spechive/nestjs-common';
 import { z } from 'zod';
 
 export const gatewayEnvShape = baseEnvSchema.extend({
-  PORT: z.coerce.number().default(3000),
+  SERVICE_NAME: z.string().min(1).default('gateway'),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(16),
   CORS_ORIGIN: z.string().url().default('http://localhost:5173'),

@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: SpecHive
+    orgId: 1
+    folder: SpecHive
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

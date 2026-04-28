@@ -7,7 +7,18 @@ import {
 import type { S3Client } from '@aws-sdk/client-s3';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import type { MetricsService } from '../src/metrics/metrics.service';
 import { S3Service } from '../src/s3/s3.service';
+
+const mockHistogram = { observe: vi.fn() };
+const mockCounter = { inc: vi.fn() };
+
+function createMockMetrics(): MetricsService {
+  return {
+    createHistogram: vi.fn().mockReturnValue(mockHistogram),
+    createCounter: vi.fn().mockReturnValue(mockCounter),
+  } as unknown as MetricsService;
+}
 
 const { mockSend, mockPresignerSend, mockGetSignedUrl } = vi.hoisted(() => ({
   mockSend: vi.fn().mockResolvedValue({}),
@@ -41,6 +52,12 @@ vi.mock('@aws-sdk/client-s3', () => ({
   ) {
     Object.assign(this, input, { _type: 'DeleteObjects' });
   }),
+  HeadObjectCommand: vi.fn().mockImplementation(function (
+    this: Record<string, unknown>,
+    input: Record<string, unknown>,
+  ) {
+    Object.assign(this, input, { _type: 'HeadObject' });
+  }),
 }));
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
@@ -57,7 +74,7 @@ describe('S3Service', () => {
     vi.clearAllMocks();
     mockClient = { send: mockSend } as unknown as S3Client;
     mockPresignerClient = { send: mockPresignerSend } as unknown as S3Client;
-    service = new S3Service(mockClient, mockPresignerClient, TEST_BUCKET);
+    service = new S3Service(mockClient, mockPresignerClient, TEST_BUCKET, createMockMetrics());
   });
 
   describe('upload', () => {
@@ -196,6 +213,95 @@ describe('S3Service', () => {
       await expect(service.deleteMany(['a.txt', 'b.txt'])).rejects.toThrow(
         'Failed to delete 2 object(s) from S3: a.txt, b.txt',
       );
+    });
+  });
+
+  describe('metrics', () => {
+    beforeEach(() => {
+      mockHistogram.observe.mockClear();
+      mockCounter.inc.mockClear();
+    });
+
+    it('records duration and success counter on upload', async () => {
+      await service.upload('key', Buffer.from('data'));
+
+      expect(mockHistogram.observe).toHaveBeenCalledWith(
+        { operation: 'upload', status: 'success' },
+        expect.any(Number),
+      );
+      expect(mockCounter.inc).toHaveBeenCalledWith({ operation: 'upload', status: 'success' });
+    });
+
+    it('records error counter on failed upload', async () => {
+      mockSend.mockRejectedValueOnce(new Error('S3 down'));
+
+      await expect(service.upload('key', Buffer.from('data'))).rejects.toThrow('S3 down');
+
+      expect(mockCounter.inc).toHaveBeenCalledWith({ operation: 'upload', status: 'error' });
+      expect(mockHistogram.observe).toHaveBeenCalledWith(
+        { operation: 'upload', status: 'error' },
+        expect.any(Number),
+      );
+    });
+
+    it('headObject records success for NotFound', async () => {
+      const notFound = new Error('NotFound');
+      notFound.name = 'NotFound';
+      mockSend.mockRejectedValueOnce(notFound);
+
+      const result = await service.headObject('missing-key');
+
+      expect(result).toEqual({ exists: false });
+      expect(mockCounter.inc).toHaveBeenCalledWith({ operation: 'head', status: 'success' });
+    });
+
+    it('headObject records success for NoSuchKey', async () => {
+      const err = new Error('NoSuchKey');
+      err.name = 'NoSuchKey';
+      mockSend.mockRejectedValueOnce(err);
+
+      const result = await service.headObject('missing-key');
+
+      expect(result).toEqual({ exists: false });
+      expect(mockCounter.inc).toHaveBeenCalledWith({ operation: 'head', status: 'success' });
+    });
+
+    it('headObject records error for unexpected errors', async () => {
+      mockSend.mockRejectedValueOnce(new Error('Network failure'));
+
+      await expect(service.headObject('key')).rejects.toThrow('Network failure');
+
+      expect(mockCounter.inc).toHaveBeenCalledWith({ operation: 'head', status: 'error' });
+    });
+
+    it('deleteMany records status=error when response contains partial failures', async () => {
+      mockSend.mockResolvedValueOnce({
+        Errors: [{ Key: 'a.txt', Code: 'AccessDenied' }],
+      });
+
+      await expect(service.deleteMany(['a.txt'])).rejects.toThrow(
+        'Failed to delete 1 object(s) from S3',
+      );
+
+      expect(mockCounter.inc).toHaveBeenCalledWith({
+        operation: 'delete_many',
+        status: 'error',
+      });
+      expect(mockCounter.inc).not.toHaveBeenCalledWith({
+        operation: 'delete_many',
+        status: 'success',
+      });
+    });
+
+    it('deleteMany records status=success when all batches succeed', async () => {
+      mockSend.mockResolvedValueOnce({ Errors: [] });
+
+      await service.deleteMany(['ok.txt']);
+
+      expect(mockCounter.inc).toHaveBeenCalledWith({
+        operation: 'delete_many',
+        status: 'success',
+      });
     });
   });
 });

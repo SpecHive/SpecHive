@@ -1,0 +1,54 @@
+groups:
+  - name: spechive_recording_rules
+    interval: 30s
+    rules:
+      # Pre-computed request rate per service (used by spechive-cloud overview dashboard)
+      - record: spechive:http_requests:rate5m
+        expr: >
+          sum(rate(spechive_http_requests_total[5m])) by (service)
+
+      # Pre-computed 5xx error ratio per service (0-1 range)
+      - record: spechive:http_error_ratio_5xx:rate5m
+        expr: >
+          sum(rate(spechive_http_requests_total{status_code=~"5.."}[5m])) by (service)
+          /
+          (sum(rate(spechive_http_requests_total[5m])) by (service) > 0)
+
+      # Pre-computed request latency quantiles per service
+      - record: spechive:http_request_duration_seconds:p95
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(spechive_http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+      - record: spechive:http_request_duration_seconds:p99
+        expr: >
+          histogram_quantile(0.99,
+            sum(rate(spechive_http_request_duration_seconds_bucket[5m])) by (le, service)
+          )
+
+      # Worker permanent failure ratio (0-100 range, percentage) — excludes retryable (transient/expected).
+      # Denominator excludes `duplicate` so Outboxy redelivery storms don't artificially deflate the ratio.
+      - record: spechive:worker_failure_ratio:rate5m
+        expr: >
+          sum(rate(spechive_worker_events_processed_total{status="failed"}[5m]))
+          /
+          (sum(rate(spechive_worker_events_processed_total{status!="duplicate"}[5m])) > 0)
+          * 100
+
+      # Worker retryable event ratio (0-100 range, informational — transient failures that auto-resolve)
+      - record: spechive:worker_retryable_ratio:rate5m
+        expr: >
+          sum(rate(spechive_worker_events_processed_total{status="retryable"}[5m]))
+          /
+          (sum(rate(spechive_worker_events_processed_total{status!="duplicate"}[5m])) > 0)
+          * 100
+
+      # Worker duplicate event ratio (0-100 range) — surfaces Outboxy redelivery activity.
+      # Sustained > 0 with no corresponding failure spike suggests a retry loop worth investigating.
+      - record: spechive:worker_duplicate_ratio:rate5m
+        expr: >
+          sum(rate(spechive_worker_events_processed_total{status="duplicate"}[5m]))
+          /
+          (sum(rate(spechive_worker_events_processed_total[5m])) > 0)
+          * 100

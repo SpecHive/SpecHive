@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { OutboxyModule } from '@outboxy/sdk-nestjs';
 import {
@@ -9,6 +10,8 @@ import {
   DatabaseModule,
   HealthModule,
   IsProductionModule,
+  MetricsInterceptor,
+  MetricsModule,
   S3Module,
 } from '@spechive/nestjs-common';
 import { RedisModule } from '@spechive/nestjs-common/redis';
@@ -28,6 +31,7 @@ import { WebhookReceiverModule } from './modules/webhook-receiver/webhook-receiv
     IsProductionModule,
     HealthModule,
     DatabaseModule.forRootFromEnv(),
+    MetricsModule.forRootFromEnv(),
     RedisModule.forRootFromEnv(),
     OutboxyModule.forRootAsync({
       useFactory: () => createOutboxyModuleConfig(),
@@ -43,5 +47,6 @@ import { WebhookReceiverModule } from './modules/webhook-receiver/webhook-receiv
     RunCleanupModule,
     ArtifactCleanupModule,
   ],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: MetricsInterceptor }],
 })
 export class AppModule {}

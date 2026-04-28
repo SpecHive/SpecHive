@@ -1,6 +1,6 @@
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import {
   createLoggerModule,
@@ -9,6 +9,8 @@ import {
   HealthModule,
   IsProductionModule,
   JwtAuthGuard,
+  MetricsInterceptor,
+  MetricsModule,
   RolesGuard,
   ThrottlerBehindProxyGuard,
 } from '@spechive/nestjs-common';
@@ -33,9 +35,11 @@ const GATEWAY_RATE_LIMIT_MAX = 200;
     // Required by ProjectTokenGuard — validates project tokens against the database.
     DatabaseModule.forRootFromEnv(),
     HealthModule,
+    MetricsModule.forRootFromEnv(),
     ProxyModule,
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerBehindProxyGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },

@@ -1,0 +1,270 @@
+# OSS-only alert rules. spechive-cloud maintains its own copy with cloud-* job
+# names and any cloud-specific rules (Stripe webhook failures, quota guards, etc.).
+# Do not generalize this file for cloud — keep the rules repo-local so each
+# deployment's alerting surface is explicit.
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: spechive-critical
+    folder: SpecHive Alerts
+    interval: 1m
+    rules:
+      - uid: service-down
+        title: ServiceDown
+        condition: A
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.job }} is down'
+          description: '{{ $labels.job }} ({{ $labels.instance }}) has been unreachable for more than 2 minutes.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: up{job=~"gateway|ingestion_api|worker|query_api|outboxy"} == 0
+              refId: A
+
+      - uid: high-5xx-rate
+        title: High5xxRate
+        condition: A
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'High 5xx error rate on {{ $labels.service }}'
+          description: '{{ $labels.service }} has a 5xx error ratio above 5%.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: spechive:http_error_ratio_5xx:rate5m > 0.05
+              refId: A
+
+      - uid: redis-down
+        title: RedisDown
+        condition: A
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Redis is disconnected on {{ $labels.service }}'
+          description: '{{ $labels.service }} has been disconnected from Redis for more than 5 minutes.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: spechive_redis_connected == 0
+              refId: A
+
+      - uid: outboxy-dlq-critical
+        title: OutboxyDLQCritical
+        condition: A
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Large DLQ backlog
+          description: '{{ $value }} events moved to DLQ in the last 5 minutes. Investigate immediately — may indicate systemic failure in webhook delivery.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: increase(outboxy_events_dlq_total[5m]) > 50
+              refId: A
+
+  - orgId: 1
+    name: spechive-warning
+    folder: SpecHive Alerts
+    interval: 1m
+    rules:
+      - uid: outboxy-dlq
+        title: OutboxyDLQ
+        condition: A
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Events in dead letter queue
+          description: '{{ $value }} event(s) moved to DLQ in the last 5 minutes. Investigate immediately.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              expr: increase(outboxy_events_dlq_total[5m]) > 0
+              refId: A
+
+      - uid: high-p99-latency
+        title: HighP99Latency
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High p99 latency on {{ $labels.service }}'
+          description: '{{ $labels.service }} p99 latency exceeds 5 seconds.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: spechive:http_request_duration_seconds:p99 > 5
+              refId: A
+
+      - uid: outboxy-backlog
+        title: OutboxyBacklogHigh
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Outboxy event backlog is high
+          description: '{{ $value }} events pending for more than 5 minutes. Worker may be unable to keep up.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: outboxy_pending_events > 500
+              refId: A
+
+      - uid: event-loop-blocked
+        title: EventLoopBlocked
+        condition: A
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Event loop blocked on {{ $labels.service }}'
+          description: '{{ $labels.service }} event loop lag averaged above 100ms over 5 minutes.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: avg_over_time(nodejs_eventloop_lag_seconds[5m]) > 0.1
+              refId: A
+
+      - uid: high-memory-usage
+        title: HighMemoryUsage
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High memory usage on {{ $labels.service }}'
+          description: '{{ $labels.service }} RSS exceeds 600MB.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: process_resident_memory_bytes > 600000000
+              refId: A
+
+      - uid: worker-failure-spike
+        title: WorkerFailureSpike
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Worker failure rate is high
+          description: 'Worker event processing failure rate is {{ $value | printf "%.1f" }}% (threshold: 10%).'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: spechive:worker_failure_ratio:rate5m > 10
+              refId: A
+
+      - uid: s3-error-rate
+        title: S3ErrorRate
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High S3 error rate
+          description: 'S3 operations error rate exceeds 5% for more than 5 minutes.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              expr: >
+                sum(rate(spechive_s3_operations_total{status="error"}[5m]))
+                /
+                (sum(rate(spechive_s3_operations_total[5m])) > 0)
+                > 0.05
+              refId: A
+
+      - uid: db-connections-high
+        title: DbConnectionsHigh
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High DB connection count on {{ $labels.service }}'
+          description: '{{ $labels.service }} has {{ $value }} active PostgreSQL connections (threshold: 8 of pool max 10 — pool saturation risk).'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              # Pool max is DEFAULT_POOL_MAX (10) from packages/database/src/connection.ts.
+              # Threshold is ~80% of that. Update both in lockstep if DEFAULT_POOL_MAX changes.
+              # Follow-up backlog: replace with ratio `spechive_db_active_connections / spechive_db_pool_max > 0.8`.
+              expr: spechive_db_active_connections > 8
+              refId: A
+
+      - uid: slow-scrape-target
+        title: SlowScrapeTarget
+        condition: A
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Slow scrape target {{ $labels.job }}'
+          description: '{{ $labels.job }} /metrics response time exceeds 5s — approaching the scrape_timeout (10s) beyond which scrapes fail silently.'
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              # Prometheus scrape_timeout is 10s — warn before targets hit it.
+              expr: scrape_duration_seconds > 5
+              refId: A

@@ -1,0 +1,22 @@
+apiVersion: 1
+contactPoints:
+  # Routine/warning alerts — batched, low-urgency Slack channel
+  - orgId: 1
+    name: spechive-slack
+    receivers:
+      - uid: slack-webhook
+        type: slack
+        settings:
+          url: ${SLACK_WEBHOOK_URL}
+
+  # Critical alerts — point this at a paging channel (Slack channel with @channel +
+  # phone notifications, or a Slack→PagerDuty integration). Set it to the same URL
+  # as spechive-slack only if you do not yet have a paging path — but that loses
+  # the core benefit of this separation.
+  - orgId: 1
+    name: spechive-slack-urgent
+    receivers:
+      - uid: slack-urgent-webhook
+        type: slack
+        settings:
+          url: ${SLACK_URGENT_WEBHOOK_URL}

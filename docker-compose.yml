@@ -13,6 +13,9 @@ networks:
 volumes:
   postgres-data:
   minio-data:
+  prometheus-data:
+  loki-data:
+  grafana-data:
 
 secrets:
   npm_token:
@@ -130,7 +133,7 @@ services:
       DATABASE_URL: postgres://outboxy:${OUTBOXY_PASSWORD:?OUTBOXY_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       PUBLISHER_TYPE: http
     healthcheck:
-      test: ['CMD-SHELL', 'pgrep -f "outboxy" || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:9090/health || exit 1']
       interval: 15s
       timeout: 5s
       retries: 3
@@ -179,6 +182,8 @@ services:
     restart: unless-stopped
     networks:
       - internal
+    expose:
+      - '9464'
     <<: *app-security
     environment:
       <<: *minio-env
@@ -189,6 +194,8 @@ services:
       WORKER_URL: ${WORKER_URL:?WORKER_URL is required}
       TOKEN_HASH_KEY: ${TOKEN_HASH_KEY:?TOKEN_HASH_KEY is required}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
+      SERVICE_NAME: ingestion-api
+      LOKI_HOST: http://loki:3100
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3001/health/ready']
       interval: 10s
@@ -212,6 +219,8 @@ services:
     restart: unless-stopped
     networks:
       - internal
+    expose:
+      - '9464'
     <<: *app-security
     environment:
       <<: *minio-env
@@ -221,6 +230,8 @@ services:
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?WEBHOOK_SECRET is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       ARTIFACT_RETENTION_DAYS: ${ARTIFACT_RETENTION_DAYS:?ARTIFACT_RETENTION_DAYS is required}
+      SERVICE_NAME: worker
+      LOKI_HOST: http://loki:3100
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health/ready']
       interval: 10s
@@ -246,6 +257,8 @@ services:
     restart: unless-stopped
     networks:
       - internal
+    expose:
+      - '9464'
     <<: *app-security
     environment:
       <<: *minio-env
@@ -257,6 +270,8 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:?JWT_REFRESH_EXPIRES_IN is required}
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
       REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      SERVICE_NAME: query-api
+      LOKI_HOST: http://loki:3100
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3003/health/ready']
       interval: 10s
@@ -283,6 +298,8 @@ services:
     networks:
       - spechive-network
       - internal
+    expose:
+      - '9464'
     <<: *app-security
     environment:
       NODE_ENV: production
@@ -292,6 +309,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
       INGESTION_API_URL: ${INGESTION_API_URL:?INGESTION_API_URL is required}
       QUERY_API_URL: ${QUERY_API_URL:?QUERY_API_URL is required}
+      SERVICE_NAME: gateway
+      LOKI_HOST: http://loki:3100
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/health/ready']
       interval: 10s
@@ -331,3 +350,44 @@ services:
     depends_on:
       gateway:
         condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Observability
+  # ---------------------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:v3.3.0
+    restart: unless-stopped
+    networks:
+      - internal
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
+      - prometheus-data:/prometheus
+
+  loki:
+    image: grafana/loki:3.5.0
+    restart: unless-stopped
+    networks:
+      - internal
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki-data:/loki
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    restart: unless-stopped
+    networks:
+      - internal
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is required — warning alerts route here}
+      SLACK_URGENT_WEBHOOK_URL: ${SLACK_URGENT_WEBHOOK_URL:?SLACK_URGENT_WEBHOOK_URL is required — critical/paging alerts route here (ServiceDown, RedisDown, High5xxRate, OutboxyDLQCritical)}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki

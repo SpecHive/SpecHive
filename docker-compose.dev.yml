@@ -54,6 +54,9 @@ services:
       DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       MINIO_ENDPOINT: minio:9000
       WORKER_URL: http://worker:3002
+      METRICS_ENABLED: 'true'
+      SERVICE_NAME: ingestion-api
+      LOKI_HOST: http://loki:3100
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/ingestion-api/src:/app/apps/ingestion-api/src:ro
@@ -77,6 +80,9 @@ services:
       DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       MINIO_ENDPOINT: minio:9000
       REDIS_URL: redis://redis:6379
+      METRICS_ENABLED: 'true'
+      SERVICE_NAME: worker
+      LOKI_HOST: http://loki:3100
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/worker/src:/app/apps/worker/src:ro
@@ -100,6 +106,9 @@ services:
       DATABASE_URL: postgres://spechive_app:${SPECHIVE_APP_PASSWORD:?SPECHIVE_APP_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       MINIO_ENDPOINT: minio:9000
       REDIS_URL: redis://redis:6379
+      METRICS_ENABLED: 'true'
+      SERVICE_NAME: query-api
+      LOKI_HOST: http://loki:3100
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/query-api/src:/app/apps/query-api/src:ro
@@ -121,6 +130,9 @@ services:
       CORS_ORIGIN: http://localhost:5173
       INGESTION_API_URL: http://ingestion-api:3001
       QUERY_API_URL: http://query-api:3003
+      METRICS_ENABLED: 'true'
+      SERVICE_NAME: gateway
+      LOKI_HOST: http://loki:3100
     command: ['sh', '-c', 'node_modules/.bin/nest start --watch']
     volumes:
       - ./apps/gateway/src:/app/apps/gateway/src:ro
@@ -154,3 +166,30 @@ services:
       - ./apps/dashboard/public:/app/apps/dashboard/public:ro
       - ./apps/dashboard/index.html:/app/apps/dashboard/index.html:ro
       - ./packages:/app/packages:ro
+
+  loki:
+    ports:
+      - '3101:3100'
+    networks:
+      - internal
+      - spechive-network
+
+  prometheus:
+    ports:
+      - '9090:9090'
+    networks:
+      - internal
+      - spechive-network
+
+  grafana:
+    ports:
+      - '3100:3000'
+    networks:
+      - internal
+      - spechive-network
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      SLACK_WEBHOOK_URL: http://localhost:9999/dev-null
+      SLACK_URGENT_WEBHOOK_URL: http://localhost:9999/dev-null

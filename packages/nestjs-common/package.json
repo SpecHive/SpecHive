@@ -57,8 +57,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1000.0",
-    "@aws-sdk/s3-request-presigner": "^3.1000.0",
+    "@aws-sdk/client-s3": "^3.1036.0",
+    "@aws-sdk/s3-request-presigner": "^3.1036.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.2",
     "@nestjs/common": "^11.1.19",
@@ -75,7 +75,9 @@
     "ioredis": "^5.10.0",
     "jose": "^6.0.0",
     "nestjs-pino": "^4.6.1",
+    "prom-client": "^14.2.0",
     "pino-loki": "^3.0.0",
+    "rxjs": "^7.8.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

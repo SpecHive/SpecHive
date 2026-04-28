@@ -90,10 +90,9 @@ describe('Graceful shutdown: query-api', () => {
 
     const exit = await waitForExit(child);
 
-    // NestJS re-raises SIGTERM after shutdown hooks complete,
-    // so exit code is null with signal SIGTERM (not process.exit(0))
-    const cleanExit = exit.code === 0 || exit.signal === 'SIGTERM';
-    expect(cleanExit, `Unexpected exit: code=${exit.code}, signal=${exit.signal}`).toBe(true);
+    // bootstrap-app.ts uses a custom SIGTERM handler that calls process.exit(0)
+    // after closing the metrics server, NestJS app, and flushing pino.
+    expect(exit.code, `Unexpected exit: code=${exit.code}, signal=${exit.signal}`).toBe(0);
 
     const combined = output.stdout + output.stderr;
     expect(combined).toContain('Database pool closed');
