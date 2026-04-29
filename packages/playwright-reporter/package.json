@@ -1,6 +1,6 @@
 {
   "name": "@spechive/playwright-reporter",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Playwright reporter for SpecHive test reporting platform",
   "license": "MIT",
   "type": "module",
