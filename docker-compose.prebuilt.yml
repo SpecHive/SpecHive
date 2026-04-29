@@ -26,3 +26,15 @@ services:
   dashboard:
     image: ghcr.io/spechive-dev/spechive-dashboard:latest
     build: !reset null
+
+  prometheus:
+    image: ghcr.io/spechive/spechive-prometheus:latest
+    build: !reset null
+
+  loki:
+    image: ghcr.io/spechive/spechive-loki:latest
+    build: !reset null
+
+  grafana:
+    image: ghcr.io/spechive/spechive-grafana:latest
+    build: !reset null

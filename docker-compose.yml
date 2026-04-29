@@ -356,27 +356,23 @@ services:
   # ---------------------------------------------------------------------------
 
   prometheus:
-    image: prom/prometheus:v3.3.0
+    build: ./docker/prometheus
     restart: unless-stopped
     networks:
       - internal
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./docker/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
       - prometheus-data:/prometheus
 
   loki:
-    image: grafana/loki:3.5.0
+    build: ./docker/loki
     restart: unless-stopped
     networks:
       - internal
-    command: -config.file=/etc/loki/loki-config.yml
     volumes:
-      - ./docker/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki-data:/loki
 
   grafana:
-    image: grafana/grafana:11.6.0
+    build: ./docker/grafana
     restart: unless-stopped
     networks:
       - internal
@@ -386,8 +382,6 @@ services:
       SLACK_URGENT_WEBHOOK_URL: ${SLACK_URGENT_WEBHOOK_URL:?SLACK_URGENT_WEBHOOK_URL is required — critical/paging alerts route here (ServiceDown, RedisDown, High5xxRate, OutboxyDLQCritical)}
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
       - loki
