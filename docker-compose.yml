@@ -360,6 +360,12 @@ services:
     restart: unless-stopped
     networks:
       - internal
+    environment:
+      GATEWAY_HOST: gateway:9464
+      INGESTION_API_HOST: ingestion-api:9464
+      WORKER_HOST: worker:9464
+      QUERY_API_HOST: query-api:9464
+      OUTBOXY_HOST: outboxy-worker:9090
     volumes:
       - prometheus-data:/prometheus
 
@@ -380,6 +386,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL is required — warning alerts route here}
       SLACK_URGENT_WEBHOOK_URL: ${SLACK_URGENT_WEBHOOK_URL:?SLACK_URGENT_WEBHOOK_URL is required — critical/paging alerts route here (ServiceDown, RedisDown, High5xxRate, OutboxyDLQCritical)}
+      PROMETHEUS_URL: http://prometheus:9090
+      LOKI_URL: http://loki:3100
     volumes:
       - grafana-data:/var/lib/grafana
     depends_on:

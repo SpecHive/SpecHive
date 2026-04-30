@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - recording-rules.yml
+
+scrape_configs:
+  - job_name: gateway
+    static_configs:
+      - targets: ['${GATEWAY_HOST}']
+
+  - job_name: ingestion_api
+    static_configs:
+      - targets: ['${INGESTION_API_HOST}']
+
+  - job_name: worker
+    static_configs:
+      - targets: ['${WORKER_HOST}']
+
+  - job_name: query_api
+    static_configs:
+      - targets: ['${QUERY_API_HOST}']
+
+  - job_name: outboxy
+    static_configs:
+      - targets: ['${OUTBOXY_HOST}']
